@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procès-verbal - Validation de thèmes</title>
+    <style>
+        @media print {
+            body { margin: 0; }
+            .page-break { page-break-before: always; }
+        }
+        
+        body {
+            font-family: 'Calibri', Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #ffffff;
+            color: #333;
+        }
+
+        .page {
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 25mm;
+            min-height: 297mm;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #0066cc;
+        }
+        
+        .logo-left, .logo-right {
+            width: 100px;
+            height: auto;
+            background: none;
+            border: none;
+            display: block;
+        }
+        
+        .header-center {
+            text-align: center;
+            flex-grow: 1;
+            margin: 0 20px;
+        }
+        
+        .header-center h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: bold;
+            color: #0066cc;
+        }
+        
+        .header-center p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .document-title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 30px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #0066cc;
+        }
+        
+        .date-info {
+            text-align: right;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #0066cc;
+            border-bottom: 1px solid #0066cc;
+            padding-bottom: 5px;
+        }
+        
+        .section-content {
+            margin-left: 0;
+            text-align: justify;
+        }
+        
+        .student-block {
+            background-color: #f8f9fa;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .student-info {
+            margin-bottom: 10px;
+        }
+        
+        .student-info strong {
+            color: #0066cc;
+        }
+        
+        .recommendations {
+            margin: 10px 0;
+        }
+        
+        .recommendation-item {
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+        
+        .supervisors {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        
+        .supervisor-item {
+            flex: 1;
+            margin: 0 10px;
+        }
+        
+        .general-recommendations {
+            background-color: #e8f4f8;
+            border: 1px solid #0066cc;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            text-align: right;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .placeholder {
+            background-color: #fff3cd;
+            border: 1px dashed #ffc107;
+            padding: 5px;
+            margin: 2px 0;
+            border-radius: 3px;
+            font-style: italic;
+            color: #856404;
+        }
+        
+        .order-list {
+            margin: 10px 0;
+        }
+        
+        .order-list ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .signature-section {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .signature-box {
+            width: 200px;
+            text-align: center;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- En-tête et titre du document -->
+        <div class="header">
+            <img src="../../public/assets/images/ufhb-logo-sbg.png" class="logo-left" alt="Logo gauche">
+            <div class="header-center">
+                <h1>UNIVERSITÉ/INSTITUTION</h1>
+                <p>Filière MIAGE-GI</p>
+                <p>Commission de Validation de Thèmes</p>
+            </div>
+            <img src="../../public/assets/images/logo_mi_sbg.png" class="logo-right" alt="Logo droite">
+        </div>
+        <div class="document-title">
+            PROCÈS-VERBAL DE SÉANCE DE VALIDATION DE THÈMES
+        </div>
+        <div class="date-info">
+            Date : <span class="placeholder">[DATE DU JOUR]</span>
+        </div>
+        <div class="section">
+            <div class="section-title">1. Cadre de la séance</div>
+            <div class="section-content">
+                <p>La séance de validation de thèmes s'est tenue dans le bureau du Prof. KOUA Brou, Responsable de la filière MIAGE-GI, le <span class="placeholder">[DATE]</span>, de <span class="placeholder">[Heure début]</span> à <span class="placeholder">[Heure fin]</span>.</p>
+                
+                <p>La réunion a été présidée par Prof. KOUA Brou et a réuni les membres de la commission de validation suivants :</p>
+                <p class="placeholder">[ÉNUMÉRER LES MEMBRES PRÉSENTS]</p>
+                
+                <p>Au cours de cette séance, <span class="placeholder">[nombre de dossiers examinés]</span> dossiers d'étudiants en fin de cycle ont été examinés.</p>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-title">2. Ordre du jour</div>
+            <div class="section-content">
+                <div class="order-list">
+                    <ol>
+                        <li>Informations</li>
+                        <li>Validation de thèmes</li>
+                        <li>Divers</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <div class="page">
+        <div class="section">
+            <div class="section-title">3. Informations</div>
+            <div class="section-content">
+                <p>Le responsable de la filière a rappelé l'importance des séances de validation pour :</p>
+                <ul>
+                    <li>Structurer l'encadrement académique des étudiants ;</li>
+                    <li>S'assurer de la pertinence et de la faisabilité des sujets proposés ;</li>
+                    <li>Organiser un suivi rigoureux des travaux de mémoire.</li>
+                </ul>
+                <p>Il a également précisé que ces séances se tiendront de manière mensuelle, et qu'elles permettront de faire le point sur les encadrements, le contenu des thèmes, ainsi que sur la progression des étudiants.</p>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-title">4. Validation de thèmes</div>
+            <div class="section-content">
+                
+                <div class="student-block">
+                    <div class="student-info">
+                        <strong>Étudiant :</strong> <span class="placeholder">[NOM DE L'ÉTUDIANT]</span><br>
+                        <strong>Thème :</strong> <span class="placeholder">[THÈME DU MÉMOIRE DE L'ÉTUDIANT]</span>
+                    </div>
+                    
+                    <div class="recommendations">
+                        <strong>Recommandations de la commission :</strong>
+                        <div class="recommendation-item"><span class="placeholder">[RECOMMANDATION N°1]</span></div>
+                        <div class="recommendation-item"><span class="placeholder">[RECOMMANDATION N°2]</span></div>
+                        <div class="recommendation-item"><span class="placeholder">[RECOMMANDATION N°3]</span></div>
+                    </div>
+                    
+                    <div class="supervisors">
+                        <div class="supervisor-item">
+                            <strong>Directeur de mémoire :</strong><br>
+                            <span class="placeholder">[NOM DU DIRECTEUR DE MÉMOIRE]</span>
+                        </div>
+                        <div class="supervisor-item">
+                            <strong>Encadreur pédagogique :</strong><br>
+                            <span class="placeholder">[NOM DE L'ENCADREUR PÉDAGOGIQUE]</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="student-block">
+                    <div class="student-info">
+                        <strong>Étudiant :</strong> <span class="placeholder">[NOM DE L'ÉTUDIANT]</span><br>
+                        <strong>Thème :</strong> <span class="placeholder">[THÈME DU MÉMOIRE DE L'ÉTUDIANT]</span>
+                    </div>
+                    
+                    <div class="recommendations">
+                        <strong>Recommandations de la commission :</strong>
+                        <div class="recommendation-item"><span class="placeholder">[RECOMMANDATION N°1]</span></div>
+                        <div class="recommendation-item"><span class="placeholder">[RECOMMANDATION N°2]</span></div>
+                        <div class="recommendation-item"><span class="placeholder">[RECOMMANDATION N°3]</span></div>
+                    </div>
+                    
+                    <div class="supervisors">
+                        <div class="supervisor-item">
+                            <strong>Directeur de mémoire :</strong><br>
+                            <span class="placeholder">[NOM DU DIRECTEUR DE MÉMOIRE]</span>
+                        </div>
+                        <div class="supervisor-item">
+                            <strong>Encadreur pédagogique :</strong><br>
+                            <span class="placeholder">[NOM DE L'ENCADREUR PÉDAGOGIQUE]</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p style="font-style: italic; color: #666; margin-top: 20px;">
+                    (Répéter ce bloc pour chaque étudiant évalué)
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <div class="page">
+        <div class="section">
+            <div class="section-title">5. Divers</div>
+            <div class="section-content">
+                <p>La commission a recommandé à la direction de la filière de renforcer le partenariat avec les entreprises, qui apprécient la qualité du travail des stagiaires issus de la formation.</p>
+                
+                <div class="general-recommendations">
+                    <strong>Recommandations générales formulées à l'endroit des étudiants :</strong>
+                    <div class="recommendation-item"><span class="placeholder">[RECOMMANDATION N°1]</span></div>
+                    <div class="recommendation-item"><span class="placeholder">[RECOMMANDATION N°2]</span></div>
+                    <div class="recommendation-item"><span class="placeholder">[RECOMMANDATION N°3]</span></div>
+                </div>
+                
+                <p>Les travaux de la commission ont pris fin à <span class="placeholder">[HEURE DE FIN]</span>.</p>
+            </div>
+        </div>
+        <div class="footer">
+            Fait à Abidjan, le <span class="placeholder">[DATE DU JOUR]</span>
+        </div>
+        <div class="signature-section">
+            <div class="signature-box">
+                <strong>Le Président de séance</strong><br>
+                Prof. KOUA Brou
+            </div>
+            <div class="signature-box">
+                <strong>Le Secrétaire de séance</strong><br>
+                [Nom du secrétaire]
+            </div>
+        </div>
+    </div>
+</body>
+</html>

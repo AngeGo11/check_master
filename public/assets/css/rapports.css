@@ -1,0 +1,850 @@
+/* Styles pour upload et boutons */
+.upload-container {
+    border: 2px dashed #ff8c00;
+    border-radius: 8px;
+    padding: 30px 20px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+    background-color: #f7fafc;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-container:hover {
+    border-color: #ff8c00;
+    background-color: #eef5fc;
+}
+
+.upload-icon {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    fill: #ff8c00;
+}
+
+.upload-text {
+    font-size: 16px;
+    color: #7f8c8d;
+    margin-bottom: 8px;
+}
+
+.upload-subtext {
+    font-size: 12px;
+    color: #95a5a6;
+}
+
+#upload-report {
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 24px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.file-preview {
+    display: none;
+    margin-top: 16px;
+    padding: 12px;
+    width: 90%;
+    background-color: #ecf0f1;
+    border-radius: 6px;
+}
+
+.file-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-right: 10px;
+}
+
+.file-size {
+    font-size: 12px;
+    color: #7f8c8d;
+}
+
+.file-remove {
+    color: #ff8c00;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 12px;
+}
+
+/* États de drag & drop */
+.upload-container.dragover {
+    border-color: #ff8c00;
+    background-color: #ff8c00;
+}
+
+
+
+
+.submit-btn {
+    background-color: #1a5276;
+    height: 100%;
+    width: 50%;
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+}
+
+.submit-btn:hover {
+    background-color: #1a5276;
+}
+
+.upload-btn {
+    color: white;
+    width: 50%;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.upload-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+/* Styles des modals */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal.open {
+    display: flex;
+    opacity: 1;
+}
+
+.modal-content {
+    background-color: #fff;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 600px;
+    padding: 30px;
+    position: relative;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    transform: translateY(-20px);
+    transition: transform 0.3s ease;
+}
+
+.modal.open .modal-content {
+    transform: translateY(0);
+}
+
+.top-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.modal-title {
+    color: #333;
+    margin: 0;
+}
+
+.section-title {
+    margin: 30px 20px 15px;
+    color: #333;
+}
+
+.close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+    text-decoration: none;
+}
+
+.close:hover {
+    color: #555;
+}
+
+.form-group {
+    flex: 1 1 calc(50% - 10px);
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #444;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #333;
+    box-sizing: border-box;
+}
+
+.form-group input:focus {
+    border-color: #ff8c00;
+    outline: none;
+}
+
+/* Styles spécifiques pour l'éditeur */
+.container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+
+
+
+
+#editor {
+    height: 600px;
+}
+
+#status {
+    margin-top: 10px;
+    font-size: .9rem;
+}
+
+ /* Styles pour les modals */
+ #create-report-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 2vh;
+    overflow-y: auto;
+}
+
+#create-report-modal .modal-content {
+    background: white;
+    width: 95%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    border-radius: 8px;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Style spécifique pour le modal de création de rapport */
+#create-report-modal .modal-content {
+    padding: 30px;
+}
+
+#create-report-modal .container {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+#create-report-modal .action-card {
+    margin-bottom: 0;
+}
+
+#create-report-modal #editor {
+    height: 65vh;
+    min-height: 500px;
+}
+
+/* Style pour le haut du modal */
+.top-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #333;
+}
+
+.close {
+    color: #666;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.close:hover {
+    color: #333;
+}
+
+/* Animation du modal */
+.modal.open {
+    opacity: 1;
+}
+
+.modal-content {
+    transform: translateY(0);
+    transition: transform 0.3s ease-out;
+}
+
+.modal:not(.open) .modal-content {
+    transform: translateY(-20px);
+}
+
+
+/* Overlay pour les modales */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+/* Styles pour les modales */
+.alert {
+    width: 300px;
+    padding: 30px;
+    text-align: center;
+    background-color: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    display: none;
+    
+    /* Positionnement absolu par rapport à la fenêtre */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    
+    /* S'assurer que rien ne vient interférer */
+    margin: 0 !important;
+    max-width: 90vw;
+}
+
+/* Animations pour les modales */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.alert.fade-out {
+    animation: fadeOut 0.3s ease-in-out;
+}
+
+.alert.fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+
+
+/* Styles pour les éléments internes des modales */
+.alert i {
+    font-size: 80px;
+    padding: 10px;
+}
+
+.alert h1 {
+    font-size: 32px;
+    margin: 0 0 10px;
+    font-weight: bold;
+    color: #222;
+}
+
+.alert p {
+    color: #888;
+    margin: 0 0 30px;
+    line-height: 1.5;
+}
+
+.continue-btn {
+    color: white;
+    border: none;
+    padding: 15px 0;
+    width: 100%;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.arrow {
+    margin-left: 8px;
+}
+
+/* Styles spécifiques pour chaque type de modale */
+.success_approbation .continue-btn, .success_validation .continue-btn {
+    background-color: #4cd964;
+}
+
+.refuse_approbation .continue-btn, .refuse_validation .continue-btn {
+    background-color: #ff3b30;
+}
+
+.wait_approbation .continue-btn, .wait_validation .continue-btn {
+    background-color: #ff9500;
+}
+
+
+.not_submitted .continue-btn {
+    background-color: gray;
+}
+
+
+/* Styles pour la modale des commentaires */
+
+
+ /* Styles pour les modals */
+ 
+.comments-container {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 0 10px;
+}
+
+.comment-card {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
+}
+
+.comment-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e1e4e8;
+}
+
+.comment-author {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.comment-date {
+    color: #7f8c8d;
+    font-size: 0.9em;
+}
+
+.comment-body p {
+    margin: 0;
+    line-height: 1.5;
+    color: #34495e;
+}
+
+.no-comments {
+    text-align: center;
+    padding: 40px 20px;
+    color: #95a5a6;
+}
+
+.no-comments i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.no-comments p {
+    font-size: 16px;
+}
+
+/* Scrollbar personnalisée pour la liste des commentaires */
+.comments-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.comments-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.comments-container::-webkit-scrollbar-thumb {
+    background: #c0c0c0;
+    border-radius: 10px;
+}
+
+.comments-container::-webkit-scrollbar-thumb:hover {
+    background: #a0a0a0;
+}
+
+.comment-badge {
+    background-color: #ff8c00;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    margin-left: 8px;
+}
+
+
+.btn-desactive {
+    background-color: #ccc;
+    color: #666;
+    cursor: not-allowed;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+
+.ql-font-calibri {
+    font-family: 'Calibri', sans-serif;
+  }
+
+  .ql-font-arial {
+    font-family: 'Arial', sans-serif;
+  }
+
+  .ql-font-times-new-roman {
+    font-family: 'Times New Roman', serif;
+  }
+
+  .ql-font-comic-sans-ms {
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+  }
+
+/* Styles pour la modale d'interdiction */
+.forbidden-container {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.forbidden-icon {
+    font-size: 64px;
+    color: #dc3545;
+    margin-bottom: 20px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.forbidden-message h3 {
+    color: #dc3545;
+    font-size: 24px;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.forbidden-message p {
+    color: #6c757d;
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.forbidden-info {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.forbidden-info p {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.forbidden-info ul {
+    margin: 0;
+    padding-left: 20px;
+    color: #6c757d;
+}
+
+.forbidden-info li {
+    margin: 8px 0;
+    line-height: 1.5;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #dee2e6;
+}
+
+.modal-footer .button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-footer .button.secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.modal-footer .button.secondary:hover {
+    background-color: #5a6268;
+}
+
+.modal-footer .button.primary {
+    background-color: #1a5276;
+    color: white;
+}
+
+.modal-footer .button.primary:hover {
+    background-color: #154360;
+}
+
+/* Responsive pour la modale d'interdiction */
+@media (max-width: 768px) {
+    .forbidden-container {
+        padding: 15px 0;
+    }
+    
+    .forbidden-icon {
+        font-size: 48px;
+    }
+    
+    .forbidden-message h3 {
+        font-size: 20px;
+    }
+    
+    .forbidden-message p {
+        font-size: 14px;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+    }
+    
+    .modal-footer .button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Styles pour l'éditeur Quill dans le conteneur OnlyOffice */
+#onlyoffice-container {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+}
+
+#quill-editor {
+    height: 100%;
+    min-height: 500px;
+}
+
+#quill-editor .ql-editor {
+    min-height: 500px;
+    padding: 20px;
+    font-family: 'Times New Roman', serif;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+#quill-editor .ql-toolbar {
+    border-bottom: 1px solid #e0e4e8;
+    background-color: #f8f9fa;
+    padding: 8px;
+}
+
+#quill-editor .ql-container {
+    border: none;
+    font-family: 'Times New Roman', serif;
+}
+
+/* Styles pour les boutons de l'éditeur */
+.button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    margin: 5px;
+}
+
+.button.primary {
+    background-color: #0078d4;
+    color: white;
+}
+
+.button.primary:hover {
+    background-color: #005a9e;
+}
+
+.button.primary:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+.button.secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.button.secondary:hover {
+    background-color: #545b62;
+}
+
+.button.secondary:disabled {
+    background-color: #adb5bd;
+    cursor: not-allowed;
+}
+
+/* Styles pour le statut */
+#status {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Styles pour le placeholder */
+#placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    background: #f5f5f5;
+    color: #666;
+    font-size: 16px;
+}
+
+#placeholder i {
+    font-size: 48px;
+    color: #0078d4;
+    margin-bottom: 16px;
+}
+
+#placeholder p {
+    margin: 0;
+    text-align: center;
+}
+
+/* Styles pour la sélection de modèle */
+.model-selection {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.model-selection label {
+    font-weight: 500;
+    color: #333;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.model-selection select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    min-width: 250px;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+.model-selection select:focus {
+    outline: none;
+    border-color: #0078d4;
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+}
+
+.model-selection select:hover {
+    border-color: #0078d4;
+}
+
+/* Styles pour les options */
+.model-selection option {
+    padding: 8px;
+    font-size: 14px;
+}
+
+/* Responsive pour la sélection de modèle */
+@media (max-width: 768px) {
+    .model-selection {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .model-selection select {
+        min-width: auto;
+        width: 100%;
+    }
+}
+
+

@@ -1,0 +1,7 @@
+RewriteEngine On
+
+# Redirection de toutes les requêtes vers app.php sauf pour les fichiers existants
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ app.php [QSA,L]
+

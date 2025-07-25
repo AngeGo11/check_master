@@ -1,0 +1,655 @@
+:root {
+    --orange: #ff8c00;
+    --white: #ffffff;
+    --green: #4caf50;
+    --secondary: #1a5276;
+    --light-gray: #f5f5f5;
+    --dark-gray: #333333;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--light-gray);
+    color: var(--dark-gray);
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: var(--white);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-title img {
+    width: 100px;
+    height: 80px;
+}
+
+.header-title h1 {
+    color: var(--secondary);
+    margin-bottom: 5px;
+}
+
+.header-title p {
+    color: #666;
+    margin-top: 0;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+}
+
+.notification {
+    background-color: var(--secondary);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    position: relative;
+    color: var(--white);
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: var(--orange);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.user-name {
+    font-weight: 600;
+    color: var(--dark-gray);
+}
+
+.user-role {
+    font-size: 12px;
+    color: #666;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.card {
+    background-color: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.card-header h2 {
+    font-size: 16px;
+    color: var(--dark-gray);
+    margin: 0;
+}
+
+.card-icon {
+    width: 40px;
+    height: 40px;
+    background-color: rgba(26, 82, 118, 0.1);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--secondary);
+}
+
+.card-body .value {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--secondary);
+    margin-bottom: 10px;
+}
+
+.card-footer {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: #666;
+}
+
+.change-indicator {
+    margin-right: 5px;
+    font-weight: bold;
+}
+
+.positive {
+    color: var(--green);
+}
+
+
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 2rem;
+    background-color: white;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab-button {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tab-button.active {
+    color: var(--secondary);
+    border-bottom-color: var(--secondary);
+}
+
+.tab-content {
+    display: none;
+    padding: 2rem;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.card {
+    background-color: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+
+.button {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+
+
+/* Table */
+.table-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    box-sizing: border-box;
+}
+
+th,
+td {
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+th.actions-col,
+td.actions-col {
+    width: 170px;
+    min-width: 140px;
+    text-align: center;
+}
+
+
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+/* Pour éviter que les boutons soient trop serrés sur mobile */
+@media (max-width: 900px) {
+
+    th.actions-col,
+    td.actions-col {
+        width: 110px;
+        min-width: 90px;
+    }
+
+    .action-buttons {
+        gap: 0.5rem;
+    }
+}
+
+.edit {
+    background-color: rgba(26, 82, 118, 0.1);
+    color: var(--secondary);
+}
+
+.edit:hover {
+    background-color: rgba(26, 82, 118, 0.2);
+}
+
+.delete {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+}
+
+.delete:hover {
+    background-color: rgba(231, 76, 60, 0.2);
+}
+
+.user-table-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-table-avatar {
+    width: 40px;
+    height: 40px;
+    background-color: var(--secondary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.user-table-name {
+    font-weight: 600;
+}
+
+.user-table-email {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.action-button {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.view-button {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.edit-button {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.delete-button {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal.open {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 8px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.top-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.modal-title {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #666;
+}
+
+fieldset {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+legend {
+    padding: 0 0.5rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.form-row .form-group {
+    margin-bottom: 0;
+}
+
+fieldset .form-row:last-of-type {
+    margin-bottom: 0;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.submit-btn {
+    padding: 0.75rem 1.5rem;
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+.submit-btn:hover {
+    background-color: #2980b9;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .header-actions {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+
+    .actions-container {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    .modal-content {
+        margin: 1rem;
+        padding: 1rem;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .pagination {
+        flex-wrap: wrap;
+    }
+
+    .page-item {
+        min-width: 30px;
+        height: 30px;
+        font-size: 12px;
+    }
+}
+
+.sexe {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+.radio-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    gap: 10px;
+}
+
+/* Style pour la modale de confirmation de suppression */
+#confirm-suppression-modal .modal-content {
+    background-color: white;
+    border-radius: 8px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+#confirm-suppression-modal .modal-title {
+    font-size: 1.5rem;
+    color: var(--secondary);
+    margin: 0;
+}
+
+#confirm-suppression-modal .close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+}
+
+#confirm-suppression-modal #confirm-message {
+    margin: 1.5rem 0;
+    font-size: 1.1rem;
+    color: var(--dark-gray);
+    text-align: center;
+}
+
+#confirm-suppression-modal .submit-btn.danger {
+    background-color: #e74c3c;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+#confirm-suppression-modal .submit-btn.danger:hover {
+    background-color: #c0392b;
+}
+
+/* Style pour la modale de suppression multiple */
+#modal-delete-multiple .modal-content1 {
+    background-color: white;
+    border-radius: 8px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+}
+
+#modal-delete-multiple .warning-icon {
+    font-size: 3rem;
+    color: #e74c3c;
+    margin-bottom: 1rem;
+}
+
+#modal-delete-multiple h3 {
+    color: var(--secondary);
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+#modal-delete-multiple #delete-message {
+    margin: 1.5rem 0;
+    font-size: 1.1rem;
+    color: var(--dark-gray);
+}
+
+#modal-delete-multiple .modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+#modal-delete-multiple .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+#modal-delete-multiple .btn-danger {
+    background-color: #e74c3c;
+    color: white;
+}
+
+#modal-delete-multiple .btn-danger:hover {
+    background-color: #c0392b;
+}
+
+#modal-delete-multiple .btn-secondary {
+    background-color: #95a5a6;
+    color: white;
+}
+
+#modal-delete-multiple .btn-secondary:hover {
+    background-color: #7f8c8d;
+}

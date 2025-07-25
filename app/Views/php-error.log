@@ -1,0 +1,97 @@
+[09-Jul-2025 18:13:16 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:16 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:16 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:16 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:16 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:16 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:16 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:16 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:16 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:34 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:34 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:34 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:34 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:34 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:34 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:34 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:34 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:34 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:36 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:36 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:36 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:36 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:36 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:36 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:37 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:37 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:37 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:37 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:37 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:37 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:37 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:37 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:37 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:37 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:37 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:37 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:38 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:38 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:38 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:38 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:38 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:38 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:39 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:39 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:39 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:39 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:39 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:39 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:13:39 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:13:39 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:13:39 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:14:06 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:14:06 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:14:06 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:14:06 UTC] Erreur déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:14:06 UTC] PHP Warning:  Cannot modify header information - headers already sent by (output started at C:\wamp64\www\GSCV+\app\Views\index_etudiant.php:236) in C:\wamp64\www\GSCV+\app\Views\soutenances.php on line 121
+[09-Jul-2025 18:14:06 UTC] PHP Stack trace:
+[09-Jul-2025 18:14:06 UTC] PHP   1. {main}() C:\wamp64\www\GSCV+\public\app.php:0
+[09-Jul-2025 18:14:06 UTC] PHP   2. include() C:\wamp64\www\GSCV+\public\app.php:60
+[09-Jul-2025 18:14:06 UTC] PHP   3. include() C:\wamp64\www\GSCV+\app\Views\index_etudiant.php:285
+[09-Jul-2025 18:14:06 UTC] PHP   4. header($header = 'Content-Type: application/json') C:\wamp64\www\GSCV+\app\Views\soutenances.php:121
+[09-Jul-2025 18:14:09 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:14:09 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:14:09 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:14:09 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:14:09 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:14:09 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:14:09 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:14:09 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:14:09 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:18:57 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:18:57 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:18:57 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:18:57 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:18:57 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:18:57 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:18:57 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:18:57 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:18:57 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:18:57 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:18:57 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:18:57 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:18:58 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:18:58 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:18:58 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:18:58 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:18:58 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:18:58 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:19:11 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:19:11 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:19:11 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:19:11 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:19:11 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:19:11 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause
+[09-Jul-2025 18:19:11 UTC] Erreur récupération déclaration stage: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.stage' n'existe pas
+[09-Jul-2025 18:19:11 UTC] Erreur récupération rapport: SQLSTATE[42S02]: Base table or view not found: 1146 La table 'check_master_db.rapport' n'existe pas
+[09-Jul-2025 18:19:11 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'num_etd' inconnu dans where clause

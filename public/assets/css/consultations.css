@@ -1,0 +1,1696 @@
+/* ---------------------------------------------
+   VARIABLES
+   --------------------------------------------- */
+:root {
+    /* Couleurs principales */
+    --orange: #ff8c00;
+    --white: #ffffff;
+    --yellow: #f39c12;
+    --green: #4caf50;
+    --secondary: #1a5276;
+
+    /* Couleurs neutres */
+    --light-gray: #f5f5f5;
+    --dark-gray: #333333;
+}
+
+/* ---------------------------------------------
+   BASE & RESET
+   --------------------------------------------- */
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--light-gray);
+    color: var(--dark-gray);
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ---------------------------------------------
+   HEADER
+   --------------------------------------------- */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: var(--white);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-title img {
+    width: 100px;
+    height: 80px;
+}
+
+.header-title h1 {
+    color: var(--secondary);
+    margin-bottom: 5px;
+}
+
+.header-title p {
+    color: #666;
+    margin-top: 0;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+}
+
+/* Notification */
+.notification {
+    background-color: var(--secondary);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    position: relative;
+    color: var(--white);
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: var(--orange);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+}
+
+/* User Info */
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.user-name {
+    font-weight: 600;
+    color: var(--dark-gray);
+}
+
+.user-role {
+    font-size: 12px;
+    color: #666;
+}
+
+/* ---------------------------------------------
+   DASHBOARD GRID & CARDS
+   --------------------------------------------- */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.card {
+    background-color: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.card-header h2 {
+    font-size: 16px;
+    color: var(--dark-gray);
+    margin: 0;
+}
+
+.card-icon {
+    width: 40px;
+    height: 40px;
+    background-color: rgba(26, 82, 118, 0.1);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--secondary);
+}
+
+.card-body .value {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--secondary);
+    margin-bottom: 10px;
+}
+
+.card-footer {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: #666;
+}
+
+.change-indicator {
+    margin-right: 5px;
+    font-weight: bold;
+}
+
+.positive {
+    color: var(--green);
+}
+
+/* ---------------------------------------------
+   BUTTONS & ACTIONS
+   --------------------------------------------- */
+
+
+.reminder-action {
+    background-color: rgba(243, 156, 18, 0.1);
+    color: var(--yellow);
+}
+
+.reminder-action:hover {
+    background-color: rgba(243, 156, 18, 0.2);
+}
+
+
+/* ---------------------------------------------
+   TABLES
+   --------------------------------------------- */
+.users-table {
+    width: calc(100% - 40px);
+    border-collapse: collapse;
+    margin: 20px;
+    background-color: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.users-table th {
+    text-align: center;
+    padding: 15px;
+    color: #666;
+    font-weight: 500;
+    border-bottom: 1px solid #eee;
+    background-color: rgba(26, 82, 118, 0.05);
+}
+
+.users-table td {
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+}
+
+.container .action-card {
+    width: 100%;
+}
+
+
+.col-check {
+    width: 10px;
+}
+
+.col-check input[type="checkbox"] {
+    transform: scale(1.2);
+    cursor: pointer;
+}
+
+/* Table User Info */
+.user-table-info {
+    display: flex;
+    align-items: center;
+}
+
+.user-table-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    color: var(--white);
+    font-weight: bold;
+}
+
+.user-table-name {
+    font-weight: 600;
+    color: var(--dark-gray);
+}
+
+.user-table-email {
+    font-size: 12px;
+    color: #666;
+}
+
+/* ---------------------------------------------
+   STATUS INDICATORS
+   --------------------------------------------- */
+.status-cr {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    display: inline-block;
+}
+
+.unavailable {
+    background-color: rgba(135, 135, 135, 0.3);
+    color: var(--dark-gray);
+}
+
+.available {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--green);
+}
+
+.role-directeur {
+    background-color: rgba(142, 140, 137, 0.1);
+    color: var(--orange);
+}
+
+.role-etudiant {
+    background-color: rgba(26, 82, 118, 0.1);
+    color: var(--secondary);
+}
+
+.status-badge {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+.status-active {
+    background-color: var(--green);
+}
+
+.status-inactive {
+    background-color: #e74c3c;
+}
+
+.decision {
+    font-weight: bold;
+}
+
+.decision-approved {
+    color: var(--green);
+}
+
+.decision-rejected {
+    color: #e74c3c;
+}
+
+.decision-pending {
+    color: var(--orange);
+}
+
+.decision-revised {
+    color: #3498db;
+}
+
+/* ---------------------------------------------
+   PAGINATION
+   --------------------------------------------- */
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin: 30px 0;
+    gap: 10px;
+}
+
+.page-item {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--white);
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid #ddd;
+    transition: all 0.2s ease;
+}
+
+.page-item:hover {
+    background-color: rgba(26, 82, 118, 0.05);
+}
+
+.page-item.active {
+    background-color: var(--secondary);
+    color: var(--white);
+    border-color: var(--secondary);
+}
+
+/* ---------------------------------------------
+   TABS
+   --------------------------------------------- */
+.tabs {
+    display: flex;
+    margin: 20px 20px 20px;
+    border-bottom: 1px solid #eee;
+    background-color: var(--white);
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+}
+
+.tab {
+    padding: 15px 20px;
+    cursor: pointer;
+    color: #666;
+    position: relative;
+    transition: color 0.2s ease;
+}
+
+.tab:hover {
+    color: var(--secondary);
+}
+
+.tab.active {
+    color: var(--secondary);
+    font-weight: 600;
+}
+
+.tab.active:after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--orange);
+}
+
+/* ---------------------------------------------
+   SECTION TITLES
+   --------------------------------------------- */
+.section-title {
+    margin: 30px 20px 15px;
+    color: var(--secondary);
+}
+
+
+/************************************************/
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.open {
+    display: flex;
+}
+
+.modal-content {
+    background-color: #fff;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 820px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    margin: 5vh auto;
+    position: relative;
+}
+
+.modal.active .modal-content {
+    transform: scale(1);
+}
+
+/* Modal Header */
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--light-color);
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.modal-title i {
+    margin-right: 12px;
+    color: var(--primary-color);
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: var(--secondary-color);
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.close-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--dark-color);
+}
+
+/* Modal Body */
+.modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    background-color: #ecf0f1;
+    max-height: calc(90vh - 150px);
+}
+
+/* Rapport Card */
+.rapport-card {
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.rapport-header {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background-color: #f9f9f9;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.rapport-icon {
+    background-color: var(--primary-color);
+    color: white;
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-right: 16px;
+}
+
+.rapport-title {
+    flex: 1;
+}
+
+.rapport-title h3 {
+    margin: 0 0 4px 0;
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+.rapport-author {
+    margin: 0;
+    color: #000;
+    font-size: 0.9rem;
+}
+
+.rapport-status {
+    margin-right: 60px;
+}
+
+.status-badge {
+
+    font-weight: 600;
+    text-transform: uppercase;
+
+}
+
+.status-en-attente {
+    background-color: #e8f0fe;
+    color: #1a73e8;
+}
+
+.status-approuvé,
+.status-validé {
+    background-color: #e6f4ea;
+    color: #34a853;
+}
+
+.status-approuvé,
+.status-validé,
+.status-validated {
+    background-color: #e6f4ea;
+    color: #34a853;
+}
+
+.status-rejeté,
+.status-refusé,
+.status-rejected {
+    background-color: #fce8e6;
+    color: #ea4335;
+}
+
+.status-en-révision,
+.status-pending {
+    background-color: #fef6e0;
+    color: #fbbc04;
+}
+
+/* Rapport Details */
+.rapport-details {
+    padding: 24px;
+}
+
+.detail-group {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    gap: 12px;
+}
+
+.detail-item {
+    flex: 1;
+    min-width: 180px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.detail-label {
+    display: block;
+    color: var(--secondary-color);
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+}
+
+.detail-label i {
+    margin-right: 6px;
+}
+
+.detail-value {
+    font-weight: 500;
+    color: var(--dark-color);
+    font-size: 1rem;
+}
+
+/* Rapport Section */
+.rapport-section {
+    margin-bottom: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+
+    overflow: hidden;
+}
+
+.rapport-section h4 {
+    margin: 0;
+    padding: 12px 16px;
+    background-color: #f8f9fa;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--dark-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.rapport-section h4 i {
+    margin-right: 8px;
+    color: var(--primary-color);
+}
+
+
+
+.rapport-text {
+    padding: 16px;
+}
+
+.rapport-text p {
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Comments */
+.comment-box {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.comment-box:last-child {
+    border-bottom: none;
+}
+
+.comment-header {
+    margin-bottom: 8px;
+}
+
+.comment-type {
+    font-weight: 500;
+    background-color: #f1f3f4;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+}
+
+.comment-content p {
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Evaluateurs */
+.evaluateurs-list {
+    padding: 16px;
+}
+
+.evaluateur-card {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.evaluateur-card:last-child {
+    margin-bottom: 0;
+}
+
+.evaluateur-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.evaluateur-name {
+    font-weight: 500;
+}
+
+.evaluateur-decision {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.decision-approuvé {
+    background-color: #e6f4ea;
+    color: #34a853;
+}
+
+.decision-rejeté {
+    background-color: #fce8e6;
+    color: #ea4335;
+}
+
+.decision-en-attente {
+    background-color: #f1f3f4;
+    color: var(--secondary-color);
+}
+
+.evaluateur-comment {
+    padding: 12px;
+    background-color: white;
+    border-radius: 8px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.evaluateur-comment p {
+    margin: 0;
+    color: #000;
+    font-style: italic;
+}
+
+/* Modal Footer */
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+    gap: 12px;
+    background-color: var(--light-color);
+}
+
+
+/* Buttons */
+
+
+/* Responsive */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+    }
+
+    .rapport-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .rapport-icon {
+        margin-bottom: 12px;
+    }
+
+    .rapport-status {
+        margin-left: 0;
+        margin-top: 12px;
+    }
+
+    .detail-group {
+        flex-direction: column;
+    }
+
+    .evaluateur-info {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .evaluateur-decision {
+        margin-top: 8px;
+    }
+
+    .modal-footer {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+    }
+}
+
+
+
+
+/************************************************/
+
+/* ---------------------------------------------
+   DOCUMENT PREVIEW
+   --------------------------------------------- */
+.detail-label {
+    font-weight: 600;
+    color: var(--secondary);
+    margin-bottom: 5px;
+}
+
+.detail-value {
+    margin-bottom: 15px;
+}
+
+.doc-content {
+    border-left: 3px solid var(--secondary);
+    padding-left: 15px;
+    color: #666;
+}
+
+/* ---------------------------------------------
+   TIMELINE
+   --------------------------------------------- */
+.timeline {
+    position: relative;
+    margin: 30px 0;
+    padding-left: 30px;
+}
+
+.timeline:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 2px;
+    background-color: #ddd;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 25px;
+}
+
+.timeline-item:before {
+    content: '';
+    position: absolute;
+    left: -30px;
+    top: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--secondary);
+}
+
+.timeline-date {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.timeline-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.timeline-description {
+    font-size: 14px;
+    color: #555;
+}
+
+#create-bilan-modal .modal-content {
+    width: 100%;
+    max-width: 1200px;
+    padding: 30px;
+
+    overflow-y: auto;
+}
+
+#create-bilan-modal .top-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #eee;
+}
+
+#create-bilan-modal .modal-title {
+    font-size: 24px;
+    color: #333;
+    margin: 0;
+}
+
+
+#create-bilan-modal .container {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+#create-bilan-modal .action-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+#create-bilan-modal .action-card h3 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+#create-bilan-modal #toolbar {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+#create-bilan-modal #editor {
+    height: 500px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+#create-bilan-modal .ql-editor {
+    min-height: 400px;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+#create-bilan-modal .actions-panel {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+    height: auto;
+}
+
+#create-bilan-modal .actions-panel h4 {
+    color: #333;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#create-bilan-modal .action-buttons {
+    display: flex;
+    flex-direction: column;
+
+    width: 100%;
+
+
+}
+
+#create-bilan-modal .action-buttons .top,
+#create-bilan-modal .action-buttons .bottom {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+
+}
+
+#create-bilan-modal .action-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    text-wrap: nowrap;
+    width: 30%;
+
+}
+
+
+
+
+#create-bilan-modal #status {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Styles pour les boutons de la barre d'outils */
+#create-bilan-modal .ql-toolbar {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    background: #f8f9fa;
+    border-color: #ddd;
+}
+
+#create-bilan-modal .ql-container {
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+    border-color: #ddd;
+}
+
+
+#details-bilan-modal .modal-content {
+    height: 100vh;
+}
+
+
+.step-action {
+    flex: 1;
+    min-width: 300px;
+    background-color: var(--light-gray);
+    border-radius: 8px;
+    height: 100%;
+
+}
+
+
+
+.step-action h4 {
+    color: var(--secondary);
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.step-action p {
+    margin-top: 0;
+    color: #666;
+}
+
+.step-action ul {
+    padding-left: 20px;
+    color: #666;
+}
+
+
+/* Style général pour la doc preview */
+.doc-preview {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* En-tête du document */
+.doc-header {
+    background-color: #f5f5f5;
+    padding: 15px 20px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.doc-title {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Contenu du document */
+.doc-content {
+    padding: 20px;
+    max-height: 575px;
+    overflow-y: auto;
+}
+
+/* Sections du document */
+.doc-section {
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    height: 100%;
+}
+
+.doc-section:last-child {
+    border-bottom: none;
+}
+
+.doc-section h3 {
+    color: #000;
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    border-bottom: 1px dashed #ccc;
+}
+
+/* Tableau d'informations */
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+    font-size: 0.95em;
+}
+
+.info-table td {
+    padding: 8px;
+    vertical-align: top;
+}
+
+.info-table td:nth-child(odd) {
+    width: 25%;
+    color: #555;
+}
+
+/* Statut et décision */
+.status-badge {
+    background-color: #e9f5ff;
+
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: bold;
+}
+
+.decision-highlight {
+    font-weight: bold;
+
+    font-size: 1.1em;
+}
+
+/* Boîtes de commentaires */
+.comment-box {
+    background-color: #f9f9f9;
+    border: 1px solid #eaeaea;
+    border-radius: 5px;
+    padding: 10px 15px;
+    margin-top: 5px;
+    font-style: italic;
+    min-height: 60px;
+}
+
+
+
+/* Signature */
+.doc-footer {
+    margin-top: 30px;
+    color: #555;
+    font-size: 0.9em;
+}
+
+.signature-line {
+    margin-top: 40px;
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+    text-align: right;
+}
+
+.signature-name {
+    font-weight: bold;
+}
+
+.signature-title {
+    color: #666;
+    font-style: italic;
+    margin-bottom: 5px;
+}
+
+/* Formulaire de commentaire */
+.comment-form {
+    margin-bottom: 20px;
+}
+
+.comment-form textarea {
+    height: 100px;
+    font-size: 1em;
+}
+
+
+#details-bilan-modal .top-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #eee;
+}
+
+#details-bilan-modal .top-text h2 {
+    padding: 12px;
+}
+
+
+
+#details-bilan-modal .close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #000;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+#details-bilan-modal .close:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--dark-color);
+}
+
+
+
+
+
+#preview-bilan-modal .top-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #eee;
+}
+
+#preview-bilan-modal .top-text h2 {
+    padding: 12px;
+}
+
+#preview-bilan-modal .close i {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #000;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+#preview-bilan-modal .close i:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--dark-color);
+}
+
+#preview-bilan-modal .top-text button {
+    background: none;
+    border: none;
+    font-size: 27px;
+    color: #000;
+    cursor: pointer;
+    padding-right: 20px;
+}
+
+#preview-bilan-modal .top-text button:hover {
+    color: #333;
+}
+
+/* Styles pour la modale d'email */
+#email-modal .modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+#email-modal .modal-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 500px;
+}
+
+#email-modal .top-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+#email-modal .modal-title {
+    margin: 0;
+    font-size: 1.5em;
+    color: #333;
+}
+
+#email-modal .close-modal-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+#email-modal .form-group {
+    margin-bottom: 20px;
+}
+
+#email-modal .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+#email-modal .form-group input[type="email"],
+#email-modal .form-group input[type="text"],
+#email-modal .form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#email-modal .form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+#email-modal .form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+#cancel-email-btn {
+    background-color: #fff;
+    color: #1a5276;
+    border-color: #1a5276;
+}
+
+#email-modal .button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+
+/* Styles pour le PDF */
+.pdf-content {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    padding: 40px;
+}
+
+.pdf-header {
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #333;
+    padding-bottom: 20px;
+}
+
+.pdf-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.pdf-subtitle {
+    font-size: 16px;
+    color: #7f8c8d;
+}
+
+.pdf-section {
+    margin: 20px 0;
+}
+
+.pdf-section-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.pdf-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+.pdf-table th,
+.pdf-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+
+.pdf-table th {
+    background-color: #f5f5f5;
+    font-weight: bold;
+}
+
+.pdf-footer {
+    margin-top: 40px;
+    text-align: center;
+    font-size: 12px;
+    color: #7f8c8d;
+    border-top: 1px solid #ddd;
+    padding-top: 20px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.action-button {
+    width: 35px;
+    height: 35px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.view-rapport-button {
+    background-color: rgba(26, 82, 118, 0.1);
+    color: var(--secondary);
+}
+
+.view-rapport-button:hover {
+    background-color: rgba(26, 82, 118, 0.2);
+}
+
+.download-button {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--green);
+}
+
+.download-button:hover {
+    background-color: rgba(76, 175, 80, 0.2);
+}
+
+.create-cr-button {
+    background-color: rgba(255, 140, 0, 0.1);
+    color: var(--orange);
+}
+
+.create-cr-button:hover {
+    background-color: rgba(255, 140, 0, 0.2);
+}
+
+.view-bilan-button {
+    background-color: rgba(243, 156, 18, 0.1);
+    color: var(--yellow);
+}
+
+.view-bilan-button:hover {
+    background-color: rgba(243, 156, 18, 0.2);
+}
+
+.preview-bilan-button {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--green);
+}
+
+.preview-bilan-button:hover {
+    background-color: rgba(76, 175, 80, 0.2);
+    transform: scale(1.05);
+}
+
+.preview-bilan-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.preview-bilan-button .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.share-cr-button {
+    background-color: rgba(26, 82, 118, 0.1);
+    color: var(--secondary);
+}
+
+.share-cr-button:hover {
+    background-color: rgba(26, 82, 118, 0.2);
+}
+
+/* Style pour la modale de confirmation */
+#email-confirmation-modal .modal-content {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+#email-confirmation-modal .top-text {
+    background: #f8f9fa;
+    border-radius: 12px 12px 0 0;
+    padding: 20px;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+#email-confirmation-modal .modal-title {
+    color: #2c3e50;
+    font-size: 1.5rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#email-confirmation-modal .modal-title i {
+    color: #1a5276;
+}
+
+#email-confirmation-modal .modal-body {
+    padding: 30px;
+}
+
+#email-confirmation-modal .confirmation-icon {
+    margin: 20px 0;
+    animation: iconPop 0.5s ease-out;
+}
+
+@keyframes iconPop {
+    0% {
+        transform: scale(0);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+#email-confirmation-modal .confirmation-icon i {
+    color: #1a5276;
+    font-size: 4rem;
+    background: rgba(26, 82, 118, 0.23);
+    padding: 20px;
+    border-radius: 50%;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16);
+}
+
+#email-confirmation-modal h3 {
+    color: #2c3e50;
+    font-size: 1.4rem;
+    margin: 15px 0;
+    font-weight: 600;
+}
+
+#email-confirmation-modal p {
+    color: #6c757d;
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 10px 0;
+}
+
+#email-confirmation-modal .confirmation-details {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+    border: 1px solid #e9ecef;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+#email-confirmation-modal .confirmation-details p {
+    margin: 10px 0;
+
+    gap: 10px;
+}
+
+#email-confirmation-modal .confirmation-details strong {
+    color: #495057;
+    min-width: 100px;
+}
+
+#email-confirmation-modal .confirmation-details span {
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+#email-confirmation-modal .form-actions {
+    margin-top: 25px;
+    display: flex;
+    justify-content: center;
+}
+
+#email-confirmation-modal .button {
+    background: #1a5276;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#email-confirmation-modal .button:hover {
+    background: #1a5276db;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+#email-confirmation-modal .button i {
+    font-size: 1.1rem;
+}
+
+#email-confirmation-modal .close-modal-btn {
+    background: none;
+    border: none;
+    color: #6c757d;
+    font-size: 26px;
+    cursor: pointer;
+    padding: 5px;
+    transition: color 0.3s ease;
+}
+
+#email-confirmation-modal .close-modal-btn:hover {
+    color: #dc3545;
+}
+
+.text-center {
+    text-align: center;
+}

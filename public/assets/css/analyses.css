@@ -1,0 +1,549 @@
+:root {
+    --orange: #ff8c00;
+    --white: #ffffff;
+    --green: #4caf50;
+    --secondary: #1a5276;
+    --light-gray: #f5f5f5;
+    --dark-gray: #333333;
+    --red: #e74c3c;
+    --yellow: #f39c12;
+    --blue: #3498db;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--light-gray);
+    color: var(--dark-gray);
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: var(--white);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.header-title{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-title img{
+    width: 100px;
+    height: 80px;
+}
+
+.header-title h1 {
+    color: var(--secondary);
+    margin-bottom: 5px;
+}
+
+.header-title p {
+    color: #666;
+    margin-top: 0;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+}
+
+
+
+.notification {
+    background-color: var(--secondary);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    position: relative;
+    color: var(--white);
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: var(--orange);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.user-name {
+    font-weight: 600;
+    color: var(--dark-gray);
+}
+
+.user-role {
+    font-size: 12px;
+    color: #666;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.card {
+    background-color: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    transition: transform 0.2s ease-in-out;
+    margin: 20px;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.card-header h2 {
+    font-size: 16px;
+    color: var(--dark-gray);
+    margin: 0;
+}
+
+.card-icon {
+    width: 40px;
+    height: 40px;
+    background-color: rgba(26, 82, 118, 0.1);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--secondary);
+}
+
+.card-body .value {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--secondary);
+    margin-bottom: 10px;
+}
+
+
+.section-title {
+    margin: 30px 20px 15px;
+    color: var(--secondary);
+}
+
+
+.section-header {
+    padding: 20px;
+    margin-bottom: 0;
+    color: var(--secondary);
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table th {
+    text-align: left;
+    padding: 15px;
+    color: #666;
+    font-weight: 500;
+    border-bottom: 1px solid #eee;
+    background-color: rgba(26, 82, 118, 0.05);
+}
+
+table td {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.status-pill {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    display: inline-block;
+    font-weight: 600;
+}
+
+.status-pending {
+    background-color: rgba(243, 156, 18, 0.1);
+    color: var(--yellow);
+}
+
+.status-evaluated {
+    background-color: rgba(52, 152, 219, 0.1);
+    color: var(--blue);
+}
+
+.status-approved {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--green);
+}
+
+.status-rejected {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: var(--red);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.action-button {
+    width: 35px;
+    height: 35px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.check-button {
+    background-color: rgba(26, 82, 118, 0.1);
+    color: var(--secondary);
+}
+
+.check-button:hover {
+    background-color: rgba(26, 82, 118, 0.2);
+}
+
+.view-button {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--green);
+}
+
+.view-button:hover {
+    background-color: rgba(76, 175, 80, 0.2);
+}
+
+.comment-button {
+    background-color: rgba(255, 140, 0, 0.1);
+    color: var(--orange);
+}
+
+.comment-button:hover {
+    background-color: rgba(255, 140, 0, 0.2);
+}
+
+.view-all {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.view-all a {
+    color: var(--secondary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.view-all a:hover {
+    text-decoration: underline;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin: 30px 0;
+    gap: 10px;
+}
+
+.page-item {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--white);
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid #ddd;
+    transition: all 0.2s ease;
+}
+
+.page-item:hover {
+    background-color: rgba(26, 82, 118, 0.05);
+}
+
+.page-item.active {
+    background-color: var(--secondary);
+    color: var(--white);
+    border-color: var(--secondary);
+}
+
+.tabs {
+    display: flex;
+    margin: 20px 20px 0;
+    border-bottom: 1px solid #eee;
+    background-color: var(--white);
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+}
+
+.tab {
+    padding: 15px 20px;
+    cursor: pointer;
+    color: #666;
+    position: relative;
+    transition: color 0.2s ease;
+}
+
+.tab:hover {
+    color: var(--secondary);
+}
+
+.tab.active {
+    color: var(--secondary);
+    font-weight: 600;
+}
+
+.tab.active:after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--orange);
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.open {
+    display: flex;
+}
+
+.modal-content {
+    background-color: var(--white);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 700px;
+    padding: 30px;
+    position: relative;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.top-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.modal-title {
+    color: var(--secondary);
+    margin: 0;
+}
+
+.close-modal-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+    font-size: 24px;
+}
+
+.close-modal-btn:hover {
+    color: var(--dark-gray);
+}
+
+.report-info {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.report-info p {
+    margin: 5px 0;
+}
+
+.report-info strong {
+    color: var(--secondary);
+}
+
+.teacher-evaluation {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.evaluation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.evaluation-header h3 {
+    color: var(--secondary);
+    margin: 0;
+}
+
+.evaluation-rating {
+    display: flex;
+    gap: 2px;
+}
+
+.star {
+    color: #ccc;
+}
+
+.star.filled {
+    color: var(--orange);
+}
+
+.evaluation-content {
+    background-color: var(--light-gray);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.comment-form {
+    margin-top: 20px;
+}
+
+.comment-form textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--dark-gray);
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 100px;
+    margin-bottom: 15px;
+}
+
+.comment-form textarea:focus {
+    border-color: var(--secondary);
+    outline: none;
+}
+
+.vote-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.vote-approve {
+    background-color: var(--green);
+}
+
+.vote-approve:hover {
+    background-color: #3d8b40;
+}
+
+.vote-reject {
+    background-color: var(--red);
+}
+
+.vote-reject:hover {
+    background-color: #d32f2f;
+}
+
+/* Badge pour les nombres */
+.count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+    height: 20px;
+    font-size: 12px;
+    border-radius: 10px;
+    margin-left: 8px;
+    font-weight: bold;
+}
+
+.count-pending {
+    background-color: rgba(243, 156, 18, 0.2);
+    color: var(--yellow);
+}
+
+.count-evaluated {
+    background-color: rgba(52, 152, 219, 0.2);
+    color: var(--blue);
+}
+
+.count-approved {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: var(--green);
+}
+
+.count-rejected {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: var(--red);
+}
+
+.actions-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.actions-container button {
+    width: 13%;
+    font-weight: 600;
+
+    font-size: 15px;
+    gap: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

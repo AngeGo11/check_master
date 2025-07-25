@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Modèle de rapport étudiant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: 'Times New Roman', serif; 
+            margin: 0;
+            line-height: 1.6; 
+            color: #333;
+            background-color: #ffffff;
+        }
+
+        .page {
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 25mm;
+            min-height: 297mm;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        /* En-tête avec bordure décorative */
+        .header {
+            border: 3px solid #004080;
+            padding: 20px;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 8px;
+            position: relative; /* Pour que les logos soient positionnés par rapport à l’en-tête */
+        }
+
+        .republic-info {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 14pt;
+            font-weight: bold;
+            color: #004080;
+        }
+
+        .university-info {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 12pt;
+            line-height: 1.4;
+        }
+
+        .diploma-section {
+            text-align: center;
+            margin: 25px 0;
+            padding: 15px;
+            background: #ffffff;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .theme {
+            font-weight: bold;
+            margin: 25px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #004080 0%, #0056b3 100%);
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,64,128,0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 14pt;
+            line-height: 1.4;
+        }
+
+        .author-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .author-section {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .author-section h3 {
+            color: #004080;
+            margin-bottom: 10px;
+            font-size: 12pt;
+            text-transform: uppercase;
+            border-bottom: 2px solid #004080;
+            padding-bottom: 5px;
+        }
+
+        .author-section p {
+            font-weight: bold;
+            font-size: 11pt;
+            margin-top: 10px;
+        }
+
+        .underline {
+            border-bottom: 1px solid #333;
+            display: inline-block;
+            min-width: 200px;
+            margin: 5px 0;
+        }
+
+        h1 {
+            font-size: 18pt;
+            margin: 40px 0 20px 0;
+            padding: 15px 0;
+            border-bottom: 3px solid #004080;
+            color: #004080;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        h2 {
+            font-size: 14pt;
+            margin: 30px 0 15px 0;
+            color: #0056b3;
+            border-left: 4px solid #004080;
+            padding-left: 15px;
+        }
+
+        p {
+            text-align: justify;
+            margin-bottom: 15px;
+            font-size: 12pt;
+            text-indent: 20px;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .bibliography {
+            margin-top: 20px;
+        }
+
+        .bibliography p {
+            text-indent: 0;
+            margin-bottom: 10px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .bibliography p::before {
+            content: "▪";
+            position: absolute;
+            left: 0;
+            color: #004080;
+            font-weight: bold;
+        }
+
+        /* Styles pour l'impression */
+        @media print {
+            .page {
+                box-shadow: none;
+                margin: 0;
+                max-width: none;
+            }
+            
+            body {
+                margin: 0;
+            }
+        }
+
+        /* Numérotation des pages */
+        .page-number {
+            position: absolute;
+            bottom: 20px;
+            right: 30px;
+            font-size: 10pt;
+            color: #666;
+        }
+
+        /* Style pour les sections principales */
+        .main-section {
+            margin-bottom: 30px;
+            padding: 20px 0;
+        }
+
+        .main-section:not(:last-child) {
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        /* Style pour les listes dans les annexes */
+        .annex-list {
+            list-style: none;
+            padding-left: 20px;
+        }
+
+        .annex-list li {
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        .annex-list li::before {
+            content: "→";
+            position: absolute;
+            left: -15px;
+            color: #004080;
+            font-weight: bold;
+        }
+
+        /* Responsive design pour les écrans plus petits */
+        @media (max-width: 768px) {
+            .page {
+                padding: 15px;
+            }
+            
+            .author-info {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            h1 {
+                font-size: 16pt;
+            }
+        }
+
+        .logo-gauche {
+            position: absolute;
+            top: 35px;
+            left: 35px;
+            width: 80px;
+            height: auto;
+        }
+        .logo-droite {
+            position: absolute;
+            top: 35px;
+            right: 35px;
+            width: 80px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+    <div class="header">
+        <img src="../../public/assets/images/ufhb-logo-sbg.png" class="logo-gauche" alt="Logo gauche">
+        <img src="../../public/assets/images/logo_mi_sbg.png" class="logo-droite" alt="Logo droite">
+        <div class="republic-info">
+            <div>RÉPUBLIQUE DE CÔTE D'IVOIRE</div>
+            <div>UNION – DISCIPLINE – TRAVAIL</div>
+        </div>
+        
+        <div class="university-info">
+            <div><strong>UNIVERSITÉ FÉLIX HOUPHOUËT-BOIGNY</strong></div>
+            <div>UFR MATHÉMATIQUES ET INFORMATIQUE</div>
+            <div>FILIÈRES PROFESSIONNALISÉES MIAGE-GI</div>
+            <div style="margin-top: 15px; font-style: italic;">KYRIA CONSULTANCY SERVICES</div>
+        </div>
+
+        <div class="diploma-section">
+            <div style="margin-bottom: 15px; font-size: 13pt;">Mémoire de fin de cycle pour l'obtention du :</div>
+            <div style="font-size: 15pt; font-weight: bold; color: #004080;">Diplôme d'ingénieur de conception en informatique</div>
+            <div style="font-style: italic; margin-top: 10px; font-size: 12pt;">Option : Méthodes Informatiques Appliquées à la Gestion des Entreprises</div>
+        </div>
+
+        <div style="text-align: center; margin: 20px 0; font-size: 14pt; font-weight: bold; color: #004080;">
+            THÈME :
+        </div>
+
+        <div class="theme">
+            MISE EN PLACE D'UN MODULE D'INTÉGRATION ENTRE ATLANTIS CRM ET ATLANTIS SGO :<br>
+            CAS DE LA BOA CAPITAL ASSET MANAGEMENT
+        </div>
+
+        <div class="author-info">
+            <div class="author-section">
+                <h3>Présenté par :</h3>
+                <p>M. KOET BI BOH CHABEL BAHI</p>
+            </div>
+            
+            <div class="author-section">
+                <h3>Encadreur :</h3>
+                <div class="underline"></div>
+                <h3 style="margin-top: 20px;">Maître de stage :</h3>
+                <p>M. KRAMO HUGUES</p>
+                <p style="font-weight: normal; font-size: 10pt; font-style: italic;">Consultant à KYRIA Consultancy Services</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-break"></div>
+
+<div class="page">
+    <div class="main-section">
+        <h1>Remerciements</h1>
+        <p>Je remercie tout particulièrement mes encadreurs pour leur soutien constant tout au long de ce projet. Mes remerciements vont également à l'équipe de KYRIA Consultancy Services qui m'a accueilli et accompagné dans cette expérience enrichissante.</p>
+        <p>Je tiens aussi à exprimer ma gratitude envers l'Université Félix Houphouët-Boigny et plus particulièrement l'UFR Mathématiques et Informatique pour la qualité de la formation reçue.</p>
+    </div>
+
+    <div class="main-section">
+        <h1>Résumé</h1>
+        <p>Ce mémoire présente la conception et la réalisation d'un module d'intégration entre les systèmes Atlantis CRM et Atlantis SGO dans le contexte de BOA Capital Asset Management. L'objectif principal était d'automatiser les échanges de données entre ces deux systèmes pour améliorer l'efficacité opérationnelle.</p>
+        <p>La solution développée permet une synchronisation en temps réel des données clients et des opérations, réduisant ainsi les erreurs de saisie et optimisant les processus métier.</p>
+    </div>
+
+    <div class="main-section">
+        <h1>Introduction</h1>
+        <p>Dans le cadre de notre formation d'ingénieur en informatique, nous avons eu l'opportunité de réaliser un stage au sein de KYRIA Consultancy Services. Cette expérience nous a permis de mettre en pratique nos connaissances théoriques sur un projet concret d'intégration de systèmes d'information.</p>
+        <p>Le présent mémoire retrace notre démarche, depuis l'analyse du besoin jusqu'à la mise en œuvre de la solution, en passant par les phases de conception et de développement.</p>
+    </div>
+</div>
+
+<div class="page-break"></div>
+
+<div class="page">
+    <div class="main-section">
+        <h1>Chapitre 1 : Présentation de l'entreprise</h1>
+        <h2>1.1 Historique et activités</h2>
+        <p>Kyria Consultancy Services est une société spécialisée dans le conseil en systèmes d'information et l'intégration de solutions technologiques. Fondée en 2010, l'entreprise accompagne ses clients dans leur transformation numérique.</p>
+        
+        <h2>1.2 Organisation et équipes</h2>
+        <p>L'entreprise s'organise autour de pôles d'expertise comprenant le développement, l'intégration de systèmes, et le conseil stratégique. Chaque projet est géré par une équipe pluridisciplinaire.</p>
+    </div>
+
+    <div class="main-section">
+        <h1>Chapitre 2 : Contexte et problématique</h1>
+        <h2>2.1 Présentation du client</h2>
+        <p>BOA Capital Asset Management est une filiale du groupe Bank of Africa spécialisée dans la gestion d'actifs. L'entreprise utilise plusieurs systèmes d'information pour gérer ses activités.</p>
+        
+        <h2>2.2 Analyse de l'existant</h2>
+        <p>Le besoin d'intégration entre les deux modules Atlantis CRM et Atlantis SGO s'est imposé pour éliminer les saisies multiples et améliorer la cohérence des données.</p>
+    </div>
+</div>
+
+<div class="page-break"></div>
+
+<div class="page">
+    <div class="main-section">
+        <h1>Chapitre 3 : Conception du module</h1>
+        <h2>3.1 Architecture technique</h2>
+        <p>Nous avons conçu un module d'intégration basé sur une architecture orientée services (SOA) permettant une communication bidirectionnelle entre les systèmes.</p>
+        
+        <h2>3.2 Modélisation des données</h2>
+        <p>La modélisation des flux de données a été réalisée en tenant compte des spécificités de chaque système tout en garantissant l'intégrité des informations échangées.</p>
+    </div>
+
+    <div class="main-section">
+        <h1>Chapitre 4 : Réalisation technique</h1>
+        <h2>4.1 Technologies utilisées</h2>
+        <p>La mise en œuvre s'est faite avec les technologies Java Spring Boot pour le backend, Angular pour l'interface utilisateur, et PostgreSQL pour la persistance des données.</p>
+        
+        <h2>4.2 Tests et validation</h2>
+        <p>Une phase complète de tests unitaires, d'intégration et de validation utilisateur a été menée pour s'assurer du bon fonctionnement de la solution.</p>
+    </div>
+</div>
+
+<div class="page-break"></div>
+
+<div class="page">
+    <div class="main-section">
+        <h1>Conclusion et perspectives</h1>
+        <p>Ce travail nous a permis de développer nos compétences en intégration de systèmes d'information et de comprendre les enjeux de la transformation numérique en entreprise. La solution développée répond aux attentes du client et offre des perspectives d'évolution intéressantes.</p>
+        <p>Les perspectives d'amélioration incluent l'extension du module à d'autres systèmes de l'écosystème BOA et l'ajout de fonctionnalités d'analyse avancée des données.</p>
+    </div>
+
+    <div class="main-section">
+        <h1>Annexes</h1>
+        <p>Les annexes comprennent :</p>
+        <ul class="annex-list">
+            <li>Diagrammes UML de conception</li>
+            <li>Schémas de base de données</li>
+            <li>Documentation technique de l'API</li>
+            <li>Captures d'écran de l'interface utilisateur</li>
+            <li>Cahier des charges détaillé</li>
+            <li>Rapport de tests</li>
+        </ul>
+    </div>
+
+    <div class="main-section bibliography">
+        <h1>Bibliographie</h1>
+        <p>Fowler, M. (2019). Architecture patterns pour les applications d'entreprise. Eyrolles.</p>
+        <p>Richardson, C. (2018). Microservices patterns. Manning Publications.</p>
+        <p>Evans, E. (2020). Domain-Driven Design: Tackling Complexity in the Heart of Software. Addison-Wesley.</p>
+        <p>Martin, R. (2017). Clean Architecture: A Craftsman's Guide to Software Structure. Prentice Hall.</p>
+        <p>Documentation officielle Spring Boot. (2024). https://spring.io/projects/spring-boot</p>
+    </div>
+</div>
+
+</body>
+</html>
