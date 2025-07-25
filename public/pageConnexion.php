@@ -206,7 +206,7 @@ ini_set('error_log', __DIR__ . '/../../storage/logs/php-error.log');
         </div>
     <?php endif; ?>
 
-    <div class="min-h-full flex">
+    <div class="min-h-full flex flex-row-reverse">
         <!-- Section gauche - Formulaire de connexion -->
         <div class="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:flex-none lg:px-20 xl:px-24 relative">
             <!-- Formes flottantes pour l'animation -->

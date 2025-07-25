@@ -21628,3 +21628,27 @@ Stack trace:
 [25-Jul-2025 01:02:58 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'date_creation' inconnu dans order clause
 [25-Jul-2025 01:02:58 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'date_creation' inconnu dans order clause
 [25-Jul-2025 01:02:58 UTC] Erreur récupération compte rendu: SQLSTATE[42S22]: Column not found: 1054 Champ 'date_creation' inconnu dans order clause
+[25-Jul-2025 03:15:10 UTC] Vue etudiants.php - rapports_data: Array
+(
+    [rapports] => Array
+        (
+        )
+
+    [total_records] => 0
+    [total_pages] => 1
+    [current_page] => 1
+    [limit] => 10
+)
+
+[25-Jul-2025 03:15:10 UTC] Vue etudiants.php - rapports_data: Array
+(
+    [rapports] => Array
+        (
+        )
+
+    [total_records] => 0
+    [total_pages] => 1
+    [current_page] => 1
+    [limit] => 10
+)
+
