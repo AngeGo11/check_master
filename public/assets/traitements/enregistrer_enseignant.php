@@ -2,7 +2,6 @@
 require_once __DIR__ . '/../../../app/config/config.php';
 require_once __DIR__ . '/../../../app/Controllers/EnseignantController.php';
 
-
 $controller = new EnseignantController($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -22,19 +21,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'date_grd' => $_POST['date_grd'] ?? $_POST['date_entree'] ?? '',
         'date_occup' => $_POST['date_occup'] ?? $_POST['date_entree'] ?? '',
     ];
+    
     if (!empty($_POST['id_enseignant'])) {
         // Modification
         $id = $_POST['id_enseignant'];
         $result = $controller->update($id, $data);
-        $msg = $result ? 'Modification réussie.' : 'Erreur lors de la modification.';
+        $msg = $result ? 'Enseignant modifié avec succès.' : 'Erreur lors de la modification.';
+        $msgType = $result ? 'success' : 'error';
     } else {
         // Ajout
         $result = $controller->store($data);
-        $msg = $result ? 'Ajout réussi.' : 'Erreur lors de l\'ajout.';
+        $msg = $result ? 'Enseignant ajouté avec succès.' : 'Erreur lors de l\'ajout.';
+        $msgType = $result ? 'success' : 'error';
     }
-    header('Location: ../../ressources_humaines.php?message=' . urlencode($msg));
+    
+    // Redirection avec les paramètres corrects
+    $redirectUrl = '../../../app.php?page=ressources_humaines#tab_current';
+    if (!empty($msg)) {
+        $redirectUrl .= '&message=' . urlencode($msg) . '&type=' . urlencode($msgType);
+    }
+    
+    header('Location: ' . $redirectUrl);
     exit;
 }
+
 // Si accès direct, rediriger
-header('Location: ../../ressources_humaines.php');
+header('Location: ../../../app.php?page=ressources_humaines#tab_current');
 exit;

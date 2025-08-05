@@ -70,6 +70,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
             break;
+
+        case 'inscrire-etudiants-cheval':
+            $result = $controller->inscrireEtudiantsCheval($_POST);
+            if ($result['success']) {
+                $_SESSION['success_message'] = $result['message'];
+            } else {
+                $_SESSION['error_message'] = $result['message'];
+            }
+            header("Location: index_personnel_administratif.php?page=etudiants");
+            exit;
+
+        case 'get-matieres-rattrapage':
+            if (isset($_POST['ajax']) && $_POST['ajax'] == '1') {
+                $annee_id = $_POST['annee_id'] ?? '';
+                $promotion_id = $_POST['promotion_id'] ?? '';
+                $etudiants = json_decode($_POST['etudiants'] ?? '[]', true);
+                
+                $result = $controller->getMatieresRattrapage($annee_id, $promotion_id, $etudiants);
+                header('Content-Type: application/json');
+                echo json_encode($result);
+                exit;
+            }
+            break;
     }
 }
 
@@ -150,6 +173,7 @@ if ($action === 'modify' && isset($_GET['id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion des Étudiants - GSCV+</title>
+    <link rel="stylesheet" href="../../public/assets/css/etudiants.css?v=<?php echo time(); ?>">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script>
@@ -177,17 +201,280 @@ if ($action === 'modify' && isset($_GET['id'])) {
     </script>
     <style>
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
+
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
+
         @keyframes bounceIn {
-            0% { opacity: 0; transform: scale(0.3); }
-            50% { opacity: 1; transform: scale(1.05); }
-            100% { opacity: 1; transform: scale(1); }
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Nouveaux styles pour les filtres et actions */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .filters-section {
+            padding: 24px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .filters-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filters-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(135deg, #1a5276 0%, #163d5a 100%);
+            border-radius: 2px;
+        }
+
+        .filters-grid {
+            gap: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .filters-grid div,
+        .filters-grid select {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .search-input-container {
+            position: relative;
+            grid-column: 1 / -1;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            font-size: 14px;
+            z-index: 10;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 12px 12px 40px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #ffffff;
+            color: #1e293b;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #1a5276;
+            box-shadow: 0 0 0 3px rgba(26, 82, 118, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .form-input::placeholder {
+            color: #94a3b8;
+        }
+
+        .form-select {
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            background: #ffffff;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 12px center;
+            background-repeat: no-repeat;
+            background-size: 16px;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: #1a5276;
+            box-shadow: 0 0 0 3px rgba(26, 82, 118, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .actions-section {
+            padding: 24px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        }
+
+        .actions-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .actions-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            border-radius: 2px;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1a5276 0%, #163d5a 100%);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #163d5a 0%, #1a5276 100%);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: #ffffff;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: #ffffff;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .actions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 0 16px;
+            }
+
+            .filters-section,
+            .actions-section {
+                padding: 16px;
+            }
         }
     </style>
 </head>
@@ -198,7 +485,7 @@ if ($action === 'modify' && isset($_GET['id'])) {
 
         <!-- Contenu principal -->
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            
+
             <!-- KPI Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-slide-up">
                 <!-- Total étudiants -->
@@ -274,31 +561,28 @@ if ($action === 'modify' && isset($_GET['id'])) {
                     </p>
                 </div>
 
-                <!-- Filtres et actions -->
-                <div class="p-6 border-b border-gray-200">
-                    <form method="get" class="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-                        <input type="hidden" name="page" value="etudiants">
-
-                        <!-- Filtres de recherche -->
-                        <div class="flex-1 w-full lg:w-auto">
-                            <div class="flex flex-col sm:flex-row gap-4">
-                                <!-- Recherche -->
-                                <div class="relative flex-1">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-search text-gray-400"></i>
-                                    </div>
+                <!-- Actions et filtres pour étudiants -->
+                <div class="container mx-auto mb-8">
+                    <div class="card">
+                        <!-- Section Filtres -->
+                        <div class="filters-section">
+                            <h3 class="filters-title">Filtres</h3>
+                            <form method="get" class="filters-grid">
+                                <input type="hidden" name="page" value="etudiants">
+                                
+                                <div class="search-input-container">
+                                    <i class="fas fa-search search-icon"></i>
                                     <input type="text" 
                                            name="search" 
-                                           class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                            placeholder="Rechercher un étudiant (nom, email, carte, promotion)..." 
+                                           class="form-input"
                                            value="<?php echo htmlspecialchars($filters['search']); ?>">
                                 </div>
-                                
-                                <!-- Filtre promotion -->
+
                                 <select name="promotion" 
-                                        class="px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        class="form-select"
                                         onchange="this.form.submit()">
-                                    <option value="">Promotion</option>
+                                    <option value="">Toutes les promotions</option>
                                     <?php foreach ($lists['promotions'] as $promo): ?>
                                         <?php $selected = ($filters['promotion'] == $promo['id_promotion']) ? 'selected' : ''; ?>
                                         <option value="<?php echo $promo['id_promotion']; ?>" <?php echo $selected; ?>>
@@ -306,12 +590,11 @@ if ($action === 'modify' && isset($_GET['id'])) {
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                                
-                                <!-- Filtre niveau -->
+
                                 <select name="niveau" 
-                                        class="px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        class="form-select"
                                         onchange="this.form.submit()">
-                                    <option value="">Niveau d'étude</option>
+                                    <option value="">Tous les niveaux</option>
                                     <?php foreach ($lists['niveaux'] as $niv): ?>
                                         <?php $selected = ($filters['niveau'] == $niv['id_niv_etd']) ? 'selected' : ''; ?>
                                         <option value="<?php echo $niv['id_niv_etd']; ?>" <?php echo $selected; ?>>
@@ -319,45 +602,56 @@ if ($action === 'modify' && isset($_GET['id'])) {
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                                
-                                <button type="submit" 
-                                        class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200 flex items-center">
-                                    <i class="fas fa-search mr-2"></i>
-                                    Filtrer
-                                </button>
-                                
-                                <?php if ($filters['search'] || $filters['promotion'] || $filters['niveau']): ?>
-                                    <a href="index_personnel_administratif.php?page=etudiants" 
-                                       class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center">
-                                        <i class="fas fa-times mr-2"></i>
-                                        Réinitialiser
-                                    </a>
-                                <?php endif; ?>
-                            </div>
+
+                                <select name="statut_etudiant" 
+                                        class="form-select"
+                                        onchange="this.form.submit()">
+                                    <option value="">Tous les statuts</option>
+                                    <?php foreach ($lists['statut_etudiant'] as $statut): ?>
+                                        <?php $selected = ($filters['statut_etudiant'] == $statut['id_statut']) ? 'selected' : ''; ?>
+                                        <option value="<?php echo $statut['id_statut']; ?>" <?php echo $selected; ?>>
+                                            <?php echo htmlspecialchars($statut['lib_statut']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+
+                               
+
+                               
+                            </form>
                         </div>
 
-                        <!-- Actions -->
-                        <div class="flex gap-3">
-                            <button type="button" 
-                                    class="px-4 py-3 bg-danger text-white rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center" 
-                                    id="bulk-delete-btn">
-                                <i class="fas fa-trash mr-2"></i>
-                                Supprimer sélection
-                            </button>
-                            <button type="button" 
-                                    class="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center" 
-                                    id="bulk-export-btn">
-                                <i class="fas fa-file-export mr-2"></i>
-                                Exporter
-                            </button>
-                            <a href="?page=etudiants&action=add" 
-                               class="px-4 py-3 bg-secondary text-white rounded-lg hover:bg-orange-600 transition-colors duration-200 flex items-center" 
-                               id="add_student">
-                                <i class="fas fa-plus mr-2"></i>
-                                Ajouter étudiant
-                            </a>
+                        <!-- Section Actions -->
+                        <div class="actions-section">
+                            <h3 class="actions-title">Actions</h3>
+                            <div class="actions-grid">
+                                <button type="button" 
+                                        class="btn btn-danger" 
+                                        id="bulk-delete-btn">
+                                    <i class="fas fa-trash"></i>
+                                    Supprimer la sélection
+                                </button>
+                                <button type="button" 
+                                        class="btn btn-secondary" 
+                                        id="bulk-export-btn">
+                                    <i class="fas fa-file-export"></i>
+                                    Exporter
+                                </button>
+                                <a href="?page=etudiants&action=inscrire-etudiant-cheval" 
+                                   class="btn btn-secondary" 
+                                   id="inscrire-etudiant-cheval">
+                                    <i class="fa-solid fa-bookmark"></i>
+                                    Inscrire à cheval
+                                </a>
+                                <a href="?page=etudiants&action=add" 
+                                   class="btn btn-primary" 
+                                   id="add_student">
+                                    <i class="fas fa-plus"></i>
+                                    Ajouter un étudiant
+                                </a>
+                            </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
 
                 <!-- Table des étudiants -->
@@ -366,8 +660,8 @@ if ($action === 'modify' && isset($_GET['id'])) {
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left">
-                                    <input type="checkbox" id="select-all-etudiants" 
-                                           class="rounded border-gray-300 text-primary focus:ring-primary">
+                                    <input type="checkbox" id="select-all-etudiants"
+                                        class="rounded border-gray-300 text-primary focus:ring-primary">
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Étudiant
@@ -391,9 +685,9 @@ if ($action === 'modify' && isset($_GET['id'])) {
                                 <?php foreach ($etudiants as $etudiant): ?>
                                     <tr class="hover:bg-gray-50 transition-colors duration-200">
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <input type="checkbox" 
-                                                   class="etudiant-checkbox rounded border-gray-300 text-primary focus:ring-primary" 
-                                                   value="<?php echo $etudiant['num_etd']; ?>">
+                                            <input type="checkbox"
+                                                class="etudiant-checkbox rounded border-gray-300 text-primary focus:ring-primary"
+                                                value="<?php echo $etudiant['num_etd']; ?>">
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="flex items-center">
@@ -427,19 +721,19 @@ if ($action === 'modify' && isset($_GET['id'])) {
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div class="flex space-x-2">
-                                                <a href="?page=etudiants&id=<?php echo $etudiant['num_etd']; ?>&action=view-details" 
-                                                   class="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200"
-                                                   title="Voir détails">
+                                                <a href="?page=etudiants&id=<?php echo $etudiant['num_etd']; ?>&action=view-details"
+                                                    class="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200"
+                                                    title="Voir détails">
                                                     <i class="fas fa-info-circle"></i>
                                                 </a>
-                                                <a href="?page=etudiants&id=<?php echo $etudiant['num_etd']; ?>&action=modify" 
-                                                   class="text-green-600 hover:text-green-900 p-2 rounded-lg hover:bg-green-50 transition-colors duration-200"
-                                                   title="Modifier">
+                                                <a href="?page=etudiants&id=<?php echo $etudiant['num_etd']; ?>&action=modify"
+                                                    class="text-green-600 hover:text-green-900 p-2 rounded-lg hover:bg-green-50 transition-colors duration-200"
+                                                    title="Modifier">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <a href="?page=etudiants&id=<?php echo $etudiant['num_etd']; ?>&action=delete" 
-                                                   class="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors duration-200"
-                                                   title="Supprimer">
+                                                <a href="?page=etudiants&id=<?php echo $etudiant['num_etd']; ?>&action=delete"
+                                                    class="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors duration-200"
+                                                    title="Supprimer">
                                                     <i class="fas fa-trash"></i>
                                                 </a>
                                             </div>
@@ -479,22 +773,22 @@ if ($action === 'modify' && isset($_GET['id'])) {
                                 }
                                 ?>
                                 <?php if ($current_page > 1): ?>
-                                    <a href="<?php echo buildPageUrl($current_page - 1); ?>" 
-                                       class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200">
+                                    <a href="<?php echo buildPageUrl($current_page - 1); ?>"
+                                        class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200">
                                         <i class="fas fa-chevron-left"></i>
                                     </a>
                                 <?php endif; ?>
-                                
+
                                 <?php for ($i = max(1, $current_page - 2); $i <= min($total_pages, $current_page + 2); $i++): ?>
-                                    <a href="<?php echo buildPageUrl($i); ?>" 
-                                       class="px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 <?php echo $i == $current_page ? 'bg-primary text-white' : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'; ?>">
+                                    <a href="<?php echo buildPageUrl($i); ?>"
+                                        class="px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 <?php echo $i == $current_page ? 'bg-primary text-white' : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'; ?>">
                                         <?php echo $i; ?>
                                     </a>
                                 <?php endfor; ?>
-                                
+
                                 <?php if ($current_page < $total_pages): ?>
-                                    <a href="<?php echo buildPageUrl($current_page + 1); ?>" 
-                                       class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200">
+                                    <a href="<?php echo buildPageUrl($current_page + 1); ?>"
+                                        class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200">
                                         <i class="fas fa-chevron-right"></i>
                                     </a>
                                 <?php endif; ?>
@@ -521,36 +815,36 @@ if ($action === 'modify' && isset($_GET['id'])) {
                     <div class="p-6 border-b border-gray-200">
                         <form method="get" class="flex flex-col sm:flex-row gap-4">
                             <input type="hidden" name="page" value="etudiants">
-                            
+
                             <div class="relative flex-1">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <i class="fas fa-search text-gray-400"></i>
                                 </div>
-                                <input type="text" 
-                                       name="search_rapport" 
-                                       class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                                       placeholder="Rechercher un étudiant ou un rapport..." 
-                                       value="<?php echo htmlspecialchars($_GET['search_rapport'] ?? ''); ?>">
+                                <input type="text"
+                                    name="search_rapport"
+                                    class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    placeholder="Rechercher un étudiant ou un rapport..."
+                                    value="<?php echo htmlspecialchars($_GET['search_rapport'] ?? ''); ?>">
                             </div>
-                            
-                            <select name="date_rapport" 
-                                    class="px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                                    onchange="this.form.submit()">
+
+                            <select name="date_rapport"
+                                class="px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                onchange="this.form.submit()">
                                 <option value="">Date de soumission</option>
                                 <option value="today" <?php echo ($_GET['date_rapport'] ?? '') === 'today' ? 'selected' : ''; ?>>Aujourd'hui</option>
                                 <option value="week" <?php echo ($_GET['date_rapport'] ?? '') === 'week' ? 'selected' : ''; ?>>Cette semaine</option>
                                 <option value="month" <?php echo ($_GET['date_rapport'] ?? '') === 'month' ? 'selected' : ''; ?>>Ce mois</option>
                             </select>
-                            
-                            <button type="submit" 
-                                    class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200 flex items-center">
+
+                            <button type="submit"
+                                class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200 flex items-center">
                                 <i class="fas fa-search mr-2"></i>
                                 Filtrer
                             </button>
-                            
+
                             <?php if (($_GET['search_rapport'] ?? '') || ($_GET['date_rapport'] ?? '')): ?>
-                                <a href="index_personnel_administratif.php?page=etudiants" 
-                                   class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center">
+                                <a href="index_personnel_administratif.php?page=etudiants"
+                                    class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center">
                                     <i class="fas fa-times mr-2"></i>
                                     Réinitialiser
                                 </a>
@@ -564,8 +858,8 @@ if ($action === 'modify' && isset($_GET['id'])) {
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left">
-                                        <input type="checkbox" id="select-all-rapports" 
-                                               class="rounded border-gray-300 text-primary focus:ring-primary">
+                                        <input type="checkbox" id="select-all-rapports"
+                                            class="rounded border-gray-300 text-primary focus:ring-primary">
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Étudiant
@@ -586,9 +880,9 @@ if ($action === 'modify' && isset($_GET['id'])) {
                                     <?php foreach ($rapports_data['rapports'] as $rapport): ?>
                                         <tr class="hover:bg-gray-50 transition-colors duration-200">
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <input type="checkbox" 
-                                                       class="rapport-checkbox rounded border-gray-300 text-primary focus:ring-primary" 
-                                                       value="<?php echo $rapport['id_rapport_etd']; ?>">
+                                                <input type="checkbox"
+                                                    class="rapport-checkbox rounded border-gray-300 text-primary focus:ring-primary"
+                                                    value="<?php echo $rapport['id_rapport_etd']; ?>">
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="flex items-center">
@@ -617,19 +911,19 @@ if ($action === 'modify' && isset($_GET['id'])) {
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div class="flex space-x-2">
-                                                    <a href="?page=etudiants&id=<?php echo $rapport['num_etd']; ?>&rapport=<?php echo $rapport['id_rapport_etd']; ?>&action=view" 
-                                                       class="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200"
-                                                       title="Voir rapport">
+                                                    <a href="?page=etudiants&id=<?php echo $rapport['num_etd']; ?>&rapport=<?php echo $rapport['id_rapport_etd']; ?>&action=view"
+                                                        class="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200"
+                                                        title="Voir rapport">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
-                                                    <a href="?page=etudiants&id=<?php echo $rapport['num_etd']; ?>&rapport=<?php echo $rapport['id_rapport_etd']; ?>&action=delete" 
-                                                       class="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors duration-200"
-                                                       title="Supprimer">
+                                                    <a href="?page=etudiants&id=<?php echo $rapport['num_etd']; ?>&rapport=<?php echo $rapport['id_rapport_etd']; ?>&action=delete"
+                                                        class="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors duration-200"
+                                                        title="Supprimer">
                                                         <i class="fas fa-trash"></i>
                                                     </a>
-                                                    <a href="?page=etudiants&id=<?php echo $rapport['num_etd']; ?>&rapport=<?php echo $rapport['id_rapport_etd']; ?>&action=share" 
-                                                       class="text-green-600 hover:text-green-900 p-2 rounded-lg hover:bg-green-50 transition-colors duration-200"
-                                                       title="Partager">
+                                                    <a href="?page=etudiants&id=<?php echo $rapport['num_etd']; ?>&rapport=<?php echo $rapport['id_rapport_etd']; ?>&action=share"
+                                                        class="text-green-600 hover:text-green-900 p-2 rounded-lg hover:bg-green-50 transition-colors duration-200"
+                                                        title="Partager">
                                                         <i class="fas fa-share"></i>
                                                     </a>
                                                 </div>
@@ -669,22 +963,22 @@ if ($action === 'modify' && isset($_GET['id'])) {
                                     }
                                     ?>
                                     <?php if ($rapports_data['current_page'] > 1): ?>
-                                        <a href="<?php echo buildPageUrlRapport($rapports_data['current_page'] - 1); ?>" 
-                                           class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200">
+                                        <a href="<?php echo buildPageUrlRapport($rapports_data['current_page'] - 1); ?>"
+                                            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200">
                                             <i class="fas fa-chevron-left"></i>
                                         </a>
                                     <?php endif; ?>
-                                    
+
                                     <?php for ($i = max(1, $rapports_data['current_page'] - 2); $i <= min($rapports_data['total_pages'], $rapports_data['current_page'] + 2); $i++): ?>
-                                        <a href="<?php echo buildPageUrlRapport($i); ?>" 
-                                           class="px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 <?php echo $i == $rapports_data['current_page'] ? 'bg-primary text-white' : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'; ?>">
+                                        <a href="<?php echo buildPageUrlRapport($i); ?>"
+                                            class="px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 <?php echo $i == $rapports_data['current_page'] ? 'bg-primary text-white' : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'; ?>">
                                             <?php echo $i; ?>
                                         </a>
                                     <?php endfor; ?>
-                                    
+
                                     <?php if ($rapports_data['current_page'] < $rapports_data['total_pages']): ?>
-                                        <a href="<?php echo buildPageUrlRapport($rapports_data['current_page'] + 1); ?>" 
-                                           class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200">
+                                        <a href="<?php echo buildPageUrlRapport($rapports_data['current_page'] + 1); ?>"
+                                            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200">
                                             <i class="fas fa-chevron-right"></i>
                                         </a>
                                     <?php endif; ?>
@@ -706,6 +1000,13 @@ if ($action === 'modify' && isset($_GET['id'])) {
     // Fenêtre modale pour modifier les informations d'un étudiant
     if ($action === 'modify' && $etudiant_modify) {
         include __DIR__ . '/modals/modify_student_modal.php';
+    }
+
+    // Fenêtre modale pour inscrire un étudiant à cheval
+    if ($action === 'inscrire-etudiant-cheval') {
+        // Récupérer les données pour l'inscription à cheval
+        $inscription_data = $controller->getInscriptionChevalData();
+        include __DIR__ . '/modals/inscription_etudiant_cheval_modal.php';
     }
 
     // Fenêtre modale pour vérifier l'éligibilité d'un étudiant
@@ -749,12 +1050,12 @@ if ($action === 'modify' && isset($_GET['id'])) {
                             <p class="text-red-600 font-medium">Cette action est irréversible.</p>
                         </div>
                         <div class="flex gap-3 justify-end">
-                            <a href="?page=etudiants" 
-                               class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                            <a href="?page=etudiants"
+                                class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
                                 Annuler
                             </a>
-                            <a href="?page=etudiants&id=<?php echo $_GET['id']; ?>&action=delete&confirm=1" 
-                               class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                            <a href="?page=etudiants&id=<?php echo $_GET['id']; ?>&action=delete&confirm=1"
+                                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
                                 Oui, supprimer
                             </a>
                         </div>
@@ -789,7 +1090,7 @@ if ($action === 'modify' && isset($_GET['id'])) {
                 $stmt = $pdo->prepare("DELETE FROM etudiants WHERE num_etd = ?");
                 $stmt->execute([$_GET['id']]);
 
-                
+
                 // Validation de la transaction
                 $pdo->commit();
                 $_SESSION['success_message'] = "L'étudiant a été supprimé avec succès.";
@@ -836,12 +1137,12 @@ if ($action === 'modify' && isset($_GET['id'])) {
                     Voulez-vous vraiment effectuer cette action ?
                 </p>
                 <div class="flex gap-3 justify-end">
-                    <button class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors" 
-                            id="cancel-modal-btn">
+                    <button class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                        id="cancel-modal-btn">
                         Annuler
                     </button>
-                    <button class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors" 
-                            id="confirm-modal-btn">
+                    <button class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors"
+                        id="confirm-modal-btn">
                         Confirmer
                     </button>
                 </div>
@@ -853,23 +1154,23 @@ if ($action === 'modify' && isset($_GET['id'])) {
     </div>
 
     <script src="./assets/js/gsEtudiants.js"></script>
-    
+
     <script>
         // Système de notifications moderne
         function showNotification(message, type = 'info') {
             const notification = document.createElement('div');
             notification.className = `fixed top-4 right-4 z-50 max-w-sm bg-white border rounded-lg shadow-lg p-4 transform transition-all duration-300 translate-x-full`;
-            
-            const bgColor = type === 'success' ? 'border-l-4 border-l-accent' : 
-                           type === 'error' ? 'border-l-4 border-l-danger' : 
-                           'border-l-4 border-l-primary';
-            
+
+            const bgColor = type === 'success' ? 'border-l-4 border-l-accent' :
+                type === 'error' ? 'border-l-4 border-l-danger' :
+                'border-l-4 border-l-primary';
+
             const icon = type === 'success' ? 'fas fa-check-circle text-accent' :
-                        type === 'error' ? 'fas fa-exclamation-circle text-danger' :
-                        'fas fa-info-circle text-primary';
-            
+                type === 'error' ? 'fas fa-exclamation-circle text-danger' :
+                'fas fa-info-circle text-primary';
+
             notification.className += ` ${bgColor}`;
-            
+
             notification.innerHTML = `
                 <div class="flex items-center">
                     <i class="${icon} text-lg mr-3"></i>
@@ -879,13 +1180,13 @@ if ($action === 'modify' && isset($_GET['id'])) {
                     </button>
                 </div>
             `;
-            
+
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
                 notification.style.transform = 'translateX(0)';
             }, 100);
-            
+
             setTimeout(() => {
                 notification.style.transform = 'translateX(100%)';
                 setTimeout(() => {

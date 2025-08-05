@@ -196,9 +196,25 @@ class ValidationController {
     /**
      * Ajoute un message de discussion à un rapport (chat commission)
      */
-
     public function addMessages($id_rapport, $id_ens, $message) {
         return $this->model->addMessageToRapport($id_rapport, $id_ens, $message);
+    }
 
+    /**
+     * Vérifie si tous les membres de la commission ont évalué un rapport
+     */
+    public function tousMembresOntEvalue($rapport_id) {
+        return $this->model->tousMembresOntEvalue($rapport_id);
+    }
+
+    /**
+     * Force la mise à jour du statut d'un rapport
+     */
+    public function forcerMiseAJourStatut($rapport_id) {
+        // Utiliser la réflexion pour accéder à la méthode privée
+        $reflection = new ReflectionClass($this->model);
+        $method = $reflection->getMethod('updateRapportStatus');
+        $method->setAccessible(true);
+        return $method->invoke($this->model, $rapport_id);
     }
 } 

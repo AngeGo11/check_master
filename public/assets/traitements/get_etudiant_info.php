@@ -28,6 +28,7 @@ try {
         SELECT 
             e.num_etd,
             e.nom_etd,
+            e.num_carte_etd,
             e.prenom_etd,
             e.id_promotion,
             pr.*,
@@ -78,6 +79,7 @@ try {
         'success' => true,
         'num_etd' => $etudiant['num_etd'],
         'nom_etd' => $etudiant['nom_etd'],
+        'num_carte_etd' => $etudiant['num_carte_etd'],
         'prenom_etd' => $etudiant['prenom_etd'],
         'lib_promotion' => $etudiant['lib_promotion'],
         'id_niv_etd' => $etudiant['id_niv_etd'],

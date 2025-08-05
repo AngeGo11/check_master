@@ -146,8 +146,73 @@ function updateGeneratePasswordsButton() {
 }
 
 function generatePasswords() {
-    if (confirm('Êtes-vous sûr de vouloir générer de nouveaux mots de passe pour les utilisateurs sélectionnés ?')) {
-        document.getElementById('usersForm').submit();
+    // Récupérer les utilisateurs sélectionnés
+    const selectedUsers = document.querySelectorAll('.inactive-user-checkbox:checked');
+    
+    if (selectedUsers.length === 0) {
+        alert('Veuillez sélectionner au moins un utilisateur inactif à affecter.');
+        return false;
+    }
+    
+    // Vérifier que les champs requis sont remplis
+    const typeUtilisateur = document.getElementById('mass_type_utilisateur').value;
+    const groupeUtilisateur = document.getElementById('mass_groupe_utilisateur').value;
+    
+    if (!typeUtilisateur) {
+        alert('Veuillez sélectionner un type d\'utilisateur.');
+        return false;
+    }
+    
+    if (!groupeUtilisateur) {
+        alert('Veuillez sélectionner un groupe d\'utilisateur.');
+        return false;
+    }
+    
+    // Confirmation pour l'attribution des accès
+    if (confirm('Êtes-vous sûr de vouloir attribuer les accès et générer les mots de passe pour ' + selectedUsers.length + ' utilisateur(s) sélectionné(s) ?')) {
+        // Créer un formulaire dynamique pour envoyer les données
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '?liste=utilisateurs';
+        
+        // Ajouter l'action
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'assign_multiple';
+        form.appendChild(actionInput);
+        
+        // Ajouter les utilisateurs sélectionnés
+        selectedUsers.forEach(checkbox => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'selected_users[]';
+            input.value = checkbox.value;
+            form.appendChild(input);
+        });
+        
+        // Ajouter les paramètres de configuration
+        const typeInput = document.createElement('input');
+        typeInput.type = 'hidden';
+        typeInput.name = 'type_utilisateur';
+        typeInput.value = typeUtilisateur;
+        form.appendChild(typeInput);
+        
+        const groupeInput = document.createElement('input');
+        groupeInput.type = 'hidden';
+        groupeInput.name = 'groupe_utilisateur';
+        groupeInput.value = groupeUtilisateur;
+        form.appendChild(groupeInput);
+        
+        const niveauInput = document.createElement('input');
+        niveauInput.type = 'hidden';
+        niveauInput.name = 'niveau_acces';
+        niveauInput.value = document.getElementById('mass_niveau_acces').value;
+        form.appendChild(niveauInput);
+        
+        // Soumettre le formulaire
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 
@@ -244,3 +309,72 @@ function resetFilters() {
     // Rediriger vers la page sans filtres
     window.location.href = '?page=liste_utilisateurs';
 }
+
+// Fonction pour activer les utilisateurs sélectionnés dans la liste principale
+function activateSelectedUsers() {
+    // Récupérer les utilisateurs sélectionnés
+    const selectedUsers = document.querySelectorAll('.row-checkbox:checked');
+    
+    if (selectedUsers.length === 0) {
+        alert('Veuillez sélectionner au moins un utilisateur à activer.');
+        return false;
+    }
+    
+    // Confirmation pour l'activation
+    if (confirm('Êtes-vous sûr de vouloir activer ' + selectedUsers.length + ' utilisateur(s) sélectionné(s) ?\n\nCette action va :\n- Changer le statut en "Actif"\n- Générer un nouveau mot de passe\n- Envoyer les identifiants par email')) {
+        // Créer un formulaire dynamique pour envoyer les données
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '../public/assets/traitements/traitements_liste_utilisateurs.php';
+        
+        // Ajouter l'action
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'generate_passwords';
+        form.appendChild(actionInput);
+        
+        // Ajouter les utilisateurs sélectionnés
+        selectedUsers.forEach(checkbox => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'selected_users[]';
+            input.value = checkbox.value;
+            form.appendChild(input);
+        });
+        
+        // Soumettre le formulaire
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Fonction pour mettre à jour l'affichage du bouton d'activation
+function updateActivateButton() {
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    const btn = document.getElementById('generatePasswordsBtn');
+    if (checked.length > 0) {
+        btn.style.display = 'flex';
+    } else {
+        btn.style.display = 'none';
+    }
+}
+
+// Initialisation des gestionnaires d'événements pour la liste principale
+document.addEventListener('DOMContentLoaded', function() {
+    // Gestionnaire pour "Tout sélectionner" dans la liste principale
+    const selectAllCheckbox = document.getElementById('select-all');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = this.checked);
+            updateActivateButton();
+        });
+    }
+    
+    // Gestionnaire pour les checkboxes individuelles dans la liste principale
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('row-checkbox')) {
+            updateActivateButton();
+        }
+    });
+});

@@ -252,7 +252,7 @@ $filters = $data['filters'];
                                             <a href="?page=validations&rapport=<?php echo $rapport['id_rapport_etd']; ?>" 
                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-accent hover:bg-green-600 transition-colors duration-200">
                                                 <i class="fas fa-check-circle mr-2"></i>
-                                                Valider
+                                                Évaluer
                                             </a>
                                         </td>
                                     </tr>

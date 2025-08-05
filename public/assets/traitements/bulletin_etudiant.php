@@ -5,6 +5,9 @@ error_reporting(E_ALL);
 require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV+/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV+/app/Models/AnneeAcademique.php';
 
+// Créer la connexion PDO
+$pdo = DataBase::getConnection();
+
 // Récupération du numéro de l'étudiant
 if (!isset($_GET['numero'])) {
     die("Numéro d'étudiant non fourni.");
@@ -198,7 +201,6 @@ unset($semestre, $ue); // Rompre les références
                 <tr><td>NOM</td><td>: <?= htmlspecialchars($etudiant['nom_etd'] ?? '') ?></td></tr>
                 <tr><td>PRENOMS</td><td>: <?= htmlspecialchars($etudiant['prenom_etd'] ?? '') ?></td></tr>
                 <tr><td>DATE DE NAISSANCE</td><td>: <?= isset($etudiant['date_naissance_etd']) ? date('d/m/Y', strtotime($etudiant['date_naissance_etd'])) : '' ?></td></tr>
-                <tr><td>LIEU DE NAISSANCE</td><td>: <?= htmlspecialchars($etudiant['lieu_naissance_etd'] ?? 'Non défini') ?></td></tr>
                 <tr><td>MENTION</td><td>: <?= htmlspecialchars($etudiant['mention'] ?? 'Informatique') ?></td></tr>
                 <tr><td>PARCOURS</td><td>: <?= htmlspecialchars($etudiant['parcours'] ?? 'MIAGE') ?></td></tr>
                 <tr><td>GRADE</td><td>: <?= htmlspecialchars($grade ?? 'Inconnu') ?></td></tr>

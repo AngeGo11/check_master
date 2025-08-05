@@ -72,6 +72,7 @@ if (
         $_SESSION['id_user_type'] = $authController->getUserTypeId($uid);
         $_SESSION['lib_user_type'] = $authController->getUserType($uid);
         $_SESSION['login_utilisateur'] = $authController->getUserLogin($uid);
+        $_SESSION['lib_user_group'] = $authController->getUserGroup($uid);
         $_SESSION['last_activity'] = time();
 
         /*─── Redirection ───*/

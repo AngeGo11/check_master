@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use PDO;
-use DateTime;
 use PDOException;
+use DateTime;
 
 class AnneeAcademique
 {
     private $db;
+
     public function __construct($db)
     {
         $this->db = $db;

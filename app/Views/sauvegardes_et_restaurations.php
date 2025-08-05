@@ -265,44 +265,39 @@ function formatFileSize($bytes)
                                                                 <i class="fas fa-file-archive text-primary mr-3"></i>
                                                                 <div>
                                                                     <div class="text-sm font-medium text-gray-900">
-                                                                        <?php echo htmlspecialchars($backup['filename'] ?? $backup['name'] ?? 'Fichier inconnu'); ?>
+                                                                        <?php echo htmlspecialchars($backup['nom_sauvegarde'] ?? 'Fichier inconnu'); ?>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         </td>
                                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                            <?php echo formatFileSize($backup['size'] ?? $backup['filesize'] ?? 0); ?>
+                                                            <?php echo formatFileSize($backup['taille_fichier'] ); ?>
                                                         </td>
                                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                             <div class="flex items-center">
                                                                 <i class="fas fa-clock mr-2 text-gray-400"></i>
                                                                 <?php 
-                                                                $date = $backup['created_at'] ?? $backup['date_creation'] ?? $backup['date'] ?? null;
-                                                                echo $date ? date('d/m/Y H:i', strtotime($date)) : 'Date inconnue';
+                                                                echo $backup['date_creation'] ? date('d/m/Y H:i', strtotime($backup['date_creation'])) : 'Date inconnue';
                                                                 ?>
                                                             </div>
                                                         </td>
                                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                                            <?php $filename = $backup['filename'] ?? $backup['name'] ?? ''; ?>
-                                                            <?php if ($filename): ?>
-                                                            <a href="assets/traitements/backup_restore.php?download=<?php echo urlencode($filename); ?>" 
+                                                            <a href="assets/traitements/backup_restore.php?download=<?php echo urlencode($backup['nom_fichier']); ?>" 
                                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-accent hover:bg-green-600 transition-colors duration-200">
                                                                 <i class="fas fa-download mr-2"></i>
                                                                 Télécharger
                                                             </a>
-                                                            <button onclick="confirmRestore('<?php echo htmlspecialchars($filename); ?>')" 
+                                                            <button onclick="confirmRestore('<?php echo htmlspecialchars($backup['nom_fichier']); ?>')" 
                                                                     class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-warning hover:bg-yellow-600 transition-colors duration-200">
                                                                 <i class="fas fa-undo mr-2"></i>
                                                                 Restaurer
                                                             </button>
-                                                            <button onclick="confirmDelete('<?php echo htmlspecialchars($filename); ?>')" 
+                                                            <button onclick="confirmDelete('<?php echo htmlspecialchars($backup['nom_fichier']); ?>')" 
                                                                     class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-danger hover:bg-red-600 transition-colors duration-200">
                                                                 <i class="fas fa-trash mr-2"></i>
                                                                 Supprimer
                                                             </button>
-                                                            <?php else: ?>
-                                                            <span class="text-gray-400 text-sm">Actions non disponibles</span>
-                                                            <?php endif; ?>
+                                                           
                                                         </td>
                                                     </tr>
                                                 <?php endforeach; ?>

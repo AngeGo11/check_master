@@ -1,9 +1,9 @@
 <?php
 // Configuration de la base de données
-$host = 'localhost';
+$host = 'db';
 $dbname = 'check_master_db';
 $username = 'root';
-$password = '';
+$password = 'root';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username, $password);

@@ -134,6 +134,7 @@
     align-items: center;
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: auto;
 }
 
 .modal.open {
@@ -151,6 +152,8 @@
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
     transform: translateY(-20px);
     transition: transform 0.3s ease;
+    pointer-events: auto;
+    z-index: 1001;
 }
 
 .modal.open .modal-content {
@@ -249,16 +252,33 @@
     overflow-y: auto;
 }
 
+/* Modal de création de rapport */
 #create-report-modal .modal-content {
-    background: white;
-    width: 95%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    border-radius: 8px;
-    position: relative;
-    max-height: 90vh;
-    overflow-y: auto;
+    width: 98%;
+    max-width: 1400px;
+    max-height: 98vh;
+    height: 98vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+#create-report-modal .container {
+    flex: 1;
+    overflow: hidden;
+}
+
+#create-report-modal .action-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: none;
+}
+
+#create-report-modal .action-card > div {
+    flex: 1;
+    overflow: hidden;
 }
 
 /* Style spécifique pour le modal de création de rapport */
@@ -277,8 +297,8 @@
 }
 
 #create-report-modal #editor {
-    height: 65vh;
-    min-height: 500px;
+    height: 75vh;
+    min-height: 600px;
 }
 
 /* Style pour le haut du modal */
@@ -694,11 +714,11 @@
 
 #quill-editor {
     height: 100%;
-    min-height: 500px;
+    min-height: 600px;
 }
 
 #quill-editor .ql-editor {
-    min-height: 500px;
+    min-height: 600px;
     padding: 20px;
     font-family: 'Times New Roman', serif;
     font-size: 14px;
@@ -815,6 +835,12 @@
     color: #333;
     cursor: pointer;
     transition: border-color 0.3s ease;
+    position: relative;
+    z-index: 1000;
+    pointer-events: auto;
+    -webkit-appearance: auto;
+    -moz-appearance: auto;
+    appearance: auto;
 }
 
 .model-selection select:focus {
@@ -845,6 +871,98 @@
         min-width: auto;
         width: 100%;
     }
+}
+
+/* Styles spécifiques pour corriger les problèmes de select dans le modal */
+#create-report-modal .model-selection select {
+    position: relative;
+    z-index: 1002;
+    pointer-events: auto;
+    -webkit-appearance: auto;
+    -moz-appearance: auto;
+    appearance: auto;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    padding-right: 32px;
+}
+
+/* Effets de survol pour les boutons de la barre d'outils */
+#editor-toolbar button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+    background: rgba(255,255,255,1) !important;
+}
+
+/* Effets de survol pour les boutons d'action */
+.button.primary:hover,
+.button.secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2) !important;
+}
+
+/* Animation pour le select */
+#model-select:focus {
+    border-color: #1a5276 !important;
+    box-shadow: 0 0 0 3px rgba(26, 82, 118, 0.1) !important;
+    outline: none;
+}
+
+/* Style pour le placeholder de l'éditeur */
+#local-editor:empty::before {
+    content: "Commencez à rédiger votre rapport...";
+    color: #718096;
+    font-style: italic;
+    pointer-events: none;
+}
+
+/* Effets de survol pour les champs de saisie */
+#create-report-modal input:focus,
+#create-report-modal select:focus {
+    border-color: #1a5276 !important;
+    box-shadow: 0 0 0 3px rgba(26, 82, 118, 0.1) !important;
+    outline: none;
+    transform: translateY(-1px);
+}
+
+#create-report-modal input:hover,
+#create-report-modal select:hover {
+    border-color: #2c5aa0 !important;
+    transform: translateY(-1px);
+}
+
+/* Animation pour les boutons de la colonne gauche */
+#create-report-modal .button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2) !important;
+}
+
+/* Style pour les labels avec icônes */
+#create-report-modal label {
+    transition: all 0.3s ease;
+}
+
+#create-report-modal label:hover {
+    color: #2c5aa0 !important;
+}
+
+/* Animation pour les champs obligatoires */
+#create-report-modal input[required],
+#create-report-modal select[required] {
+    border-left: 3px solid #1a5276;
+}
+
+/* Style pour les placeholders */
+#create-report-modal input::placeholder,
+#create-report-modal select::placeholder {
+    color: #a0aec0;
+    transition: color 0.3s ease;
+}
+
+#create-report-modal input:focus::placeholder,
+#create-report-modal select:focus::placeholder {
+    color: #718096;
 }
 
 

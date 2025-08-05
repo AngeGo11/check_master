@@ -1,13 +1,15 @@
 <?php
 
 use App\Models\Rapport;
+require_once __DIR__ . '/../config/config.php';
+
 require_once __DIR__ . '/../Models/Rapport.php';
 
 class RapportController {
     private $model;
 
-    public function __construct(PDO $db) {
-        $this->model = new Rapport($db);
+    public function __construct($pdo) {
+        $this->model = new Rapport($pdo);
     }
 
     /**

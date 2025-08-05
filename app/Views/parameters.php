@@ -4,6 +4,37 @@
 require_once '../app/Controllers/ParameterController.php';
 $controller = new ParameterController();
 
+// Traitement des formulaires POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $result = null;
+    
+    // Traitement du changement de mot de passe
+    if (isset($_POST['save-modification']) && $_POST['save-modification'] === 'change-password') {
+        $result = $controller->changePassword();
+    }
+    // Traitement de la mise à jour du profil
+    elseif (isset($_POST['save-modification']) && $_POST['save-modification'] === 'update-profile') {
+        $result = $controller->updateProfile();
+    }
+    // Traitement des préférences de notification
+    elseif (isset($_POST['save-notifications'])) {
+        $result = $controller->updateNotifications();
+    }
+    
+    // Redirection avec message si nécessaire
+    if ($result) {
+        if ($result['success']) {
+            $_SESSION['success_message'] = $result['message'];
+        } else {
+            $_SESSION['errors'] = [$result['error']];
+        }
+        
+        // Redirection pour éviter la soumission multiple
+        header('Location: ?page=parameters');
+        exit();
+    }
+}
+
 // Récupération des données via le contrôleur
 $data = $controller->viewParameters();
 
@@ -13,6 +44,18 @@ $userType = $data['userType'];
 $profilePhoto = $data['profilePhoto'];
 $errors = $data['errors'];
 $success_message = $data['success_message'];
+
+// Récupération des messages de session
+if (isset($_SESSION['errors'])) {
+    $errors = array_merge($errors, $_SESSION['errors']);
+    unset($_SESSION['errors']);
+}
+
+if (isset($_SESSION['success_message'])) {
+    $success_message = $_SESSION['success_message'];
+    unset($_SESSION['success_message']);
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -111,21 +154,67 @@ $success_message = $data['success_message'];
                 <div class="flex items-center space-x-6">
                     <div class="relative">
                         <div class="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                            <img src="<?php echo htmlspecialchars($profilePhoto); ?>" alt="Photo de profil" 
+                            <img src="<?php echo !empty($profilePhoto) && $profilePhoto !== 'default_profile.jpg' ? '../storage/uploads/profiles/' . htmlspecialchars($profilePhoto) : '../public/assets/images/default_profile.jpg'; ?>" alt="Photo de profil" 
                                  class="w-full h-full object-cover" id="profile-image">
                         </div>
-                        <label for="photo-upload" class="absolute bottom-0 right-0 bg-primary text-white rounded-full p-2 hover:bg-primary-light transition-colors cursor-pointer">
+                        
+                        <!-- Bouton pour changer la photo -->
+                        <button type="button" onclick="openPhotoModal()" 
+                                class="absolute bottom-0 right-0 bg-primary text-white rounded-full p-2 hover:bg-primary-light transition-colors cursor-pointer">
                             <i class="fas fa-camera text-sm"></i>
-                        </label>
-                        <input type="file" id="photo-upload" accept="image/*" class="hidden">
+                        </button>
                     </div>
                     <div>
-                        
                         <h2 class="text-2xl font-bold text-gray-900">
                             <?php echo htmlspecialchars($_SESSION['user_fullname']); ?>
                         </h2>
                         <p class="text-primary font-medium"><?php echo htmlspecialchars($_SESSION['lib_user_type']); ?></p>
                         <p class="text-gray-600"><?php echo htmlspecialchars($userData['email'] ?? $userData['email_ens'] ?? $userData['email_personnel_adm'] ?? $userData['email_etd'] ?? ''); ?></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal pour changer la photo de profil -->
+            <div id="photo-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+                <div class="flex items-center justify-center min-h-screen p-4">
+                    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900">Changer la photo de profil</h3>
+                        </div>
+                        
+                        <form id="photo-form" enctype="multipart/form-data" class="p-6">
+                            <div class="mb-4">
+                                <label for="change" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Sélectionner une nouvelle image
+                                </label>
+                                <input type="file" id="change" name="change" accept="image/*" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <p class="text-xs text-gray-500 mt-1">Formats acceptés : JPG, PNG, GIF (max 5MB)</p>
+                            </div>
+                            
+                            <!-- Prévisualisation de l'image -->
+                            <div class="mb-4 text-center">
+                                <img id="photo-preview" src="" alt="Prévisualisation" 
+                                     class="w-32 h-32 object-cover rounded-lg mx-auto hidden">
+                            </div>
+                            
+                            <div class="flex justify-between">
+                                <button type="button" onclick="closePhotoModal()" 
+                                        class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                                    Annuler
+                                </button>
+                                <div class="space-x-2">
+                                    <button type="button" id="delete-photo" 
+                                            class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                                        Supprimer
+                                    </button>
+                                    <button type="submit" 
+                                            class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors">
+                                        Enregistrer
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -147,13 +236,13 @@ $success_message = $data['success_message'];
                                     <label for="nom" class="block text-sm font-medium text-gray-700 mb-2">Nom *</label>
                                     <input type="text" id="nom" name="nom" 
                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                                           value="<?php echo htmlspecialchars($userData['nom'] ?? $userData['nom_ens'] ?? $userData['nom_personnel_adm'] ?? ''); ?>" required>
+                                           value="<?php echo htmlspecialchars($userData['nom_etd'] ?? $userData['nom_ens'] ?? $userData['nom_personnel_adm'] ?? ''); ?>" required>
                                 </div>
                                 <div>
                                     <label for="prenoms" class="block text-sm font-medium text-gray-700 mb-2">Prénoms *</label>
                                     <input type="text" id="prenoms" name="prenoms" 
                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                                           value="<?php echo htmlspecialchars($userData['prenoms'] ?? $userData['prenoms_ens'] ?? $userData['prenoms_personnel_adm'] ?? ''); ?>" required>
+                                           value="<?php echo htmlspecialchars($userData['prenom_etd'] ?? $userData['prenoms_ens'] ?? $userData['prenoms_personnel_adm'] ?? ''); ?>" required>
                                 </div>
                             </div>
 
@@ -196,7 +285,7 @@ $success_message = $data['success_message'];
                             <?php endif; ?>
 
                             <div class="flex justify-end">
-                                <button type="submit" name="save-modification" 
+                                <button type="submit" name="save-modification" value="update-profile"
                                         class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200 flex items-center">
                                     <i class="fas fa-save mr-2"></i>
                                     Enregistrer les modifications
@@ -230,7 +319,7 @@ $success_message = $data['success_message'];
                                     <p class="text-sm text-gray-500 mt-1">Le mot de passe doit contenir au moins 8 caractères</p>
                                 </div>
                                 <div>
-                                    <label for="confirm_mdp" class="block text-sm font-medium text-gray-700 mb-2">Confirmer le nouveau mot de passe *</label>
+                                    <label for="confirm_mdp" class="block text-sm font-medium text-gray-700 mb-2 text-nowrap">Confirmer le nouveau mot de passe*</label>
                                     <input type="password" id="confirm_mdp" name="confirm_mdp" 
                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
                                 </div>
@@ -421,35 +510,477 @@ $success_message = $data['success_message'];
             }
         });
 
-        // Validation du formulaire de mot de passe
+        // Gestion des formulaires avec AJAX
+        document.getElementById('personal-info-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            formData.append('action', 'update_profile');
+            
+            fetch('./assets/traitements/update_profile.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                } else {
+                    showNotification('Erreur: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Une erreur est survenue lors de la mise à jour.', 'error');
+            });
+        });
+
         document.getElementById('password-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
             const nouveauMdp = document.getElementById('nouveau_mdp').value;
             const confirmMdp = document.getElementById('confirm_mdp').value;
 
             if (nouveauMdp !== confirmMdp) {
-                e.preventDefault();
                 showNotification('Les mots de passe ne correspondent pas.', 'error');
                 return false;
             }
 
             if (nouveauMdp.length < 8) {
-                e.preventDefault();
                 showNotification('Le mot de passe doit contenir au moins 8 caractères.', 'error');
                 return false;
             }
+            
+            const formData = new FormData(this);
+            formData.append('action', 'change_password');
+            
+            fetch('./assets/traitements/update_profile.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    this.reset();
+                } else {
+                    showNotification('Erreur: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Une erreur est survenue lors du changement de mot de passe.', 'error');
+            });
+        });
+
+        document.getElementById('notification-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            formData.append('action', 'update_notifications');
+            
+            fetch('./assets/traitements/update_profile.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                } else {
+                    showNotification('Erreur: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Une erreur est survenue lors de la mise à jour des préférences.', 'error');
+            });
         });
 
         // Fonctions de sécurité
         function enable2FA() {
-            showNotification('Fonctionnalité d\'authentification à deux facteurs à implémenter.', 'info');
+            // Générer une nouvelle clé secrète
+            fetch('./assets/traitements/two_factor_auth.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'action=generate'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    show2FAModal(data);
+                } else {
+                    showNotification('Erreur: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de la génération du code 2FA', 'error');
+            });
+        }
+
+        function show2FAModal(data) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Configuration 2FA</h3>
+                            <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="text-center">
+                                <p class="text-sm text-gray-600 mb-4">Scannez ce QR code avec votre application d'authentification :</p>
+                                <div id="qrcode" class="flex justify-center mb-4"></div>
+                                <p class="text-xs text-gray-500">Ou entrez manuellement : <code class="bg-gray-100 px-2 py-1 rounded">${data.secret}</code></p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Code de vérification</label>
+                                <input type="text" id="verification-code" maxlength="6" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                                       placeholder="000000">
+                            </div>
+                            <div class="flex gap-3">
+                                <button onclick="verifyAndEnable2FA('${data.secret}')" 
+                                        class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light">
+                                    Activer
+                                </button>
+                                <button onclick="this.closest('.fixed').remove()" 
+                                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                                    Annuler
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Générer le QR code
+            generateQRCode(data.qr_url, 'qrcode');
+        }
+
+        function generateQRCode(url, elementId) {
+            // Utiliser une API gratuite pour générer le QR code
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+            document.getElementById(elementId).innerHTML = `<img src="${qrUrl}" alt="QR Code" class="border rounded">`;
+        }
+
+        function verifyAndEnable2FA(secret) {
+            const code = document.getElementById('verification-code').value;
+            if (!code || code.length !== 6) {
+                showNotification('Veuillez entrer un code à 6 chiffres', 'error');
+                return;
+            }
+
+            fetch('./assets/traitements/two_factor_auth.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=enable&secret=${secret}&code=${code}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Authentification à deux facteurs activée !', 'success');
+                    document.querySelector('.fixed').remove();
+                    showBackupCodes(data.backup_codes);
+                } else {
+                    showNotification('Erreur: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de l\'activation', 'error');
+            });
+        }
+
+        function showBackupCodes(codes) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Codes de sauvegarde</h3>
+                            <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <p class="text-sm text-gray-600">Conservez ces codes en lieu sûr. Ils vous permettront de récupérer l'accès à votre compte si vous perdez votre appareil :</p>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <div class="grid grid-cols-2 gap-2">
+                                    ${codes.map(code => `<code class="text-sm font-mono bg-white px-2 py-1 rounded border">${code}</code>`).join('')}
+                                </div>
+                            </div>
+                            <p class="text-xs text-red-600">⚠️ Ces codes ne seront plus affichés après fermeture de cette fenêtre.</p>
+                            <button onclick="this.closest('.fixed').remove()" 
+                                    class="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light">
+                                J'ai noté ces codes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
         }
 
         function manageSessions() {
-            showNotification('Gestion des sessions à implémenter.', 'info');
+            fetch('./assets/traitements/manage_sessions.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'action=list'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSessionsModal(data.sessions);
+                } else {
+                    showNotification('Erreur: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors du chargement des sessions', 'error');
+            });
+        }
+
+        function showSessionsModal(sessions) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Sessions actives</h3>
+                            <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            ${sessions.map(session => `
+                                <div class="border border-gray-200 rounded-lg p-4 ${session.is_current ? 'bg-primary/5 border-primary' : ''}">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center space-x-2 mb-2">
+                                                <i class="fas fa-${session.device_type === 'Mobile' ? 'mobile-alt' : session.device_type === 'Tablet' ? 'tablet-alt' : 'desktop'} text-gray-400"></i>
+                                                <span class="font-medium">${session.device_type}</span>
+                                                ${session.is_current ? '<span class="bg-primary text-white text-xs px-2 py-1 rounded">Actuelle</span>' : ''}
+                                            </div>
+                                            <div class="text-sm text-gray-600 space-y-1">
+                                                <div>IP: ${session.ip_address}</div>
+                                                <div>Localisation: ${session.location_info?.city || 'Inconnu'}, ${session.location_info?.country || 'Inconnu'}</div>
+                                                <div>Dernière activité: ${new Date(session.last_activity).toLocaleString('fr-FR')}</div>
+                                            </div>
+                                        </div>
+                                        ${!session.is_current ? `
+                                            <button onclick="terminateSession('${session.session_id}')" 
+                                                    class="px-3 py-1 text-red-600 hover:bg-red-50 rounded">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                            ${sessions.length > 1 ? `
+                                <div class="border-t pt-4">
+                                    <button onclick="terminateAllSessions()" 
+                                            class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                                        Terminer toutes les autres sessions
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function terminateSession(sessionId) {
+            if (confirm('Êtes-vous sûr de vouloir terminer cette session ?')) {
+                fetch('./assets/traitements/manage_sessions.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=terminate&session_id=${sessionId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Session terminée', 'success');
+                        document.querySelector('.fixed').remove();
+                        manageSessions();
+                    } else {
+                        showNotification('Erreur: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showNotification('Erreur lors de la terminaison', 'error');
+                });
+            }
+        }
+
+        function terminateAllSessions() {
+            if (confirm('Êtes-vous sûr de vouloir terminer toutes les autres sessions ?')) {
+                fetch('./assets/traitements/manage_sessions.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'action=terminate_all'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Toutes les autres sessions ont été terminées', 'success');
+                        document.querySelector('.fixed').remove();
+                        manageSessions();
+                    } else {
+                        showNotification('Erreur: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showNotification('Erreur lors de la terminaison', 'error');
+                });
+            }
         }
 
         function viewLoginHistory() {
-            showNotification('Historique de connexion à implémenter.', 'info');
+            fetch('./assets/traitements/login_history.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'action=list&page=1&limit=20'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showLoginHistoryModal(data.history, data.pagination);
+                } else {
+                    showNotification('Erreur: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors du chargement de l\'historique', 'error');
+            });
+        }
+
+        function showLoginHistoryModal(history, pagination) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Historique de connexion</h3>
+                            <div class="flex space-x-2">
+                                <button onclick="exportLoginHistory('csv')" 
+                                        class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
+                                    <i class="fas fa-download mr-1"></i>CSV
+                                </button>
+                                <button onclick="exportLoginHistory('json')" 
+                                        class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    <i class="fas fa-download mr-1"></i>JSON
+                                </button>
+                                <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            ${history.map(entry => `
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center space-x-2 mb-2">
+                                                <i class="fas fa-${entry.device_type === 'Mobile' ? 'mobile-alt' : entry.device_type === 'Tablet' ? 'tablet-alt' : 'desktop'} text-gray-400"></i>
+                                                <span class="font-medium">${entry.device_type}</span>
+                                                <span class="px-2 py-1 text-xs rounded ${entry.login_status === 'success' ? 'bg-green-100 text-green-800' : entry.login_status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}">${entry.login_status}</span>
+                                            </div>
+                                            <div class="text-sm text-gray-600 space-y-1">
+                                                <div>Connexion: ${entry.login_time_formatted}</div>
+                                                <div>Déconnexion: ${entry.logout_time_formatted}</div>
+                                                <div>Durée: ${entry.duration_formatted}</div>
+                                                <div>IP: ${entry.ip_address}</div>
+                                                <div>Localisation: ${entry.location_info?.city || 'Inconnu'}, ${entry.location_info?.country || 'Inconnu'}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            ${pagination.total_pages > 1 ? `
+                                <div class="border-t pt-4">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-600">Page ${pagination.current_page} sur ${pagination.total_pages}</span>
+                                        <div class="flex space-x-2">
+                                            ${pagination.current_page > 1 ? `
+                                                <button onclick="loadLoginHistoryPage(${pagination.current_page - 1})" 
+                                                        class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">
+                                                    Précédent
+                                                </button>
+                                            ` : ''}
+                                            ${pagination.current_page < pagination.total_pages ? `
+                                                <button onclick="loadLoginHistoryPage(${pagination.current_page + 1})" 
+                                                        class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">
+                                                    Suivant
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function loadLoginHistoryPage(page) {
+            fetch('./assets/traitements/login_history.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=list&page=${page}&limit=20`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.querySelector('.fixed').remove();
+                    showLoginHistoryModal(data.history, data.pagination);
+                } else {
+                    showNotification('Erreur: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors du chargement', 'error');
+            });
+        }
+
+        function exportLoginHistory(format) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = './assets/traitements/login_history.php';
+            form.target = '_blank';
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'export';
+            
+            const formatInput = document.createElement('input');
+            formatInput.type = 'hidden';
+            formatInput.name = 'format';
+            formatInput.value = format;
+            
+            form.appendChild(actionInput);
+            form.appendChild(formatInput);
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
         }
 
         // Fonctions de suppression de compte
@@ -566,7 +1097,29 @@ $success_message = $data['success_message'];
             el.style.transform = 'translateY(20px)';
             observer.observe(el);
         });
+
+        // Fonctions pour la modal de photo de profil
+        function openPhotoModal() {
+            document.getElementById('photo-modal').classList.remove('hidden');
+        }
+
+        function closePhotoModal() {
+            document.getElementById('photo-modal').classList.add('hidden');
+            // Réinitialiser le formulaire
+            document.getElementById('photo-form').reset();
+            document.getElementById('photo-preview').style.display = 'none';
+        }
+
+        // Fermer la modal en cliquant en dehors
+        document.getElementById('photo-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePhotoModal();
+            }
+        });
     </script>
+    
+    <!-- Script pour la gestion des photos de profil -->
+    <script src="assets/js/profile_photo.js"></script>
 
 </body>
 

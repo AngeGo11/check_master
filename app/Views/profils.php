@@ -21,8 +21,10 @@ $notes = $data['grades'];
 $stages = $data['internships'];
 $rapports = $data['reports'];
 
+
+
 // Organiser les notes par semestre
-$notesParSemestre = $profilController->organizeGradesBySemester($notes);
+$notesParSemestre = $profilController->organizeGradesBySemester($recupUserData['num_etd']);
 
 if (!$recupUserData) {
     die("Aucune donnée trouvée pour cet utilisateur");
@@ -1171,10 +1173,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                     <td>
                                         <?= date('d/m/Y', strtotime($stage['date_debut'])) . ' - ' . date('d/m/Y', strtotime($stage['date_fin'])) ?>
                                     </td>
-                                    <td><?= htmlspecialchars($stage['lib_entr']) ?></td>
+                                    <td><?= htmlspecialchars($stage['lib_entr'] ?? 'N/A') ?></td>
                                     <td>
                                         <?php
-                                        $type = strtolower($stage['type_stage']);
+                                        $type = strtolower($stage['type_stage'] ?? '');
                                         $badgeClass = 'badge-secondary';
 
                                         if (str_contains($type, 'immersion')) {
@@ -1188,7 +1190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                         }
                                         ?>
                                         <span class="badge <?= $badgeClass ?>">
-                                            <?= htmlspecialchars($stage['type_stage']) ?>
+                                            <?= htmlspecialchars($stage['type_stage'] ?? 'N/A') ?>
                                         </span>
                                     </td>
 
@@ -1200,8 +1202,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                         echo ($interval->y * 12 + $interval->m) . ' mois';
                                         ?>
                                     </td>
-                                    <td><?= htmlspecialchars($stage['nom_tuteur']) ?></td>
-                                    <td><?= htmlspecialchars($stage['telephone_tuteur']) ?></td>
+                                    <td><?= htmlspecialchars($stage['nom_tuteur'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($stage['telephone_tuteur'] ?? 'N/A') ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
@@ -1220,7 +1222,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Nom</th>
                             <th>Thème</th>
                             <th>Statut</th>
                             <th>Action</th>
@@ -1231,13 +1232,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <?php foreach ($rapports as $rapport): ?>
                                 <tr>
                                     <td><?= date('d/m/Y', strtotime($rapport['date_rapport'])) ?></td>
-                                    <td><?= htmlspecialchars($rapport['nom_rapport']) ?></td>
-                                    <td><?= htmlspecialchars($rapport['theme_memoire']) ?></td>
+                                    <td><?= htmlspecialchars($rapport['theme_memoire'] ?? 'N/A') ?></td>
                                     <td>
                                         <span class="badge <?=
                                                             $rapport['statut_rapport'] === 'Validé' ? 'badge-success' : ($rapport['statut_rapport'] === 'En attente' ? 'badge-warning' : 'badge-secondary')
                                                             ?>">
-                                            <?= htmlspecialchars($rapport['statut_rapport']) ?>
+                                            <?= htmlspecialchars($rapport['statut_rapport'] ?? 'N/A') ?>
                                         </span>
                                     </td>
                                     <td>
@@ -1340,6 +1340,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         <div class="modal-body">
             <?php
+            // Debug info
+            echo "<div style='background: #f0f0f0; padding: 10px; margin-bottom: 10px; border-radius: 5px; font-family: monospace; font-size: 12px;'>";
+            echo "<strong>Debug Notes:</strong><br>";
+            echo "Nombre de notes: " . count($notes) . "<br>";
+            echo "Student ID: " . $recupUserData['num_etd'] . "<br>";
+            echo "Notes par semestre: " . count($notesParSemestre) . "<br>";
+            echo "<pre>" . print_r($notesParSemestre, true) . "</pre>";
+            echo "</div>";
+            
             if (empty($notesParSemestre)) {
                 echo "<p>Aucune note enregistrée pour le moment.</p>";
             } else {
@@ -1866,11 +1875,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         window.print();
     }
 
-    // Fonction d'impression des notes
-    function printGrades() {
-        window.print();
-    }
-
+   
     // Gestion des modales
     function openModal(modalId) {
         const modal = document.getElementById(modalId);

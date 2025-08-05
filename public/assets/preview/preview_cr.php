@@ -43,18 +43,26 @@ try {
 
     // Construire le chemin complet du fichier
     // Utiliser le chemin absolu pour plus de fiabilité
-    $basePath = dirname(dirname(dirname(__FILE__))); // Remonte jusqu'au répertoire pages/
+    $basePath = dirname(dirname(dirname(__FILE__))); // Remonte jusqu'au répertoire racine du projet
     $filePath = $basePath . '/' . $compte_rendu['fichier_cr'];
     
-    // Pour le débogage, afficher les chemins
-    error_log("Chemin relatif dans BDD: " . $compte_rendu['fichier_cr']);
-    error_log("Chemin complet construit: " . $filePath);
-    error_log("Chemin absolu: " . realpath($filePath));
+
 
     // Vérifier si le fichier existe
     if (empty($compte_rendu['fichier_cr']) || !file_exists($filePath)) {
         http_response_code(404);
         die('Fichier du compte rendu non trouvé. Chemin: ' . $filePath);
+    }
+
+    // Nettoyer tout buffer de sortie
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
+    
+    // Vérifier qu'aucun en-tête n'a été envoyé
+    if (headers_sent($file, $line)) {
+        error_log("Headers already sent in $file:$line");
+        exit();
     }
 
     // Vérifier le type MIME du fichier

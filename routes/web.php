@@ -53,11 +53,18 @@ elseif (isset($_GET['page']) && $_GET['page'] === 'comptes_rendus') {
 }
 
 elseif (isset($_GET['page']) && $_GET['page'] === 'consultations') {
-    ob_start();
-    require_once __DIR__ . '/../app/Controllers/ConsultationsController.php';
-    $controller = new ConsultationsController();
-    $controller->index();
-    ob_end_flush();
+    require_once __DIR__ . '/../app/Controllers/ConsultationController.php';
+    $controller = new ConsultationController();
+    
+    // Pour les requêtes AJAX, ne pas utiliser ob_start/ob_end_flush
+    $action = $_GET['action'] ?? '';
+    if ($action === 'getEvaluationData') {
+        $controller->index();
+    } else {
+        ob_start();
+        $controller->index();
+        ob_end_flush();
+    }
 }
 
 elseif (isset($_GET['page']) && $_GET['page'] === 'dashboard') {
@@ -190,6 +197,12 @@ elseif (isset($_GET['page']) && $_GET['page'] === 'rapports') {
     require_once __DIR__ . '/../app/Controllers/RapportsController.php';
     $controller = new RapportsController();
     $controller->index();
+    ob_end_flush();
+}
+
+elseif (isset($_GET['page']) && $_GET['page'] === 'redaction_rapport') {
+    ob_start();
+    include __DIR__ . '/../app/Views/redaction_rapport.php';
     ob_end_flush();
 }
 
@@ -409,6 +422,8 @@ elseif (isset($_GET['page']) && $_GET['page'] === 'liste_utilisateurs') {
     $controller->index();
     ob_end_flush();
 }
+
+
 
 // Page par défaut
 else {

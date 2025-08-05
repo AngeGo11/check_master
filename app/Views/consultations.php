@@ -1,7 +1,7 @@
 <?php
 // Vérification de sécurité
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_groups'])) {
-    header('Location: ../pageConnection.php');
+    header('Location: ../pageConnexion.php');
     exit;
 }
 // Désactiver l'affichage des erreurs pour éviter de polluer les réponses JSON
@@ -27,9 +27,43 @@ $filters_rapports = $data['filters_rapports'];
 $filters_cr = $data['filters_cr'];
 
 $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['user_id']);
+
+$historiques = $controller->getHistory();
+
+// Récupération du nom de l'utilisateur actuel
+$user_name = $_SESSION['user_fullname'] ?? $_SESSION['user_fullname'] ?? 'Utilisateur';
+
+// Groupement des comptes rendus par titre
+$comptesRendusGroupes = [];
+if (!empty($comptes_rendus)) {
+    foreach ($comptes_rendus as $compteRendu) {
+        $titre = $compteRendu['nom_cr'] ?? 'Sans titre';
+        if (!isset($comptesRendusGroupes[$titre])) {
+            $comptesRendusGroupes[$titre] = [
+                'titre' => $titre,
+                'nombre_total' => 0,
+                'date_creation' => $compteRendu['date_cr'] ?? 'now',
+                'auteur' => $user_name, // Utilisateur actuel
+                'rapports' => []
+            ];
+        }
+        $comptesRendusGroupes[$titre]['nombre_total']++;
+        $comptesRendusGroupes[$titre]['rapports'][] = $compteRendu;
+    }
+}
+
+// Récupération des vraies données de la commission pour le premier rapport (si disponible)
+$commission_members = [];
+$evaluation_stats = [];
+if (!empty($rapports)) {
+    $first_rapport = $rapports[0];
+    $commission_members = $controller->getCommissionMembers($first_rapport['id_rapport_etd']);
+    $evaluation_stats = $controller->getEvaluationStats($first_rapport['id_rapport_etd']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr" class="h-full bg-gray-50">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -42,14 +76,14 @@ $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['us
             theme: {
                 extend: {
                     colors: {
-                        primary: '#1a5276',        // Bleu de la sidebar
+                        primary: '#1a5276', // Bleu de la sidebar
                         'primary-light': '#2980b9', // Bleu plus clair
                         'primary-lighter': '#3498db', // Encore plus clair
-                        secondary: '#ff8c00',      // Orange de l'app
-                        accent: '#4caf50',         // Vert de l'app
-                        success: '#4caf50',        // Vert
-                        warning: '#f39c12',        // Jaune/Orange
-                        danger: '#e74c3c',         // Rouge
+                        secondary: '#ff8c00', // Orange de l'app
+                        accent: '#4caf50', // Vert de l'app
+                        success: '#4caf50', // Vert
+                        warning: '#f39c12', // Jaune/Orange
+                        danger: '#e74c3c', // Rouge
                     },
                     animation: {
                         'fade-in': 'fadeIn 0.5s ease-in-out',
@@ -62,54 +96,122 @@ $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['us
     </script>
     <style>
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
+
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
+
         @keyframes bounceIn {
-            0% { opacity: 0; transform: scale(0.3); }
-            50% { opacity: 1; transform: scale(1.05); }
-            100% { opacity: 1; transform: scale(1); }
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
+
         @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
+
         @keyframes slideOutRight {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
         }
+
         .stat-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 20px 25px -5px rgba(26, 82, 118, 0.1), 0 10px 10px -5px rgba(26, 82, 118, 0.04);
         }
-        .template-alert {
-            animation: slideInRight 0.3s ease;
+
+        /* Styles pour le design inspiré de l'image */
+        .progress-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: conic-gradient(#1a5276 0deg, #1a5276 var(--progress), #e5e7eb var(--progress), #e5e7eb 360deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
         }
-        .template-selector.template-loading {
-            opacity: 0.7;
-            pointer-events: none;
+
+        .progress-circle::before {
+            content: '';
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: white;
+            position: absolute;
         }
-        .template-selector.template-success {
-            background: rgba(76, 175, 80, 0.1);
-            border-color: #4caf50;
+
+        .progress-text {
+            position: relative;
+            z-index: 1;
+            font-weight: bold;
+            color: #1a5276;
         }
-        .template-select.template-selected {
-            border-color: #2980b9;
-            box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.1);
-        }
-        .template-description {
-            opacity: 0;
-            max-height: 0;
-            overflow: hidden;
+
+        .task-item {
             transition: all 0.3s ease;
         }
-        .template-description.show {
-            opacity: 1;
-            max-height: 300px;
+
+        .task-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .evaluation-status {
+            transition: all 0.3s ease;
+        }
+
+        .evaluation-status.completed {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+        }
+
+        .evaluation-status.pending {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
         }
     </style>
 </head>
@@ -117,53 +219,56 @@ $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['us
 <body class="h-full bg-gray-50">
     <div class="min-h-full">
 
-
         <!-- Contenu principal -->
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            
-            <!-- KPI Cards -->
+
+            <!-- KPI Cards avec design inspiré de l'image -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <!-- Total comptes rendus -->
-                <div class="stat-card bg-white rounded-2xl shadow-lg p-6 border-l-4 border-primary-light transform transition-all duration-300 hover:scale-105 animate-slide-up">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-2xl font-bold text-primary-light"><?php echo $statistics['total_cr']; ?></p>
-                            <p class="text-sm font-medium text-gray-600 mt-1">Total comptes rendus</p>
-                        </div>
-                        <div class="bg-primary-light/10 rounded-full p-4">
-                            <i class="fas fa-file-alt text-2xl text-primary-light"></i>
+                <!-- Carte principale avec gradient bleu -->
+                <div class="col-span-1 md:col-span-2">
+                    <div class="bg-gradient-to-r from-primary-light to-primary rounded-2xl shadow-lg p-6 text-white transform transition-all duration-300 hover:scale-105 animate-slide-up">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-3xl font-bold mb-2">Aujourd'hui</h2>
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <p class="text-4xl font-bold"><?php echo $statistics['rapports_en_attente'] ?? 0; ?></p>
+                                        <p class="text-sm opacity-90">Rapports en attente</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-4xl font-bold"><?php echo $statistics['total_rapports'] ?? 0; ?></p>
+                                        <p class="text-sm opacity-90">Total rapports</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="progress-circle" style="--progress: <?php
+                                                                            $total = $statistics['total_rapports'] ?? 1;
+                                                                            $completed = $statistics['rapports_valides'] ?? 0;
+                                                                            echo ($completed / $total) * 360;
+                                                                            ?>deg">
+                                <span class="progress-text text-lg">
+                                    <?php echo round(($completed / $total) * 100); ?>%
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Comptes rendus validés -->
-                <div class="stat-card bg-white rounded-2xl shadow-lg p-6 border-l-4 border-primary-light transform transition-all duration-300 hover:scale-105 animate-slide-up" style="animation-delay: 0.1s">
+                <!-- Carte des comptes rendus -->
+                <div class="stat-card bg-white rounded-2xl shadow-lg p-6 border-l-4 border-accent transform transition-all duration-300 hover:scale-105 animate-slide-up" style="animation-delay: 0.1s">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-2xl font-bold text-primary-light"><?php echo $statistics['cr_valides']; ?></p>
-                            <p class="text-sm font-medium text-gray-600 mt-1">Comptes rendus validés</p>
+                            <p class="text-2xl font-bold text-accent"><?php echo $statistics['total_cr']; ?></p>
+                            <p class="text-sm font-medium text-gray-600 mt-1">Comptes rendus</p>
                         </div>
-                        <div class="bg-primary-light/10 rounded-full p-4">
-                            <i class="fas fa-check-circle text-2xl text-primary-light"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Comptes rendus en cours -->
-                <div class="stat-card bg-white rounded-2xl shadow-lg p-6 border-l-4 border-primary-light transform transition-all duration-300 hover:scale-105 animate-slide-up" style="animation-delay: 0.2s">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-2xl font-bold text-primary-light"><?php echo $statistics['cr_en_cours']; ?></p>
-                            <p class="text-sm font-medium text-gray-600 mt-1">Comptes rendus en cours</p>
-                        </div>
-                        <div class="bg-primary-light/10 rounded-full p-4">
-                            <i class="fas fa-hourglass-half text-2xl text-primary-light"></i>
+                        <div class="bg-accent/10 rounded-full p-4">
+                            <i class="fas fa-file-signature text-2xl text-accent"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Section Rapports -->
+            <!-- Section Rapports avec système de comptage de votes -->
             <div class="bg-white rounded-2xl shadow-lg mb-8 animate-fade-in">
                 <div class="p-6 border-b border-gray-200">
                     <div class="flex items-center justify-between">
@@ -173,6 +278,11 @@ $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['us
                             </div>
                             <h2 class="text-2xl font-bold text-gray-900">Consultation des Rapports</h2>
                         </div>
+                        <?php if ($responsable_compte_rendu > 0): ?>
+                            <a href="?page=redaction_compte_rendu" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors flex items-center">
+                                <i class="fas fa-pen-nib mr-2"></i> Rédiger un compte rendu
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -181,18 +291,18 @@ $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['us
                     <form method="GET" id="filter-form-rapports" class="flex flex-wrap items-center gap-4">
                         <input type="hidden" name="page" value="<?php echo isset($_GET['page']) ? htmlspecialchars($_GET['page']) : 'consultations'; ?>">
                         <input type="hidden" name="page_num" id="page_num_input_rapports" value="<?php echo $pagination_rapports['current_page']; ?>">
-                        
+
                         <!-- Recherche -->
                         <div class="flex-1 min-w-64">
                             <div class="relative">
                                 <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                                <input type="text" name="search" id="search-input-rapports" 
-                                       placeholder="Rechercher un rapport..." 
-                                       value="<?php echo htmlspecialchars($filters_rapports['search'] ?? ''); ?>"
-                                       class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <input type="text" name="search" id="search-input-rapports"
+                                    placeholder="Rechercher un rapport..."
+                                    value="<?php echo htmlspecialchars($filters_rapports['search'] ?? ''); ?>"
+                                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                             </div>
                         </div>
-                        
+
                         <!-- Filtres -->
                         <select name="date_filter" id="date-filter-rapports" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                             <option value="">Date de rapport</option>
@@ -201,128 +311,155 @@ $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['us
                             <option value="month" <?php echo ($filters_rapports['date_filter'] ?? '') === 'month' ? 'selected' : ''; ?>>Ce mois</option>
                             <option value="semester" <?php echo ($filters_rapports['date_filter'] ?? '') === 'semester' ? 'selected' : ''; ?>>Ce semestre</option>
                         </select>
-                        
+
                         <select name="status_filter" id="status-filter-rapports" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                             <option value="">Statut</option>
                             <option value="Validé" <?php echo ($filters_rapports['status_filter'] ?? '') === 'Validé' ? 'selected' : ''; ?>>Validé</option>
                             <option value="Rejeté" <?php echo ($filters_rapports['status_filter'] ?? '') === 'Rejeté' ? 'selected' : ''; ?>>Rejeté</option>
                             <option value="En attente de validation" <?php echo ($filters_rapports['status_filter'] ?? '') === 'En attente de validation' ? 'selected' : ''; ?>>En attente</option>
                         </select>
-                        
+
                         <button type="submit" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors flex items-center">
                             <i class="fas fa-search mr-2"></i> Filtrer
                         </button>
                     </form>
                 </div>
 
-                <!-- Actions groupées -->
-                <?php if ($responsable_compte_rendu > 0): ?>
-                    <div class="p-6 bg-blue-50 border-b border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <button class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors flex items-center" id="bulk-cr-btn">
-                                <i class="fas fa-pen-nib mr-2"></i> Rédiger un compte rendu pour la sélection
-                            </button>
-                            <span class="text-sm text-gray-600 font-medium" id="selected-count">0 rapport(s) sélectionné(s)</span>
-                        </div>
-                    </div>
-                <?php endif; ?>
+                <!-- Liste des rapports avec design inspiré de l'image -->
+                <div class="p-6">
+                    <?php if (!empty($rapports)): ?>
+                        <div class="space-y-4">
+                            <?php foreach ($rapports as $rapport): ?>
+                                <?php
+                                // Récupérer les vraies données d'évaluation pour ce rapport
+                                $rapport_commission_members = $controller->getCommissionMembers($rapport['id_rapport_etd']);
+                                $rapport_evaluation_stats = $controller->getEvaluationStats($rapport['id_rapport_etd']);
 
-                <!-- Table des rapports -->
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <?php if ($responsable_compte_rendu > 0): ?>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        <input type="checkbox" id="select-all-rapports" class="rounded border-gray-300 text-primary focus:ring-primary">
-                                    </th>
-                                <?php endif; ?>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Rapport</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Étudiant</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thème du mémoire</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date de dépôt</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <?php if (!empty($rapports)): ?>
-                                <?php foreach ($rapports as $rapport): ?>
-                                    <tr class="hover:bg-gray-50 transition-colors">
-                                        <?php if ($responsable_compte_rendu > 0): ?>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <input type="checkbox" class="rapport-checkbox rounded border-gray-300 text-primary focus:ring-primary" 
-                                                       value="<?php echo $rapport['id_rapport_etd']; ?>"
-                                                       data-rapport-id="<?php echo $rapport['id_rapport_etd']; ?>"
-                                                       data-num-etd="<?php echo $rapport['num_etd']; ?>"
-                                                       data-nom-etd="<?php echo htmlspecialchars($rapport['nom_etd']); ?>"
-                                                       data-prenom-etd="<?php echo htmlspecialchars($rapport['prenom_etd']); ?>"
-                                                       data-nom-rapport="<?php echo htmlspecialchars($rapport['nom_rapport'] ?? ''); ?>"
-                                                       data-theme-memoire="<?php echo htmlspecialchars($rapport['theme_memoire']); ?>"
-                                                       data-date-depot="<?php echo $rapport['date_depot']; ?>"
-                                                       data-statut="<?php echo $rapport['statut_rapport']; ?>">
-                                            </td>
-                                        <?php endif; ?>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            <?php echo $rapport['id_rapport_etd']; ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo htmlspecialchars($rapport['nom_etd'] . ' ' . $rapport['prenom_etd']); ?>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                                            <?php echo htmlspecialchars($rapport['theme_memoire']); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo $rapport['date_depot'] ? date('d/m/Y', strtotime($rapport['date_depot'])) : '-'; ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                                                <?php echo $rapport['statut_rapport'] === 'Validé' ? 'bg-green-100 text-green-800' : 
-                                                    ($rapport['statut_rapport'] === 'Rejeté' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'); ?>">
-                                                <?php echo $rapport['statut_rapport']; ?>
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <div class="flex space-x-2">
-                                                <?php if ($rapport['fichier_rapport']): ?>
-                                                    <a href="?page=consultations&action=download_rapport&id=<?php echo $rapport['id_rapport_etd']; ?>"
-                                                       class="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors" title="Télécharger">
-                                                        <i class="fas fa-download"></i>
-                                                    </a>
-                                                <?php endif; ?>
-                                                <a href="?page=consultations&action=view_rapport&id=<?php echo $rapport['id_rapport_etd']; ?>"
-                                                   class="text-green-600 hover:text-green-900 p-2 rounded-lg hover:bg-green-50 transition-colors" title="Consulter">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                <?php if ($responsable_compte_rendu > 0): ?>
-                                                    <button class="text-purple-600 hover:text-purple-900 p-2 rounded-lg hover:bg-purple-50 transition-colors create-cr-single"
-                                                            data-rapport-id="<?php echo $rapport['id_rapport_etd']; ?>"
-                                                            data-num-etd="<?php echo $rapport['num_etd']; ?>"
-                                                            data-nom-etd="<?php echo htmlspecialchars($rapport['nom_etd']); ?>"
-                                                            data-prenom-etd="<?php echo htmlspecialchars($rapport['prenom_etd']); ?>"
-                                                            data-nom-rapport="<?php echo htmlspecialchars($rapport['nom_rapport'] ?? ''); ?>"
-                                                            data-theme-memoire="<?php echo htmlspecialchars($rapport['theme_memoire']); ?>"
-                                                            data-date-depot="<?php echo $rapport['date_depot']; ?>"
-                                                            title="Rédiger un compte rendu">
-                                                        <i class="fas fa-pen-nib"></i>
-                                                    </button>
-                                                <?php endif; ?>
+                                // Filtrer les évaluations complétées
+                                $completed_evaluations = array_filter($rapport_commission_members, function ($member) {
+                                    return $member['a_evalue'];
+                                });
+                                $total_members = count($rapport_commission_members);
+                                $completed_count = count($completed_evaluations);
+                                $progress_percentage = $total_members > 0 ? round(($completed_count / $total_members) * 100) : 0;
+                                ?>
+
+                                <div class="task-item bg-white border border-gray-200 rounded-xl p-6 hover:bg-gray-50 transition-all duration-300">
+                                    <div class="flex items-start justify-between">
+                                        <!-- Checkbox et informations principales -->
+                                        <div class="flex items-start space-x-4 flex-1">
+                                            <div class="flex-shrink-0 mt-1">
+                                                <div class="w-6 h-6 border-2 border-gray-300 rounded-full flex items-center justify-center">
+                                                    <?php if ($rapport['statut_rapport'] === 'Validé'): ?>
+                                                        <i class="fas fa-check text-green-500 text-sm"></i>
+                                                    <?php elseif ($rapport['statut_rapport'] === 'Rejeté'): ?>
+                                                        <i class="fas fa-times text-red-500 text-sm"></i>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="<?php echo $responsable_compte_rendu > 0 ? '7' : '6'; ?>" class="px-6 py-4 text-center text-gray-500">
-                                        <div class="flex flex-col items-center py-8">
-                                            <i class="fas fa-file-alt text-4xl text-gray-300 mb-4"></i>
-                                            <p class="text-lg font-medium">Aucun rapport trouvé</p>
+
+                                            <div class="flex-1 min-w-0">
+                                                <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                                                    Rapport #<?php echo $rapport['id_rapport_etd']; ?> -
+                                                    <?php echo htmlspecialchars($rapport['nom_etd'] . ' ' . $rapport['prenom_etd']); ?>
+                                                </h3>
+                                                <p class="text-gray-600 mb-3"><?php echo htmlspecialchars($rapport['theme_memoire']); ?></p>
+
+                                                <!-- Système de comptage de votes -->
+                                                <div class="flex items-center space-x-4 mb-4">
+                                                    <div class="flex items-center space-x-2">
+                                                        <span class="text-sm font-medium text-gray-700">Évaluations:</span>
+                                                        <span class="text-sm text-gray-600"><?php echo $completed_count; ?>/<?php echo $total_members; ?></span>
+                                                    </div>
+                                                    <div class="flex-1 max-w-xs">
+                                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                                            <div class="bg-primary h-2 rounded-full transition-all duration-300"
+                                                                style="width: <?php echo $progress_percentage; ?>%"></div>
+                                                        </div>
+                                                    </div>
+                                                    <span class="text-sm font-medium text-primary"><?php echo $progress_percentage; ?>%</span>
+                                                </div>
+
+                                                <!-- Statut et date -->
+                                                <div class="flex items-center space-x-4 text-sm text-gray-500">
+                                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                                <?php echo $rapport['statut_rapport'] === 'Validé' ? 'bg-green-100 text-green-800' : ($rapport['statut_rapport'] === 'Rejeté' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'); ?>">
+                                                        <?php echo $rapport['statut_rapport']; ?>
+                                                    </span>
+                                                    <span>Déposé le <?php echo $rapport['date_depot'] ? date('d/m/Y', strtotime($rapport['date_depot'])) : '-'; ?></span>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+
+                                        <!-- Actions -->
+                                        <div class="flex items-center space-x-2 ml-4">
+                                            <?php if ($rapport['fichier_rapport']): ?>
+                                                <a href="?page=consultations&action=download_rapport&id=<?php echo $rapport['id_rapport_etd']; ?>"
+                                                    class="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors" title="Télécharger">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            
+                                            <button class="text-purple-600 hover:text-purple-900 p-2 rounded-lg hover:bg-purple-50 transition-colors show-evaluations-btn"
+                                                data-rapport-id="<?php echo $rapport['id_rapport_etd']; ?>"
+                                                title="Voir les détails des évaluations">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Section des évaluations (cachée par défaut) -->
+                                    <div class="evaluations-section hidden mt-6 pt-6 border-t border-gray-200">
+                                        <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                            <i class="fas fa-users mr-2 text-primary"></i>
+                                            Évaluations des membres de la commission
+                                        </h4>
+
+                                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            <?php foreach ($rapport_commission_members as $member): ?>
+                                                <?php
+                                                $is_completed = $member['a_evalue'];
+                                                ?>
+
+                                                <div class="evaluation-status p-4 rounded-lg <?php echo $is_completed ? 'completed' : 'pending'; ?>">
+                                                    <div class="flex items-center justify-between mb-2">
+                                                        <h5 class="font-semibold">
+                                                            <?php echo htmlspecialchars($member['nom_ens'] . ' ' . $member['prenoms_ens']); ?>
+                                                        </h5>
+                                                        <span class="text-xs">
+                                                            <?php if ($is_completed): ?>
+                                                                <i class="fas fa-check-circle mr-1"></i>Terminé
+                                                            <?php else: ?>
+                                                                <i class="fas fa-clock mr-1"></i>Pas encore évalué
+                                                            <?php endif; ?>
+                                                        </span>
+                                                    </div>
+
+                                                    <?php if ($is_completed): ?>
+                                                        <div class="text-sm opacity-90">
+                                                            <p class="mb-2"><strong>Décision:</strong> <?php echo $member['decision'] ?? 'Non spécifiée'; ?></p>
+                                                            <p class="mb-2"><strong>Date:</strong> <?php echo $member['date_validation'] ? date('d/m/Y', strtotime($member['date_validation'])) : '-'; ?></p>
+                                                            <p><strong>Commentaire:</strong></p>
+                                                            <div class="mt-1 p-2 bg-white/20 rounded text-xs">
+                                                                <?php echo htmlspecialchars($member['com_validation'] ?? 'Aucun commentaire'); ?>
+                                                            </div>
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <p class="text-sm opacity-90">Pas encore évalué</p>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-12">
+                            <i class="fas fa-file-alt text-6xl text-gray-300 mb-4"></i>
+                            <p class="text-xl font-medium text-gray-500">Aucun rapport trouvé</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Pagination pour les rapports -->
@@ -334,17 +471,17 @@ $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['us
                                     <i class="fas fa-chevron-left"></i>
                                 </a>
                             <?php endif; ?>
-                            
+
                             <?php
                             $start_page = max(1, $pagination_rapports['current_page'] - 2);
                             $end_page = min($pagination_rapports['total_pages'], $pagination_rapports['current_page'] + 2);
-                            
+
                             for ($i = $start_page; $i <= $end_page; $i++): ?>
                                 <a href="#" class="px-3 py-2 text-sm font-medium <?php echo $i === $pagination_rapports['current_page'] ? 'bg-primary text-white' : 'text-gray-500 bg-white hover:bg-gray-50'; ?> border border-gray-300 rounded-md page-item" data-page="<?php echo $i; ?>" data-form="rapports">
                                     <?php echo $i; ?>
                                 </a>
                             <?php endfor; ?>
-                            
+
                             <?php if ($pagination_rapports['current_page'] < $pagination_rapports['total_pages']): ?>
                                 <a href="#" class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 page-item" data-page="<?php echo $pagination_rapports['current_page'] + 1; ?>" data-form="rapports">
                                     <i class="fas fa-chevron-right"></i>
@@ -365,6 +502,11 @@ $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['us
                             </div>
                             <h2 class="text-2xl font-bold text-gray-900">Consultation des Comptes Rendus</h2>
                         </div>
+                        <div class="flex items-center space-x-3">
+                            <button onclick="showEmailHistory()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center">
+                                <i class="fas fa-history mr-2"></i> Historique des emails
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -373,18 +515,18 @@ $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['us
                     <form method="GET" id="filter-form-cr" class="flex flex-wrap items-center gap-4">
                         <input type="hidden" name="page" value="<?php echo isset($_GET['page']) ? htmlspecialchars($_GET['page']) : 'consultations'; ?>">
                         <input type="hidden" name="page_cr" id="page_cr_input" value="<?php echo $pagination_cr['current_page']; ?>">
-                        
+
                         <!-- Recherche -->
                         <div class="flex-1 min-w-64">
                             <div class="relative">
                                 <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                                <input type="text" name="search_cr" id="search-input-cr" 
-                                       placeholder="Rechercher un compte rendu..." 
-                                       value="<?php echo htmlspecialchars($filters_cr['search_cr'] ?? ''); ?>"
-                                       class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <input type="text" name="search_cr" id="search-input-cr"
+                                    placeholder="Rechercher un compte rendu..."
+                                    value="<?php echo htmlspecialchars($filters_cr['search_cr'] ?? ''); ?>"
+                                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                             </div>
                         </div>
-                        
+
                         <!-- Filtres -->
                         <select name="date_filter_cr" id="date-filter-cr" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                             <option value="">Date de compte rendu</option>
@@ -393,80 +535,133 @@ $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['us
                             <option value="month" <?php echo ($filters_cr['date_filter_cr'] ?? '') === 'month' ? 'selected' : ''; ?>>Ce mois</option>
                             <option value="semester" <?php echo ($filters_cr['date_filter_cr'] ?? '') === 'semester' ? 'selected' : ''; ?>>Ce semestre</option>
                         </select>
-                        
+
                         <button type="submit" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors flex items-center">
                             <i class="fas fa-search mr-2"></i> Filtrer
                         </button>
                     </form>
                 </div>
 
-                <!-- Table des comptes rendus -->
+                <!-- Tableau des comptes rendus -->
                 <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-50">
+                    
+                    
+                    <table class="w-full text-sm text-left text-gray-500">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Compte Rendu</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Étudiant</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enseignant</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Titre du compte rendu</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date du compte rendu</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rapport associé</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut du rapport</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th scope="col" class="px-6 py-3">Titre du compte rendu</th>
+                                <th scope="col" class="px-6 py-3">Auteur</th>
+                                <th scope="col" class="px-6 py-3">Date de création</th>
+                                <th scope="col" class="px-6 py-3">Rapports associés</th>
+                                <th scope="col" class="px-6 py-3">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <?php if (!empty($comptes_rendus)): ?>
-                                <?php foreach ($comptes_rendus as $cr): ?>
-                                    <tr class="hover:bg-gray-50 transition-colors">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            <?php echo $cr['id_cr']; ?>
+                        <tbody>
+                            <?php if (empty($comptesRendusGroupes)) : ?>
+                                <tr>
+                                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                                        <i class="fas fa-inbox text-2xl mb-2 opacity-50"></i>
+                                        <p>Aucun compte rendu créé pour le moment</p>
+                                        <?php if (!empty($comptes_rendus)): ?>
+                                            <p class="text-sm text-gray-400 mt-2">
+                                                Données brutes disponibles: <?php echo count($comptes_rendus); ?> éléments
+                                            </p>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php else : ?>
+                                <?php foreach (array_slice($comptesRendusGroupes, 0, 5) as $groupe) : ?>
+                                    <tr class="bg-white border-b hover:bg-gray-50">
+                                        <td class="px-6 py-4 font-medium text-gray-900">
+                                            <div class="flex items-center space-x-2">
+                                                <i class="fas fa-file-signature text-blue-600"></i>
+                                                <span><?php echo htmlspecialchars($groupe['titre'] ?? ''); ?></span>
+                                                <?php if ($groupe['nombre_total'] > 1) : ?>
+                                                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                                        <?php echo $groupe['nombre_total']; ?> versions
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo htmlspecialchars($cr['nom_etd'] . ' ' . $cr['prenom_etd']); ?>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center space-x-2">
+                                                <i class="fas fa-user-edit text-green-600"></i>
+                                                <span class="font-medium text-gray-700"><?php echo htmlspecialchars($groupe['auteur']); ?></span>
+                                            </div>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo htmlspecialchars($cr['nom_ens'] . ' ' . $cr['prenoms_ens']); ?>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center space-x-2">
+                                                <i class="fas fa-calendar-alt text-purple-600"></i>
+                                                <span><?php echo date('d/m/Y H:i', strtotime($groupe['date_creation'])); ?></span>
+                                            </div>
                                         </td>
-                                        <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                                            <?php echo htmlspecialchars($cr['nom_cr']); ?>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center space-x-2">
+                                                <i class="fas fa-file-alt text-orange-600"></i>
+                                                <span class="text-sm font-medium text-gray-700">
+                                                    <?php
+                                                    // Compter le nombre total de rapports associés à ce titre
+                                                    $totalRapports = 0;
+                                                    foreach ($groupe['rapports'] as $rapport) {
+                                                        $totalRapports += $rapport['nombre_rapports'] ?? 1;
+                                                    }
+                                                    echo $totalRapports . ' rapport(s)';
+                                                    ?>
+                                                </span>
+                                            </div>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?php echo $cr['date_cr'] ? date('d/m/Y', strtotime($cr['date_cr'])) : '-'; ?>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                                            <?php echo htmlspecialchars($cr['nom_rapport']); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                                                <?php echo $cr['statut_rapport'] === 'Validé' ? 'bg-green-100 text-green-800' : 
-                                                    ($cr['statut_rapport'] === 'Rejeté' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'); ?>">
-                                                <?php echo $cr['statut_rapport']; ?>
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <div class="flex space-x-2">
-                                                <a href="?page=consultations&action=view_cr&id=<?php echo $cr['id_cr']; ?>"
-                                                   class="text-green-600 hover:text-green-900 p-2 rounded-lg hover:bg-green-50 transition-colors" title="Consulter">
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center space-x-2">
+                                                <!-- Bouton pour voir tous les comptes rendus de ce titre -->
+                                                <button type="button"
+                                                    onclick="showCompteRenduDetails('<?php echo htmlspecialchars($groupe['titre']); ?>')"
+                                                    class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                                                    title="Voir les détails">
                                                     <i class="fas fa-eye"></i>
-                                                </a>
-                                                <a href="?page=consultations&action=download_cr&id=<?php echo $cr['id_cr']; ?>"
-                                                   class="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors" title="Télécharger">
-                                                    <i class="fas fa-download"></i>
-                                                </a>
+                                                </button>
+
+                                                <!-- Bouton pour télécharger le dernier compte rendu -->
+                                                <?php
+                                                $dernierCompteRendu = end($groupe['rapports']);
+                                                if ($dernierCompteRendu && isset($dernierCompteRendu['id_cr'])) :
+                                                ?>
+                                                    <button onclick="handleFileAction('../public/assets/traitements/gestion_comptes_rendus.php?action=download_cr&id=<?php echo $dernierCompteRendu['id_cr']; ?>', 'download')"
+                                                        class="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 transition-colors"
+                                                        title="Télécharger le dernier">
+                                                        <i class="fas fa-download"></i>
+                                                    </button>
+                                                    
+                                                    
+                                                <?php endif; ?>
+
+                                                <!-- Bouton pour envoyer par email -->
+                                                <?php if ($dernierCompteRendu && isset($dernierCompteRendu['id_cr']) && $dernierCompteRendu['id_cr'] > 0): ?>
+                                                    <button type="button"
+                                                        onclick="console.log('Clic sur bouton email - titre: <?php echo addslashes($groupe['titre']); ?>, id: <?php echo $dernierCompteRendu['id_cr']; ?>'); console.log('Appel de showEmailModal...'); try { showEmailModal('<?php echo htmlspecialchars($groupe['titre']); ?>', <?php echo $dernierCompteRendu['id_cr']; ?>); } catch(e) { console.error('Erreur lors de l\'appel de showEmailModal:', e); alert('Erreur JavaScript: ' + e.message); }"
+                                                        class="text-purple-600 hover:text-purple-800 p-2 rounded-lg hover:bg-purple-50 transition-colors"
+                                                        title="Envoyer par email">
+                                                        <i class="fas fa-envelope"></i>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <button type="button"
+                                                        onclick="console.log('Clic sur bouton email désactivé - aucun compte rendu disponible')"
+                                                        class="text-gray-400 p-2 rounded-lg cursor-not-allowed"
+                                                        title="Aucun compte rendu disponible pour l'envoi">
+                                                        <i class="fas fa-envelope"></i>
+                                                    </button>
+                                                <?php endif; ?>
+
+                                                <!-- Bouton pour supprimer le groupe -->
+                                                <button type="button"
+                                                    onclick="deleteCompteRenduGroup('<?php echo htmlspecialchars($groupe['titre']); ?>')"
+                                                    class="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                                    title="Supprimer le groupe">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="8" class="px-6 py-4 text-center text-gray-500">
-                                        <div class="flex flex-col items-center py-8">
-                                            <i class="fas fa-file-signature text-4xl text-gray-300 mb-4"></i>
-                                            <p class="text-lg font-medium">Aucun compte rendu trouvé</p>
-                                        </div>
-                                    </td>
-                                </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -481,17 +676,17 @@ $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['us
                                     <i class="fas fa-chevron-left"></i>
                                 </a>
                             <?php endif; ?>
-                            
+
                             <?php
                             $start_page = max(1, $pagination_cr['current_page'] - 2);
                             $end_page = min($pagination_cr['total_pages'], $pagination_cr['current_page'] + 2);
-                            
+
                             for ($i = $start_page; $i <= $end_page; $i++): ?>
                                 <a href="#" class="px-3 py-2 text-sm font-medium <?php echo $i === $pagination_cr['current_page'] ? 'bg-primary text-white' : 'text-gray-500 bg-white hover:bg-gray-50'; ?> border border-gray-300 rounded-md page-item" data-page="<?php echo $i; ?>" data-form="cr">
                                     <?php echo $i; ?>
                                 </a>
                             <?php endfor; ?>
-                            
+
                             <?php if ($pagination_cr['current_page'] < $pagination_cr['total_pages']): ?>
                                 <a href="#" class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 page-item" data-page="<?php echo $pagination_cr['current_page'] + 1; ?>" data-form="cr">
                                     <i class="fas fa-chevron-right"></i>
@@ -504,183 +699,6 @@ $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['us
         </main>
     </div>
 
-    <!-- Modal de rédaction de compte rendu pour sélection multiple -->
-    <div class="fixed inset-0 z-50 overflow-y-auto hidden" id="multi-cr-modal">
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-            <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-                <div class="bg-white px-6 pt-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="flex items-center">
-                            <div class="bg-primary/10 rounded-lg p-2 mr-3">
-                                <i class="fas fa-pen-nib text-primary"></i>
-                            </div>
-                            <h2 class="text-2xl font-bold text-gray-900">Rédiger un compte rendu</h2>
-                        </div>
-                        <button class="text-gray-400 hover:text-gray-600 transition-colors" id="close-multi-cr-modal">
-                            <i class="fas fa-times text-xl"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="px-6 pb-6">
-                    <form id="multi-cr-form" method="POST" action="?page=consultations&action=create_multi_cr">
-                        <!-- Rapports sélectionnés -->
-                        <div class="mb-8">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                <i class="fas fa-list mr-2 text-primary"></i>
-                                Rapports sélectionnés
-                            </h3>
-                            <div id="selected-rapports-list" class="space-y-3 max-h-64 overflow-y-auto">
-                                <!-- Les rapports sélectionnés seront affichés ici -->
-                            </div>
-                        </div>
-
-                        <!-- Section template -->
-                        <div class="mb-8 p-6 bg-gray-50 rounded-xl">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                <i class="fas fa-file-alt mr-2 text-primary"></i>
-                                Informations du compte rendu
-                            </h3>
-                            
-                            <!-- Sélection de template -->
-                            <div class="mb-6">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    <i class="fas fa-magic mr-1"></i> 
-                                    Modèle de compte rendu
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary text-white ml-2">2</span>
-                                </label>
-                                <div class="template-selector border border-gray-300 rounded-lg p-4">
-                                    <div class="flex gap-4 mb-4">
-                                        <select id="cr-template" name="cr_template" class="template-select flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                                            <option value="">🎯 Sélectionner un modèle...</option>
-                                            <option value="template_cr_html" data-icon="📄" data-type="html">📄 Modèle HTML - Procès-verbal de validation de thèmes</option>
-                                            <option value="modele_compte_rendu_docx" data-icon="📋" data-type="docx">📋 Modèle DOCX - Compte rendu standard</option>
-                                        </select>
-                                        <button type="button" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors flex items-center" id="load-template-btn">
-                                            <i class="fas fa-magic mr-2"></i> Charger le modèle
-                                        </button>
-                                    </div>
-                                    <p class="text-sm text-gray-600">
-                                        <i class="fas fa-info-circle mr-1"></i> 
-                                        Choisissez entre le modèle HTML pour les procès-verbaux ou le modèle DOCX pour les comptes rendus standards
-                                    </p>
-                                    
-                                    <!-- Description dynamique du template -->
-                                    <div id="template-description" class="template-description mt-4 p-4 bg-white rounded-lg border border-gray-200">
-                                        <h4 class="font-semibold text-gray-900 mb-2 flex items-center">
-                                            <i class="fas fa-lightbulb mr-2 text-yellow-500"></i>
-                                            À propos de ce modèle
-                                        </h4>
-                                        <p id="template-desc-text" class="text-gray-600 mb-2">Choisissez un modèle pour voir sa description détaillée.</p>
-                                        <ul id="template-features" class="space-y-1 text-sm text-gray-600" style="display: none;">
-                                            <!-- Les fonctionnalités seront ajoutées dynamiquement -->
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Titre -->
-                            <div class="mb-6">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Titre du compte rendu <span class="text-red-500">*</span>
-                                </label>
-                                <input type="text" id="cr-title" name="cr_title" required 
-                                       placeholder="Ex: Évaluation des rapports de stage - Session 2024"
-                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                            </div>
-
-                            <!-- Contenu -->
-                            <div class="mb-6">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Contenu du compte rendu <span class="text-red-500">*</span>
-                                </label>
-                                <div id="cr-editor-container" class="border border-gray-300 rounded-lg">
-                                    <div id="cr-editor" style="height: 300px;"></div>
-                                </div>
-                                <textarea id="cr-content" name="cr_content" style="display: none;" required></textarea>
-                                <p class="text-sm text-gray-600 mt-2">Utilisez l'éditeur pour rédiger le contenu de votre compte rendu</p>
-                            </div>
-
-                            <!-- Date -->
-                            <div class="mb-6">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Date du compte rendu</label>
-                                <input type="date" id="cr-date" name="cr_date" value="<?php echo date('Y-m-d'); ?>"
-                                       class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                            </div>
-                        </div>
-
-                        <!-- Options d'export -->
-                        <div class="mb-8 p-6 bg-gray-50 rounded-xl">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                <i class="fas fa-cog mr-2 text-primary"></i>
-                                Options d'export
-                            </h3>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Format d'export du compte rendu</label>
-                                <select id="export-format" name="export_format" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                                    <option value="html">HTML (visualisation web)</option>
-                                    <option value="pdf">PDF (document imprimable)</option>
-                                    <option value="docx">DOCX (Microsoft Word)</option>
-                                </select>
-                                <p class="text-sm text-gray-600 mt-2">Le compte rendu sera généré dans le format sélectionné</p>
-                            </div>
-                        </div>
-
-                        <input type="hidden" id="selected-rapport-ids" name="rapport_ids" value="">
-
-                        <!-- Actions -->
-                        <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                            <button type="button" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors" id="cancel-multi-cr">
-                                <i class="fas fa-times mr-2"></i> Annuler
-                            </button>
-                            <button type="submit" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors">
-                                <i class="fas fa-save mr-2"></i> Créer le compte rendu
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de confirmation d'envoi -->
-    <div class="fixed inset-0 z-50 overflow-y-auto hidden" id="email-confirmation-modal">
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-            <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-6 pt-6 pb-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="flex items-center">
-                            <div class="bg-green-100 rounded-lg p-2 mr-3">
-                                <i class="fas fa-check-circle text-green-600"></i>
-                            </div>
-                            <h2 class="text-xl font-bold text-gray-900">Confirmation</h2>
-                        </div>
-                        <button class="text-gray-400 hover:text-gray-600 transition-colors" id="close-confirmation-modal-btn">
-                            <i class="fas fa-times text-xl"></i>
-                        </button>
-                    </div>
-                    
-                    <div class="text-center">
-                        <div class="text-green-600 mb-4">
-                            <i class="fas fa-check-circle text-6xl"></i>
-                        </div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Email envoyé avec succès !</h3>
-                        <p class="text-gray-600 mb-6">Votre email a été envoyé avec succès au destinataire.</p>
-                        <div class="bg-gray-50 rounded-lg p-4 mb-6 text-left">
-                            <p class="text-sm text-gray-600"><strong>Destinataire :</strong> <span id="confirmation-email"></span></p>
-                            <p class="text-sm text-gray-600"><strong>Sujet :</strong> <span id="confirmation-subject"></span></p>
-                        </div>
-                        <button type="button" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors" id="close-confirmation-btn">
-                            <i class="fas fa-times mr-2"></i> Fermer
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Scripts -->
     <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <script src="https://unpkg.com/mammoth@1.4.21/mammoth.browser.min.js"></script>
@@ -690,47 +708,6 @@ $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['us
     <script>
         // Variables globales
         let selectedRapports = new Set();
-        let quillEditor = null;
-
-        // Descriptions des templates
-        const templateDescriptions = {
-            'template_cr_html': {
-                title: 'Modèle HTML - Procès-verbal de validation de thèmes',
-                description: 'Template HTML professionnel pour les procès-verbaux de séances de validation de thèmes avec mise en forme complète.',
-                features: [
-                    'Format procès-verbal officiel',
-                    'En-tête université intégré',
-                    'Sections structurées pour validation',
-                    'Mise en forme professionnelle',
-                    'Prêt pour impression/export'
-                ]
-            },
-            'modele_compte_rendu_docx': {
-                title: 'Modèle DOCX - Compte rendu standard',
-                description: 'Template Microsoft Word professionnel pour les comptes rendus avec formatage avancé.',
-                features: [
-                    'Format Word natif (.docx)',
-                    'Mise en forme professionnelle',
-                    'Styles et formatage avancés',
-                    'Compatible avec OnlyOffice',
-                    'Facilement modifiable'
-                ]
-            }
-        };
-
-        // Templates de compte rendu
-        const crTemplates = {
-            'template_cr_html': {
-                title: 'Procès-verbal de séance de validation de thèmes - {{date}}',
-                file: 'template_cr.html',
-                type: 'html'
-            },
-            'modele_compte_rendu_docx': {
-                title: 'Compte rendu standard - {{date}}',
-                file: 'modele_compte_rendu.docx',
-                type: 'docx'
-            }
-        };
 
         // Pagination dynamique pour les rapports
         document.addEventListener('DOMContentLoaded', function() {
@@ -759,590 +736,714 @@ $responsable_compte_rendu = $controller->getResponsableCompteRendu($_SESSION['us
                 });
             });
 
-            // Gestion de la sélection multiple des rapports
-            initMultiSelection();
-            
-            // Gestion des modales
-            initModalHandlers();
-
-            // Initialiser les gestionnaires de templates
-            initTemplateHandlers();
+            // Gestion des boutons d'affichage des évaluations
+            initEvaluationHandlers();
         });
 
-        // Initialiser l'éditeur Quill
-        function initQuillEditor() {
-            if (quillEditor) {
-                return; // Déjà initialisé
-            }
+        // Initialiser les gestionnaires d'évaluations
+        function initEvaluationHandlers() {
+            document.querySelectorAll('.show-evaluations-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const rapportId = this.getAttribute('data-rapport-id');
+                    const taskItem = this.closest('.task-item');
+                    const evaluationsSection = taskItem.querySelector('.evaluations-section');
 
-            quillEditor = new Quill('#cr-editor', {
-                theme: 'snow',
-                modules: {
-                    toolbar: [
-                        [{ 'header': [1, 2, 3, false] }],
-                        ['bold', 'italic', 'underline', 'strike'],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        [{ 'indent': '-1'}, { 'indent': '+1' }],
-                        ['link'],
-                        [{ 'align': [] }],
-                        ['clean']
-                    ]
-                },
-                placeholder: 'Rédigez le contenu de votre compte rendu...'
-            });
-
-            // Synchroniser avec le textarea caché
-            quillEditor.on('text-change', function() {
-                const content = quillEditor.root.innerHTML;
-                document.getElementById('cr-content').value = content;
-            });
-        }
-
-        // Initialiser les gestionnaires de templates
-        function initTemplateHandlers() {
-            const loadTemplateBtn = document.getElementById('load-template-btn');
-            const templateSelect = document.getElementById('cr-template');
-            const templateDescription = document.getElementById('template-description');
-            const templateDescText = document.getElementById('template-desc-text');
-            const templateFeatures = document.getElementById('template-features');
-
-            // Gestion du changement de sélection de template
-            if (templateSelect) {
-                templateSelect.addEventListener('change', function() {
-                    const selectedTemplate = this.value;
-                    updateTemplateDescription(selectedTemplate);
-                    
-                    // Effet visuel sur la sélection
-                    this.classList.remove('template-selected');
-                    if (selectedTemplate) {
-                        setTimeout(() => {
-                            this.classList.add('template-selected');
-                        }, 100);
-                    }
-                });
-            }
-
-            // Gestion du bouton de chargement
-            if (loadTemplateBtn) {
-                loadTemplateBtn.addEventListener('click', function() {
-                    const selectedTemplate = templateSelect.value;
-                    if (!selectedTemplate) {
-                        showTemplateAlert('Veuillez sélectionner un modèle.', 'warning');
-                        return;
-                    }
-                    loadTemplate(selectedTemplate);
-                });
-
-                // Effet hover sur le bouton
-                loadTemplateBtn.addEventListener('mouseenter', function() {
-                    this.querySelector('i').style.transform = 'rotate(360deg)';
-                });
-
-                loadTemplateBtn.addEventListener('mouseleave', function() {
-                    this.querySelector('i').style.transform = 'rotate(0deg)';
-                });
-            }
-
-            // Fonction pour mettre à jour la description du template
-            function updateTemplateDescription(templateKey) {
-                if (!templateKey) {
-                    templateDescription.classList.remove('show');
-                    templateDescText.textContent = 'Choisissez un modèle pour voir sa description détaillée.';
-                    templateFeatures.style.display = 'none';
-                    return;
-                }
-
-                const desc = templateDescriptions[templateKey];
-                if (desc) {
-                    templateDescText.textContent = desc.description;
-                    
-                    // Mise à jour des fonctionnalités
-                    templateFeatures.innerHTML = '';
-                    desc.features.forEach(feature => {
-                        const li = document.createElement('li');
-                        li.innerHTML = `<i class="fas fa-check-circle text-green-500 mr-2"></i>${feature}`;
-                        templateFeatures.appendChild(li);
-                    });
-                    
-                    templateFeatures.style.display = 'block';
-                    templateDescription.classList.add('show');
-                }
-            }
-        }
-
-        // Charger un template avec animations
-        async function loadTemplate(templateKey) {
-            const template = crTemplates[templateKey];
-            const loadBtn = document.getElementById('load-template-btn');
-            const templateSelector = document.querySelector('.template-selector');
-            
-            if (!template) {
-                showTemplateAlert('Modèle non trouvé.', 'error');
-                return;
-            }
-
-            // Animation de chargement
-            templateSelector.classList.add('template-loading');
-            loadBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Chargement...';
-            loadBtn.disabled = true;
-
-            try {
-                // Préparer les variables de remplacement
-                const currentDate = new Date().toLocaleDateString('fr-FR');
-                const rapportIds = Array.from(selectedRapports);
-                const evaluateur = '<?php echo $_SESSION["user_fullname"] ?? "Utilisateur"; ?>';
-
-                // Construire la liste des rapports avec style
-                let rapportsList = '<div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; margin: 1rem 0;">';
-                rapportsList += '<h4 style="color: #1a5276; margin: 0 0 0.75rem 0;"><i class="fas fa-list"></i> Rapports concernés :</h4><ul style="margin: 0; padding-left: 1.5rem;">';
-                
-                rapportIds.forEach((rapportId, index) => {
-                    const checkbox = document.querySelector(`input[value="${rapportId}"]`);
-                    if (checkbox) {
-                        const data = checkbox.dataset;
-                        rapportsList += `<li style="margin: 0.5rem 0; color: #495057;">
-                            <strong style="color: #1a5276;">Rapport #${data.rapportId}</strong> - 
-                            ${data.nomEtd} ${data.prenomEtd} - 
-                            <em>${data.themeMemoire}</em>
-                            <span style="font-size: 0.8rem; color: #6c757d;"> (${data.statut})</span>
-                        </li>`;
-                    }
-                });
-                rapportsList += '</ul></div>';
-
-                let content = '';
-                let title = template.title
-                    .replace(/\{\{date\}\}/g, currentDate)
-                    .replace(/\{\{nb_rapports\}\}/g, rapportIds.length);
-
-                // Charger selon le type de template
-                if (template.type === 'html') {
-                    // Charger le template HTML
-                    const templateUrl = `/GSCV+/storage/templates/${template.file}`;
-                    console.log('Chargement du template HTML depuis:', templateUrl);
-                    console.log('Template object:', template);
-
-                    const response = await fetch(templateUrl);
-                    console.log('Réponse du serveur:', response.status, response.statusText);
-                    if (!response.ok) {
-                        throw new Error(`Impossible de charger le modèle HTML (${response.status}) - ${response.statusText}`);
-                    }
-
-                    const htmlContent = await response.text();
-                    
-                    // Pour les templates HTML complets, on extrait tout le contenu
-                    // en gardant la structure et les styles
-                    let processedContent = htmlContent;
-                    
-                    // Remplacer les placeholders dans le contenu HTML
-                    processedContent = processedContent
-                        .replace(/\[DATE DU JOUR\]/g, `<strong>${currentDate}</strong>`)
-                        .replace(/\[nombre de dossiers examinés\]/g, `<strong>${rapportIds.length}</strong>`)
-                        .replace(/\[ÉNUMÉRER LES MEMBRES PRÉSENTS\]/g, `<strong>${evaluateur} et les membres de la commission</strong>`)
-                        .replace(/\[NOM DE L'ÉTUDIANT\]/g, rapportIds.length > 0 ? 'Étudiants sélectionnés' : '[NOM DE L\'ÉTUDIANT]')
-                        .replace(/\[HEURE DE FIN\]/g, new Date().toLocaleTimeString('fr-FR'))
-                        .replace(/\[DATE\]/g, `<strong>${currentDate}</strong>`)
-                        .replace(/\[Heure début\]/g, '14h00')
-                        .replace(/\[Heure fin\]/g, new Date().toLocaleTimeString('fr-FR'));
-
-                    // Extraire le contenu du body en nettoyant pour Quill
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(processedContent, 'text/html');
-                    let bodyContent = doc.body.innerHTML;
-                    
-                    // Nettoyer le contenu pour Quill (enlever les balises style intégrées)
-                    // Quill ne supporte pas les balises <style> dans le contenu
-                    bodyContent = bodyContent.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-                    
-                    // Garder les styles essentiels séparément pour l'injection dans la page
-                    const styles = doc.head.querySelector('style');
-                    const styleContent = styles ? styles.innerHTML : '';
-                    
-                    // Pour Quill, on utilise seulement le contenu HTML sans les styles
-                    content = bodyContent;
-                    
-                    // Injecter les styles dans la page (pas dans l'éditeur)
-                    if (styleContent) {
-                        let existingStyle = document.getElementById('template-styles');
-                        if (!existingStyle) {
-                            existingStyle = document.createElement('style');
-                            existingStyle.id = 'template-styles';
-                            document.head.appendChild(existingStyle);
+                    // Toggle de l'affichage
+                    if (evaluationsSection.classList.contains('hidden')) {
+                        // Charger les données d'évaluation via AJAX si pas encore chargées
+                        if (!evaluationsSection.hasAttribute('data-loaded')) {
+                            loadEvaluationData(rapportId, evaluationsSection);
                         }
-                        existingStyle.innerHTML = styleContent;
+
+                        evaluationsSection.classList.remove('hidden');
+                        this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                        this.title = 'Masquer les évaluations';
+                    } else {
+                        evaluationsSection.classList.add('hidden');
+                        this.innerHTML = '<i class="fas fa-users"></i>';
+                        this.title = 'Voir les évaluations';
                     }
-                    
-                    // Debug: Afficher des informations sur le contenu chargé
-                    console.log('Template HTML chargé avec succès');
-                    console.log('Longueur du contenu HTML:', htmlContent.length);
-                    console.log('Longueur du contenu body original:', doc.body.innerHTML.length);
-                    console.log('Longueur du contenu nettoyé pour Quill:', content.length);
-                    console.log('Styles trouvés:', !!styleContent);
-                    console.log('Contenu final (100 premiers caractères):', content.substring(0, 100));
+                });
+            });
+        }
 
-                } else if (template.type === 'docx') {
-                    // Charger le template DOCX
-                    const templateUrl = `/GSCV+/storage/templates/${template.file}`;
-                    console.log('Chargement du template DOCX depuis:', templateUrl);
+        // Charger les données d'évaluation via AJAX
+        function loadEvaluationData(rapportId, evaluationsSection) {
+            // Afficher un indicateur de chargement
+            evaluationsSection.innerHTML = `
+                    <div class="flex items-center justify-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <span class="ml-2 text-gray-600">Chargement des évaluations...</span>
+                    </div>
+                `;
 
-                    const response = await fetch(templateUrl);
+            const url = `ajax_consultations.php?action=getEvaluationData&rapport_id=${rapportId}`;
+            console.log('URL de la requête AJAX:', url);
+
+            // Faire la requête AJAX
+            fetch(url)
+                .then(response => {
+                    console.log('Statut de la réponse:', response.status);
+                    console.log('Headers de la réponse:', response.headers);
+
                     if (!response.ok) {
-                        throw new Error(`Impossible de charger le modèle DOCX (${response.status})`);
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
 
-                    const arrayBuffer = await response.arrayBuffer();
-                    
-                    // Vérifier si mammoth est disponible
-                    if (typeof mammoth === 'undefined') {
-                        throw new Error('La bibliothèque mammoth n\'est pas chargée. Veuillez ajouter mammoth.js à votre page.');
-                    }
+                    return response.text().then(text => {
+                        console.log('Réponse brute:', text);
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            console.error('Erreur de parsing JSON:', e);
+                            throw new Error('Réponse non-JSON reçue: ' + text.substring(0, 200));
+                        }
+                    });
+                })
+                .then(data => {
+                    console.log('Données reçues:', data);
 
-                    console.log('Conversion DOCX vers HTML avec mammoth...');
-                    const result = await mammoth.convertToHtml({ arrayBuffer });
-                    
-                    // Remplacer les variables dans le contenu DOCX converti
-                    content = result.value
-                        .replace(/\[DATE\]/g, `<strong>${currentDate}</strong>`)
-                        .replace(/\[NOMBRE_RAPPORTS\]/g, `<strong>${rapportIds.length}</strong>`)
-                        .replace(/\[EVALUATEUR\]/g, `<strong>${evaluateur}</strong>`)
-                        .replace(/\[RAPPORTS_LIST\]/g, rapportsList);
-                }
-
-                // Effet d'écriture progressive pour le titre
-                const titleInput = document.getElementById('cr-title');
-                titleInput.value = '';
-                typeWriter(titleInput, title, 50);
-                
-                // Initialiser l'éditeur si nécessaire
-                if (!quillEditor) {
-                    initQuillEditor();
-                }
-                
-                // Insérer le contenu dans l'éditeur avec animation
-                setTimeout(() => {
-                    console.log('Insertion du contenu dans l\'éditeur Quill...');
-                    console.log('Éditeur Quill disponible:', !!quillEditor);
-                    console.log('Longueur du contenu à insérer:', content.length);
-                    
-                    // Test temporaire : insérer un contenu minimal pour vérifier que l'éditeur fonctionne
-                    if (content.length === 0) {
-                        console.log('Contenu vide détecté, insertion d\'un contenu de test');
-                        content = '<h1>Test de contenu</h1><p>Si vous voyez ceci, l\'éditeur fonctionne mais le template n\'a pas pu être chargé.</p>';
-                    }
-                    
-                    quillEditor.root.innerHTML = content;
-                    document.getElementById('cr-content').value = content;
-                    
-                    console.log('Contenu inséré. Longueur du contenu dans l\'éditeur:', quillEditor.root.innerHTML.length);
-                    
-                    // Animation de succès
-                    templateSelector.classList.remove('template-loading');
-                    templateSelector.classList.add('template-success');
-                    
-                    loadBtn.innerHTML = '<i class="fas fa-check mr-2"></i> Modèle chargé !';
-                    loadBtn.disabled = false;
-                    
-                    // Notification de succès
-                    showTemplateAlert(`Template "${templateDescriptions[templateKey].title}" chargé avec succès !`, 'success');
-                    
-                    // Réinitialiser l'état après 2 secondes
-                    setTimeout(() => {
-                        templateSelector.classList.remove('template-success');
-                        loadBtn.innerHTML = '<i class="fas fa-magic mr-2"></i> Charger le modèle';
-                    }, 2000);
-                    
-                }, 500);
-                
-            } catch (error) {
-                console.error('Erreur lors du chargement du template:', error);
-                templateSelector.classList.remove('template-loading');
-                loadBtn.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> Erreur';
-                loadBtn.disabled = false;
-                showTemplateAlert(`Erreur lors du chargement du modèle: ${error.message}`, 'error');
-                
-                setTimeout(() => {
-                    loadBtn.innerHTML = '<i class="fas fa-magic mr-2"></i> Charger le modèle';
-                }, 2000);
-            }
-        }
-
-        // Fonction d'effet machine à écrire
-        function typeWriter(element, text, speed = 100) {
-            let i = 0;
-            function typing() {
-                if (i < text.length) {
-                    element.value += text.charAt(i);
-                    i++;
-                    setTimeout(typing, speed);
-                }
-            }
-            typing();
-        }
-
-        // Système de notification amélioré
-        function showTemplateAlert(message, type = 'info') {
-            // Supprimer les alertes précédentes
-            const existingAlert = document.querySelector('.template-alert');
-            if (existingAlert) {
-                existingAlert.remove();
-            }
-
-            const alert = document.createElement('div');
-            alert.className = `template-alert template-alert-${type}`;
-            alert.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <i class="fas ${getAlertIcon(type)}" style="font-size: 1.2rem;"></i>
-                    <span>${message}</span>
-                    <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: inherit; cursor: pointer; margin-left: auto;">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    if (data.success) {
+                        renderEvaluationData(data.commission_members, evaluationsSection);
+                        evaluationsSection.setAttribute('data-loaded', 'true');
+                    } else {
+                        console.error('Erreur dans la réponse:', data.error);
+                        evaluationsSection.innerHTML = `
+                                <div class="text-center py-8 text-red-600">
+                                    <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                                    <p>Erreur lors du chargement des évaluations: ${data.error || 'Erreur inconnue'}</p>
                 </div>
             `;
-            
-            // Styles inline pour l'alerte
-            alert.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 1rem 1.5rem;
-                border-radius: 8px;
-                color: white;
-                font-weight: 500;
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-                z-index: 10000;
-                animation: slideInRight 0.3s ease;
-                max-width: 400px;
-                background: ${getAlertColor(type)};
-                border-left: 4px solid ${getAlertBorderColor(type)};
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur AJAX détaillée:', error);
+                    evaluationsSection.innerHTML = `
+                            <div class="text-center py-8 text-red-600">
+                                <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                                <p>Erreur de connexion: ${error.message}</p>
+                            </div>
+                        `;
+                });
+        }
+
+        // Rendre les données d'évaluation
+        function renderEvaluationData(commissionMembers, evaluationsSection) {
+            let html = `
+                <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-users mr-2 text-primary"></i>
+                    Évaluations des membres de la commission
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             `;
 
-            document.body.appendChild(alert);
+            commissionMembers.forEach(member => {
+                const isCompleted = member.a_evalue;
+                const statusClass = isCompleted ? 'completed' : 'pending';
+                const statusText = isCompleted ? 'Terminé' : 'Pas encore évalué';
+                const statusIcon = isCompleted ? 'fa-check-circle' : 'fa-clock';
 
-            // Auto-suppression après 4 secondes
-            setTimeout(() => {
-                if (alert.parentElement) {
-                    alert.style.animation = 'slideOutRight 0.3s ease';
-                    setTimeout(() => alert.remove(), 300);
-                }
-            }, 4000);
-        }
+                html += `
+                    <div class="evaluation-status p-4 rounded-lg ${statusClass}">
+                        <div class="flex items-center justify-between mb-2">
+                            <h5 class="font-semibold">
+                                ${member.nom_ens} ${member.prenoms_ens}
+                            </h5>
+                            <span class="text-xs">
+                                <i class="fas ${statusIcon} mr-1"></i>${statusText}
+                            </span>
+                        </div>
+                `;
 
-        function getAlertIcon(type) {
-            const icons = {
-                'success': 'fa-check-circle',
-                'warning': 'fa-exclamation-triangle', 
-                'error': 'fa-times-circle',
-                'info': 'fa-info-circle'
-            };
-            return icons[type] || icons.info;
-        }
-
-        function getAlertColor(type) {
-            const colors = {
-                'success': 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
-                'warning': 'linear-gradient(135deg, #ffc107 0%, #fd7e14 100%)',
-                'error': 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
-                'info': 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)'
-            };
-            return colors[type] || colors.info;
-        }
-
-        function getAlertBorderColor(type) {
-            const colors = {
-                'success': '#1e7e34',
-                'warning': '#e0a800',
-                'error': '#bd2130',
-                'info': '#117a8b'
-            };
-            return colors[type] || colors.info;
-        }
-
-        // Initialisation de la sélection multiple
-        function initMultiSelection() {
-            const selectAllCheckbox = document.getElementById('select-all-rapports');
-            const rapportCheckboxes = document.querySelectorAll('.rapport-checkbox');
-            const selectedCountElement = document.getElementById('selected-count');
-            const bulkCrBtn = document.getElementById('bulk-cr-btn');
-
-            // Sélectionner/désélectionner tous
-            if (selectAllCheckbox) {
-                selectAllCheckbox.addEventListener('change', function() {
-                    rapportCheckboxes.forEach(checkbox => {
-                        checkbox.checked = this.checked;
-                        updateSelection(checkbox);
-                    });
-                    updateSelectedCount();
-                });
-            }
-
-            // Gestion des cases individuelles
-            rapportCheckboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    updateSelection(this);
-                    updateSelectedCount();
-                    
-                    // Mettre à jour la case "Sélectionner tout"
-                    if (selectAllCheckbox) {
-                        const allChecked = Array.from(rapportCheckboxes).every(cb => cb.checked);
-                        selectAllCheckbox.checked = allChecked;
-                    }
-                });
-            });
-
-            // Bouton de rédaction groupée
-            if (bulkCrBtn) {
-                bulkCrBtn.addEventListener('click', function() {
-                    if (selectedRapports.size === 0) {
-                        alert('Veuillez sélectionner au moins un rapport.');
-                        return;
-                    }
-                    openMultiCrModal();
-                });
-            }
-
-            // Boutons de rédaction individuelle
-            document.querySelectorAll('.create-cr-single').forEach(button => {
-                button.addEventListener('click', function() {
-                    const rapportId = this.dataset.rapportId;
-                    selectedRapports.clear();
-                    selectedRapports.add(rapportId);
-                    
-                    // Décocher toutes les cases et cocher seulement celle-ci
-                    rapportCheckboxes.forEach(cb => cb.checked = false);
-                    const targetCheckbox = document.querySelector(`input[value="${rapportId}"]`);
-                    if (targetCheckbox) {
-                        targetCheckbox.checked = true;
-                        updateSelection(targetCheckbox);
-                    }
-                    
-                    updateSelectedCount();
-                    openMultiCrModal();
-                });
-            });
-        }
-
-        // Mettre à jour la sélection
-        function updateSelection(checkbox) {
-            const rapportId = checkbox.value;
-            if (checkbox.checked) {
-                selectedRapports.add(rapportId);
-            } else {
-                selectedRapports.delete(rapportId);
-            }
-        }
-
-        // Mettre à jour le compteur
-        function updateSelectedCount() {
-            const selectedCountElement = document.getElementById('selected-count');
-            const bulkCrBtn = document.getElementById('bulk-cr-btn');
-            
-            if (selectedCountElement) {
-                selectedCountElement.textContent = `${selectedRapports.size} rapport(s) sélectionné(s)`;
-            }
-            
-            if (bulkCrBtn) {
-                bulkCrBtn.disabled = selectedRapports.size === 0;
-                bulkCrBtn.style.opacity = selectedRapports.size === 0 ? '0.5' : '1';
-            }
-        }
-
-        // Ouvrir la modale de rédaction multiple
-        function openMultiCrModal() {
-            const modal = document.getElementById('multi-cr-modal');
-            const selectedRapportsList = document.getElementById('selected-rapports-list');
-            const selectedRapportIds = document.getElementById('selected-rapport-ids');
-            
-            // Construire la liste des rapports sélectionnés
-            let rapportsHtml = '';
-            const rapportIds = Array.from(selectedRapports);
-            
-            rapportIds.forEach(rapportId => {
-                const checkbox = document.querySelector(`input[value="${rapportId}"]`);
-                if (checkbox) {
-                    const data = checkbox.dataset;
-                    rapportsHtml += `
-                        <div class="p-4 bg-white border border-gray-200 rounded-lg">
-                            <div class="flex items-start space-x-3">
-                                <div class="flex-shrink-0">
-                                    <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-file-alt text-primary"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <h4 class="text-sm font-semibold text-gray-900">Rapport #${data.rapportId}</h4>
-                                    <p class="text-sm text-gray-600"><strong>Étudiant:</strong> ${data.nomEtd} ${data.prenomEtd}</p>
-                                    <p class="text-sm text-gray-600"><strong>Thème:</strong> ${data.themeMemoire}</p>
-                                    <p class="text-sm text-gray-600"><strong>Date de dépôt:</strong> ${data.dateDepot ? new Date(data.dateDepot).toLocaleDateString('fr-FR') : 'Non spécifiée'}</p>
-                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full mt-2 ${data.statut === 'Validé' ? 'bg-green-100 text-green-800' : (data.statut === 'Rejeté' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800')}">${data.statut}</span>
-                                </div>
+                if (isCompleted) {
+                    html += `
+                        <div class="text-sm opacity-90">
+                            <p class="mb-2"><strong>Décision:</strong> ${member.decision || 'Non spécifiée'}</p>
+                            <p class="mb-2"><strong>Date:</strong> ${member.date_validation ? new Date(member.date_validation).toLocaleDateString('fr-FR') : '-'}</p>
+                            <p><strong>Commentaire:</strong></p>
+                            <div class="mt-1 p-2 bg-white/20 rounded text-xs">
+                                ${member.com_validation || 'Aucun commentaire'}
                             </div>
                         </div>
                     `;
+                } else {
+                    html += `<p class="text-sm opacity-90">Pas encore évalué</p>`;
                 }
+
+                html += `</div>`;
             });
-            
-            selectedRapportsList.innerHTML = rapportsHtml;
-            selectedRapportIds.value = rapportIds.join(',');
-            
-            // Générer un titre par défaut
-            const crTitleInput = document.getElementById('cr-title');
-            const currentDate = new Date().toLocaleDateString('fr-FR');
-            crTitleInput.value = `Compte rendu d'évaluation - ${rapportIds.length} rapport(s) - ${currentDate}`;
-            
-            // Initialiser l'éditeur Quill
-            setTimeout(() => {
-                initQuillEditor();
-            }, 100);
-            
-            modal.classList.remove('hidden');
+
+            html += `</div>`;
+            evaluationsSection.innerHTML = html;
         }
 
-        // Initialiser les gestionnaires de modales
-        function initModalHandlers() {
-            const multiCrModal = document.getElementById('multi-cr-modal');
-            const closeMultiCrModal = document.getElementById('close-multi-cr-modal');
-            const cancelMultiCr = document.getElementById('cancel-multi-cr');
-            
-            // Fermer la modale
-            [closeMultiCrModal, cancelMultiCr].forEach(element => {
-                if (element) {
-                    element.addEventListener('click', function() {
-                        multiCrModal.classList.add('hidden');
-                    });
-                }
-            });
-            
-            // Fermer en cliquant à l'extérieur
-            multiCrModal.addEventListener('click', function(e) {
-                if (e.target === multiCrModal) {
-                    multiCrModal.classList.add('hidden');
-                }
-            });
+        // Fonction pour afficher les détails d'un compte rendu
+        function showCompteRenduDetails(titre) {
+            // Créer une modal pour afficher les détails
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-gray-900">Détails du compte rendu: ${titre}</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    <div id="compte-rendu-details-content">
+                        <div class="flex items-center justify-center py-8">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                            <span class="ml-2 text-gray-600">Chargement des détails...</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
 
-            // Gestionnaire du formulaire
-            const multiCrForm = document.getElementById('multi-cr-form');
-            if (multiCrForm) {
-                multiCrForm.addEventListener('submit', function(e) {
-                    // S'assurer que le contenu de l'éditeur est synchronisé
-                    if (quillEditor) {
-                        document.getElementById('cr-content').value = quillEditor.root.innerHTML;
+            // Charger les détails via AJAX
+            fetch(`ajax_consultations.php?action=getCompteRenduDetails&titre=${encodeURIComponent(titre)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderCompteRenduDetails(data.details, document.getElementById('compte-rendu-details-content'));
+                    } else {
+                        document.getElementById('compte-rendu-details-content').innerHTML = `
+                            <div class="text-center py-8 text-red-600">
+                                <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                                <p>Erreur: ${data.error || 'Impossible de charger les détails'}</p>
+                            </div>
+                        `;
                     }
+                })
+                .catch(error => {
+                    document.getElementById('compte-rendu-details-content').innerHTML = `
+                        <div class="text-center py-8 text-red-600">
+                            <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                            <p>Erreur de connexion: ${error.message}</p>
+                        </div>
+                    `;
+                });
+        }
+
+        // Fonction pour afficher le modal d'envoi d'email
+        function showEmailModal(titre, crId) {
+            console.log('=== SHOW EMAIL MODAL START ===');
+            console.log('showEmailModal appelé avec:', titre, crId); // Debug
+            console.log('Type de titre:', typeof titre);
+            console.log('Type de crId:', typeof crId);
+            
+            // Vérifier que les paramètres sont valides
+            if (!titre || !crId || crId <= 0) {
+                console.error('ERREUR: Paramètres invalides pour l\'envoi d\'email');
+                console.error('titre:', titre);
+                console.error('crId:', crId);
+                alert('Erreur: Paramètres invalides pour l\'envoi d\'email');
+                return;
+            }
+            
+            // Échapper les caractères spéciaux dans le titre pour éviter les erreurs JavaScript
+            const titreEscaped = titre.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            console.log('Titre échappé:', titreEscaped);
+            
+            console.log('Création de la modale...');
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            
+            const modalHTML = `
+                <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-gray-900">Envoyer le compte rendu par email</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <form id="email-form" onsubmit="sendCompteRenduEmail(event, '${titreEscaped}', ${crId})">
+                        <div class="mb-4">
+                            <label for="email-to" class="block text-sm font-medium text-gray-700 mb-2">
+                                Adresse email du destinataire *
+                            </label>
+                            <input type="email" id="email-to" name="email" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                placeholder="exemple@email.com">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="email-subject" class="block text-sm font-medium text-gray-700 mb-2">
+                                Objet de l'email
+                            </label>
+                            <input type="text" id="email-subject" name="subject"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                placeholder="Compte rendu - ${titreEscaped}"
+                                value="Compte rendu - ${titreEscaped}">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="email-message" class="block text-sm font-medium text-gray-700 mb-2">
+                                Message additionnel (optionnel)
+                            </label>
+                            <textarea id="email-message" name="message" rows="4"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                placeholder="Ajoutez un message personnalisé..."></textarea>
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" onclick="this.closest('.fixed').remove()"
+                                class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                                Annuler
+                            </button>
+                            <button type="submit" id="send-email-btn"
+                                class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors flex items-center">
+                                <i class="fas fa-paper-plane mr-2"></i>
+                                Envoyer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            
+            modal.innerHTML = modalHTML;
+            console.log('Modale créée, ajout au DOM...');
+            document.body.appendChild(modal);
+        }
+
+        // Fonction pour envoyer le compte rendu par email
+        function sendCompteRenduEmail(event, titre, crId) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const email = form.querySelector('#email-to').value;
+            const subject = form.querySelector('#email-subject').value;
+            const message = form.querySelector('#email-message').value;
+            const sendBtn = form.querySelector('#send-email-btn');
+            
+            // Désactiver le bouton et afficher l'indicateur de chargement
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Envoi en cours...';
+            
+            fetch('ajax_consultations.php?action=sendCompteRenduEmail', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    cr_id: crId,
+                    titre: titre,
+                    email: email,
+                    subject: subject,
+                    message: message
+                })
+            })
+            .then(response => {
+                console.log('Réponse reçue, statut:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert('Compte rendu envoyé avec succès !');
+                    document.querySelector('.fixed').remove();
+                } else {
+                    alert('Erreur: ' + (data.error || 'Impossible d\'envoyer l\'email'));
+                    // Réactiver le bouton
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Envoyer';
+                }
+            })
+            .catch(error => {
+                alert('Erreur de connexion: ' + error.message);
+                // Réactiver le bouton
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Envoyer';
+            });
+        }
+
+        // Fonction pour supprimer un groupe de comptes rendus
+        function deleteCompteRenduGroup(titre) {
+            if (confirm(`Êtes-vous sûr de vouloir supprimer tous les comptes rendus avec le titre "${titre}" ?`)) {
+                fetch('ajax_consultations.php?action=deleteCompteRenduGroup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ titre: titre })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Groupe de comptes rendus supprimé avec succès');
+                        location.reload();
+                    } else {
+                        alert('Erreur: ' + (data.error || 'Impossible de supprimer le groupe'));
+                    }
+                })
+                .catch(error => {
+                    alert('Erreur de connexion: ' + error.message);
                 });
             }
-
-            // Modal de confirmation
-            const confirmationModal = document.getElementById('email-confirmation-modal');
-            const closeConfirmationBtn = document.getElementById('close-confirmation-btn');
-            const closeConfirmationModalBtn = document.getElementById('close-confirmation-modal-btn');
-            
-            [closeConfirmationBtn, closeConfirmationModalBtn].forEach(element => {
-                if (element) {
-                    element.addEventListener('click', function() {
-                        confirmationModal.classList.add('hidden');
-                    });
-                }
-            });
         }
+
+        // Fonction pour rendre les détails d'un compte rendu
+        function renderCompteRenduDetails(details, container) {
+            let html = `
+                <div class="space-y-4">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-semibold text-gray-900">Informations générales</h4>
+                            ${details.rapports && details.rapports.length > 0 ? `
+                                <button onclick="showCompteRenduPreview(${details.rapports[0].id_cr}, '${details.titre}')" 
+                                        class="text-indigo-600 hover:text-indigo-800 p-2 rounded-lg hover:bg-indigo-50 transition-colors"
+                                        title="Voir l'aperçu">
+                                    <i class="fas fa-search mr-1"></i>Aperçu
+                                </button>
+                            ` : ''}
+                        </div>
+                        <p><strong>Titre:</strong> ${details.titre}</p>
+                        <p><strong>Nombre de versions:</strong> ${details.nombre_total}</p>
+                        <p><strong>Date de création:</strong> ${new Date(details.date_creation).toLocaleDateString('fr-FR')}</p>
+                        <p><strong>Auteur:</strong> ${details.auteur}</p>
+                    </div>
+                    
+                   
+            `;
+
+            details.rapports.forEach((rapport, index) => {
+                html += `
+                    <div class="border-l-4 border-blue-500 pl-4 py-2">
+                        <p><strong>Version ${index + 1}:</strong></p>
+                        <p><strong>Étudiant:</strong> ${rapport.nom_etd} ${rapport.prenom_etd}</p>
+                        <p><strong>Rapport:</strong> ${rapport.theme_memoire || 'N/A'}</p>
+                        <p><strong>Date:</strong> ${rapport.date_cr ? new Date(rapport.date_cr).toLocaleDateString('fr-FR') : 'N/A'}</p>
+                        
+                    </div>
+                `;
+            });
+
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+
+        // Fonction pour supprimer un compte rendu individuel
+        function deleteCompteRendu(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce compte rendu ?')) {
+                fetch('ajax_consultations.php?action=deleteCompteRendu', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id: id })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Compte rendu supprimé avec succès');
+                        location.reload();
+                    } else {
+                        alert('Erreur: ' + (data.error || 'Impossible de supprimer le compte rendu'));
+                    }
+                })
+                .catch(error => {
+                    alert('Erreur de connexion: ' + error.message);
+                });
+            }
+        }
+
+        // Fonction pour afficher l'aperçu d'un compte rendu
+        function showCompteRenduPreview(crId, titre) {
+            console.log('=== SHOW COMPTE RENDU PREVIEW START ===');
+            console.log('showCompteRenduPreview appelé avec:', crId, titre);
+            
+            // Vérifier que les paramètres sont valides
+            if (!crId || crId <= 0) {
+                console.error('ERREUR: ID du compte rendu invalide');
+                alert('Erreur: ID du compte rendu invalide');
+                return;
+            }
+            
+            // Créer la modal d'aperçu
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            
+            const modalHTML = `
+                <div class="bg-white rounded-lg max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden">
+                    <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                        <h3 class="text-xl font-bold text-gray-900">Aperçu du compte rendu: ${titre}</h3>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="downloadCompteRenduPreview(${crId})" 
+                                    class="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 transition-colors"
+                                    title="Télécharger">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button onclick="this.closest('.fixed').remove()" 
+                                    class="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="preview-content" class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                        <div class="flex items-center justify-center py-8">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                            <span class="ml-2 text-gray-600">Chargement de l'aperçu...</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            modal.innerHTML = modalHTML;
+            document.body.appendChild(modal);
+            
+            // Charger l'aperçu via AJAX
+            fetch(`ajax_consultations.php?action=getCompteRenduPreview&id=${crId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderCompteRenduPreview(data.content, data.fileType, document.getElementById('preview-content'), crId);
+                    } else {
+                        document.getElementById('preview-content').innerHTML = `
+                            <div class="text-center py-8 text-red-600">
+                                <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                                <p>Erreur: ${data.error || 'Impossible de charger l\'aperçu'}</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement de l\'aperçu:', error);
+                    document.getElementById('preview-content').innerHTML = `
+                        <div class="text-center py-8 text-red-600">
+                            <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                            <p>Erreur de connexion: ${error.message}</p>
+                        </div>
+                    `;
+                });
+        }
+
+        // Fonction pour télécharger depuis l'aperçu
+        function downloadCompteRenduPreview(crId) {
+            const downloadUrl = `../public/assets/traitements/gestion_comptes_rendus.php?action=download_cr&id=${crId}`;
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = ''; // Force le téléchargement
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Fonction pour rendre l'aperçu du compte rendu
+        function renderCompteRenduPreview(content, fileType, container, crId) {
+            if (fileType === 'pdf') {
+                // Pour les PDF, utiliser une URL directe vers le fichier
+                const pdfUrl = `../public/assets/traitements/gestion_comptes_rendus.php?action=view_cr&id=${crId}`;
+                container.innerHTML = `
+                    <div class="w-full h-full">
+                        <div class="flex items-center justify-between mb-4">
+                            <h5 class="text-lg font-semibold text-gray-900">Aperçu du PDF</h5>
+                            <div class="flex space-x-2">
+                                <button onclick="downloadCompteRenduPreview(${crId})" 
+                                        class="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 transition-colors"
+                                        title="Télécharger">
+                                    <i class="fas fa-download mr-1"></i>Télécharger
+                                </button>
+                                <button onclick="window.open('${pdfUrl}', '_blank')" 
+                                        class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                                        title="Ouvrir dans un nouvel onglet">
+                                    <i class="fas fa-external-link-alt mr-1"></i>Ouvrir
+                                </button>
+                            </div>
+                        </div>
+                        <iframe src="${pdfUrl}" 
+                                class="w-full h-[calc(90vh-250px)] border border-gray-300 rounded-lg"
+                                frameborder="0">
+                            <div class="flex items-center justify-center h-full">
+                                <div class="text-center">
+                                    <i class="fas fa-file-pdf text-4xl text-red-500 mb-2"></i>
+                                    <p class="text-gray-600 mb-4">Votre navigateur ne supporte pas l'affichage des PDF.</p>
+                                    <div class="flex justify-center space-x-2">
+                                        <button onclick="downloadCompteRenduPreview(${crId})" 
+                                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                            <i class="fas fa-download mr-1"></i>Télécharger
+                                        </button>
+                                        <button onclick="window.open('${pdfUrl}', '_blank')" 
+                                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                            <i class="fas fa-external-link-alt mr-1"></i>Ouvrir
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </iframe>
+                    </div>
+                `;
+            } else if (fileType === 'html') {
+                // Pour les fichiers HTML, afficher directement
+                container.innerHTML = `
+                    <div class="w-full h-full">
+                        <div class="bg-white border border-gray-300 rounded-lg p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+                            ${content}
+                        </div>
+                    </div>
+                `;
+            } else if (fileType === 'docx' || fileType === 'doc') {
+                // Pour les fichiers Word, afficher un message avec option de téléchargement
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-file-word text-6xl text-blue-600 mb-4"></i>
+                        <h4 class="text-xl font-semibold text-gray-900 mb-2">Fichier Word détecté</h4>
+                        <p class="text-gray-600 mb-6">L'aperçu des fichiers Word n'est pas disponible dans le navigateur.</p>
+                        <div class="flex justify-center space-x-4">
+                            <button onclick="downloadCompteRenduPreview(${crId})" 
+                                    class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center">
+                                <i class="fas fa-download mr-2"></i>
+                                Télécharger le fichier
+                            </button>
+                            <button onclick="handleFileAction('../public/assets/traitements/gestion_comptes_rendus.php?action=view_cr&id=${crId}', 'view')" 
+                                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+                                <i class="fas fa-eye mr-2"></i>
+                                Ouvrir dans un nouvel onglet
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Pour les autres types de fichiers
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-file text-6xl text-gray-400 mb-4"></i>
+                        <h4 class="text-xl font-semibold text-gray-900 mb-2">Type de fichier non supporté</h4>
+                        <p class="text-gray-600 mb-6">L'aperçu de ce type de fichier n'est pas disponible.</p>
+                        <button onclick="downloadCompteRenduPreview(${crId})" 
+                                class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center">
+                            <i class="fas fa-download mr-2"></i>
+                            Télécharger le fichier
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Fonction pour gérer les erreurs de téléchargement/visualisation
+        function handleFileAction(url, action) {
+            if (action === 'download') {
+                // Pour le téléchargement, utiliser une approche directe
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = ''; // Force le téléchargement
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                // Pour la visualisation, ouvrir dans un nouvel onglet
+                window.open(url, '_blank');
+            }
+        }
+
+        // Fonction pour afficher l'historique des emails
+        function showEmailHistory() {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-gray-900">Historique des emails envoyés</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    <div id="email-history-content">
+                        <div class="flex items-center justify-center py-8">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                            <span class="ml-2 text-gray-600">Chargement de l'historique...</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // Utiliser les données PHP directement au lieu d'AJAX
+            const historiques = <?php echo json_encode($historiques ?? []); ?>;
+            console.log('Historiques PHP:', historiques);
+            console.log('Type de historiques:', typeof historiques);
+            console.log('Longueur de historiques:', historiques ? historiques.length : 'null');
+            renderEmailHistory(historiques, document.getElementById('email-history-content'));
+        }
+
+        // Fonction pour rendre l'historique des emails
+        function renderEmailHistory(history, container) {
+            console.log('renderEmailHistory appelé avec:', history);
+            
+            if (!history || history.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-inbox text-4xl mb-4 opacity-50"></i>
+                        <p class="text-lg">Aucun email envoyé pour le moment</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Date d'envoi</th>
+                                <th scope="col" class="px-6 py-3">Destinataire</th>
+                                <th scope="col" class="px-6 py-3">Sujet</th>
+                                <th scope="col" class="px-6 py-3">Compte rendu</th>
+                                <th scope="col" class="px-6 py-3">Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            history.forEach(log => {
+                html += `
+                    <tr class="bg-white border-b hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-calendar-alt text-blue-600"></i>
+                                <span>${new Date(log.date_envoi).toLocaleString('fr-FR')}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-envelope text-green-600"></i>
+                                <span class="font-medium text-gray-700">${log.email_destinataire}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-sm">${log.sujet || 'Aucun sujet'}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-file-signature text-purple-600"></i>
+                                <span class="text-sm">ID: ${log.id_cr}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${log.statut === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${log.statut === 'success' ? 'Envoyé' : 'Erreur'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+
+        
     </script>
 </body>
+
 </html>

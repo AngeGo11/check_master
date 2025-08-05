@@ -1,8 +1,8 @@
 <?php
 session_start();
 require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV+/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV+/includes/audit_utils.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV+/app/Models/AnneeAcademique.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV+/app/Models/Etudiant.php';
 
 // Vérifier si l'utilisateur est connecté et est un personnel administratif
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['id_personnel_adm'])) {
@@ -143,6 +143,16 @@ try {
 
     // Valider la transaction
     $pdo->commit();
+
+    // Calculer et mettre à jour les moyennes générales pour l'étudiant
+    try {
+        $etudiantModel = new App\Models\Etudiant($pdo);
+        $etudiantModel->calculerMoyenneGenerale($num_etd, $id_ac);
+        error_log("Moyennes recalculées pour l'étudiant: $numero");
+    } catch (Exception $e) {
+        error_log("Erreur lors du calcul des moyennes pour l'étudiant $numero: " . $e->getMessage());
+        // Ne pas faire échouer l'enregistrement si le calcul des moyennes échoue
+    }
 
     // Message de succès
     $action = $edit_mode ? 'mise à jour' : 'enregistrée';

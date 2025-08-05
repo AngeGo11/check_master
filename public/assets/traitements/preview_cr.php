@@ -26,17 +26,29 @@ try {
         exit;
     }
     
-    $filePath = "C:/wamp64/www/GSCV/pages/" . "". $compteRendu['fichier_cr'];
+    // Utiliser le chemin correct
+    $filePath = dirname(dirname(dirname(__FILE__))) . '/' . $compteRendu['fichier_cr'];
     
     if (!file_exists($filePath)) {
         http_response_code(404);
-        echo "Fichier non trouvé";
+        echo "Fichier non trouvé: " . $filePath;
         exit;
     }
     
     $fileName = basename($filePath);
     $fileSize = filesize($filePath);
     $fileType = mime_content_type($filePath);
+    
+    // Nettoyer tout buffer de sortie
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
+    
+    // Vérifier qu'aucun en-tête n'a été envoyé
+    if (headers_sent($file, $line)) {
+        error_log("Headers already sent in $file:$line");
+        exit();
+    }
     
     // Mode aperçu - afficher le PDF dans le navigateur
     header('Content-Type: ' . $fileType);
@@ -53,4 +65,5 @@ try {
     error_log("Erreur lors de l'aperçu du compte rendu : " . $e->getMessage());
     http_response_code(500);
     echo "Erreur lors de l'aperçu";
-} 
+}
+?> 

@@ -1,5 +1,11 @@
 <?php
-require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV/config/db_connect.php';
+require_once '../../../app/config/config.php';
+
+// Activation du logging
+ini_set('log_errors', 1);
+ini_set('error_log', '../../logs/php-error.log');
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
 
 if (!isset($_GET['numero_reglement'])) {
     die('Numéro de règlement manquant.');
@@ -52,7 +58,7 @@ if (!$numero_recu) {
         ORDER BY date_paiement DESC LIMIT 1");
     $stmtRecu->execute([$id_reglement]);
     $dernierPaiement = $stmtRecu->fetch(PDO::FETCH_ASSOC);
-    
+
     if ($dernierPaiement) {
         $numero_recu = $dernierPaiement['numero_recu'];
     } else {
@@ -105,19 +111,37 @@ if ($paiement_unique) {
         $paiement_unique['motif_paiement'] = $_GET['motif_paiement'];
     }
 }
+
+// Données pour le QR Code
+$nom_complet = ($paiement_unique ? ($paiement_unique['nom_etd'] ?? '') . ' ' . ($paiement_unique['prenom_etd'] ?? '') : ($reglement['nom_etd'] ?? '') . ' ' . ($reglement['prenom_etd'] ?? ''));
+$montant_affiche = $paiement_unique ? floatval($paiement_unique['montant_paye']) : $total_paye;
+$date_paiement = $paiement_unique ? $paiement_unique['date_paiement'] : $reglement['date_reglement'];
+
+$qr_data = json_encode([
+    'numero_recu' => $numero_recu,
+    'numero_reglement' => $numero_reglement,
+    'etudiant' => trim($nom_complet),
+    'montant' => $montant_affiche,
+    'date' => date('Y-m-d', strtotime($date_paiement)),
+    'statut' => $statut
+]);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <title>Reçu de paiement</title>
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
+    <script src="../../../qrcodejs/qrcode.min.js"></script>
+
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #fff;
             color: #212529;
         }
+
         .recu-form-style {
             width: 900px;
             margin: 60px auto;
@@ -127,15 +151,18 @@ if ($paiement_unique) {
             background: #fff;
             box-shadow: none;
         }
+
         .recu-form-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 0;
         }
+
         .recu-form-header img {
             height: 120px;
         }
+
         .recu-form-header .header-center {
             flex: 1;
             text-align: center;
@@ -143,14 +170,16 @@ if ($paiement_unique) {
             font-weight: bold;
             line-height: 1.3;
         }
+
         .recu-form-title-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             margin-top: 30px;
             margin-bottom: 30px;
             position: relative;
         }
+
         .recu-form-num {
             font-size: 26px;
             color: #c62828;
@@ -158,6 +187,7 @@ if ($paiement_unique) {
             min-width: 200px;
             text-align: left;
         }
+
         .recu-form-title {
             font-size: 38px;
             font-weight: bold;
@@ -165,17 +195,97 @@ if ($paiement_unique) {
             flex: 1;
             letter-spacing: 2px;
         }
+
+        .recu-form-right {
+            min-width: 200px;
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
         .recu-form-bpf {
             font-size: 24px;
             color: #000;
             font-weight: bold;
-            min-width: 200px;
-            text-align: right;
         }
+
+        .qr-code-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+
+        .qr-code-canvas {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Styles pour le tableau QR code généré par la bibliothèque */
+        #qrcode table {
+            border-collapse: collapse;
+            margin: 0 auto;
+        }
+
+        #qrcode table td {
+            width: 2px;
+            height: 2px;
+            padding: 0;
+            margin: 0;
+        }
+
+        #qrcode table td.qr-cell-black {
+            background-color: #000000 !important;
+        }
+
+        #qrcode table td.qr-cell-white {
+            background-color: #FFFFFF !important;
+        }
+
+        .qr-code-label {
+            font-size: 10px;
+            color: #666;
+            margin-top: 6px;
+            text-align: center;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        @media print {
+            .qr-code-container {
+                border: 1px solid #000;
+                background: white;
+                box-shadow: none;
+            }
+
+            .qr-code-canvas {
+                border: 1px solid #000;
+                box-shadow: none;
+            }
+
+            .qr-code-label {
+                color: #000;
+            }
+        }
+
         .recu-form-fields {
             margin-top: 25px;
             margin-bottom: 25px;
         }
+
         .recu-form-line {
             display: flex;
             align-items: center;
@@ -183,11 +293,13 @@ if ($paiement_unique) {
             font-size: 22px;
             position: relative;
         }
+
         .recu-form-label {
             min-width: 220px;
             font-weight: bold;
             font-size: 22px;
         }
+
         .recu-form-dots {
             flex: 1;
             border-bottom: 1px dotted #000;
@@ -195,6 +307,7 @@ if ($paiement_unique) {
             height: 1.6em;
             position: relative;
         }
+
         .recu-form-value {
             font-family: 'Caveat', cursive;
             font-size: 28px;
@@ -209,6 +322,7 @@ if ($paiement_unique) {
             background: transparent;
             pointer-events: none;
         }
+
         .recu-form-checkbox {
             display: inline-block;
             width: 24px;
@@ -218,6 +332,7 @@ if ($paiement_unique) {
             vertical-align: middle;
             position: relative;
         }
+
         .recu-form-checkbox.checked::after {
             content: '\2713';
             position: absolute;
@@ -226,18 +341,21 @@ if ($paiement_unique) {
             font-size: 26px;
             color: #000;
         }
+
         .recu-form-footer {
             margin-top: 40px;
             font-size: 18px;
             text-align: left;
             color: #000;
         }
+
         .recu-form-signature {
             margin-top: 50px;
             display: flex;
             justify-content: flex-start;
             align-items: center;
         }
+
         .recu-form-signature-block {
             min-width: 220px;
             text-decoration: underline;
@@ -245,11 +363,13 @@ if ($paiement_unique) {
             font-weight: 700;
             font-size: 20px;
         }
+
         .recu-form-signature-line {
             border-bottom: 1px solid #000;
             width: 250px;
             margin-top: 40px;
         }
+
         .recu-form-mention {
             margin-top: 30px;
             font-size: 16px;
@@ -260,140 +380,196 @@ if ($paiement_unique) {
         }
     </style>
 </head>
-<body onload="window.print()">
-<div class="recu-form-style">
-    <div class="recu-form-header">
-        <img src="../../../assets/images/logo ufhb.png" alt="Logo UFHB">
-        <div class="header-center">
-            FILIERES PROFESSIONNALISEES, UFR MI<br>
-            UNIVERSITE DE COCODY<br>
-            22 B.P. 582 Abidjan 22<br>
-            Tél. (Fax) : 22 41 05 74 / 22 48 01 80<br>
-            Cel : 07 89 94 26 / 07 69 15 04
+
+<body onload="setTimeout(function() { window.print(); }, 5000);">
+    <div class="recu-form-style">
+        <div class="recu-form-header">
+            <img src="../../assets/images/logo ufhb.png" alt="Logo UFHB" onerror="this.style.display='none'">
+            <div class="header-center">
+                FILIERES PROFESSIONNALISEES, UFR MI<br>
+                UNIVERSITE DE COCODY<br>
+                22 B.P. 582 Abidjan 22<br>
+                Tél. (Fax) : 22 41 05 74 / 22 48 01 80<br>
+                Cel : 07 89 94 26 / 07 69 15 04
+            </div>
+            <img src="../../assets/images/logo_mi.png" alt="Logo MI" onerror="this.style.display='none'">
         </div>
-        <img src="../../../assets/images/logo_mi.png" alt="Logo MI">
-    </div>
-    <div class="recu-form-title-row">
-        <div class="recu-form-title">REÇU</div>
-        <div class="recu-form-num">N° : <?php echo htmlspecialchars($numero_recu ?? ''); ?></div>
-        <div class="recu-form-bpf">B.P.F. : <?php echo isset($_GET['bpf']) ? htmlspecialchars($_GET['bpf'] ?? '') : '________'; ?></div>
-    </div>
-    <div class="recu-form-fields">
-        <div class="recu-form-line" style="position:relative;">
-            <span class="recu-form-label">Reçu de M.</span>
-            <span class="recu-form-dots">
-                <span class="recu-form-value" style="left:0;top:50%;transform:translateY(-60%);">
-                    <?php 
-                    $nom_complet = ($paiement_unique ? ($paiement_unique['nom_etd'] ?? '') . ' ' . ($paiement_unique['prenom_etd'] ?? '') : ($reglement['nom_etd'] ?? '') . ' ' . ($reglement['prenom_etd'] ?? ''));
-                    echo htmlspecialchars(trim($nom_complet)); 
-                    ?>
+        <div class="recu-form-title-row">
+            <div class="recu-form-num">N° : <?php echo htmlspecialchars($numero_recu ?? ''); ?></div>
+            <div class="recu-form-title">REÇU</div>
+            <div class="recu-form-right">
+                <div class="recu-form-bpf">B.P.F. : <?php echo isset($_GET['bpf']) ? htmlspecialchars($_GET['bpf'] ?? '') : '________'; ?></div>
+
+            </div>
+        </div>
+        <div class="recu-form-fields">
+            <div class="recu-form-line" style="position:relative;">
+                <span class="recu-form-label">Reçu de M.</span>
+                <span class="recu-form-dots">
+                    <span class="recu-form-value" style="left:0;top:50%;transform:translateY(-60%);">
+                        <?php echo htmlspecialchars(trim($nom_complet)); ?>
+                    </span>
                 </span>
-            </span>
-        </div>
-        <div class="recu-form-line" style="position:relative;">
-            <span class="recu-form-label">La somme de</span>
-            <span class="recu-form-dots">
-                <span class="recu-form-value" style="left:0;top:50%;transform:translateY(-60%);">
-                    <?php 
-                    $montant_affiche = $paiement_unique ? floatval($paiement_unique['montant_paye']) : $total_paye;
-                    echo number_format($montant_affiche, 0, ',', ' ') . ' FCFA'; 
-                    ?>
+            </div>
+            <div class="recu-form-line" style="position:relative;">
+                <span class="recu-form-label">La somme de</span>
+                <span class="recu-form-dots">
+                    <span class="recu-form-value" style="left:0;top:50%;transform:translateY(-60%);">
+                        <?php echo number_format($montant_affiche, 0, ',', ' ') . ' FCFA'; ?>
+                    </span>
                 </span>
-            </span>
-        </div>
-        <div class="recu-form-line" style="position:relative;">
-            <span class="recu-form-label">En règlement de</span>
-            <span class="recu-form-dots">
-                <span class="recu-form-value" style="left:0;top:50%;transform:translateY(-60%);">
-                    <?php 
-                    $motif = $paiement_unique ? ($paiement_unique['motif_paiement'] ?? 'Scolarité') : 'Scolarité';
-                    echo htmlspecialchars($motif); 
-                    ?>
+            </div>
+            <div class="recu-form-line" style="position:relative;">
+                <span class="recu-form-label">En règlement de</span>
+                <span class="recu-form-dots">
+                    <span class="recu-form-value" style="left:0;top:50%;transform:translateY(-60%);">
+                        <?php
+                        $motif = $paiement_unique ? ($paiement_unique['motif_paiement'] ?? 'Scolarité') : 'Scolarité';
+                        echo htmlspecialchars($motif);
+                        ?>
+                    </span>
                 </span>
-            </span>
-        </div>
-        <div class="recu-form-line" style="position:relative;">
-            <span class="recu-form-label">Année d'Études</span>
-            <span class="recu-form-dots">
-                <span class="recu-form-value" style="left:0;top:50%;transform:translateY(-60%);">
-                    <?php 
-                    $niveau = $paiement_unique ? ($paiement_unique['lib_niv_etd'] ?? '') : ($reglement['lib_niv_etd'] ?? '');
-                    echo htmlspecialchars($niveau); 
-                    ?>
+            </div>
+            <div class="recu-form-line" style="position:relative;">
+                <span class="recu-form-label">Année d'Études</span>
+                <span class="recu-form-dots">
+                    <span class="recu-form-value" style="left:0;top:50%;transform:translateY(-60%);">
+                        <?php
+                        $niveau = $paiement_unique ? ($paiement_unique['lib_niv_etd'] ?? '') : ($reglement['lib_niv_etd'] ?? '');
+                        echo htmlspecialchars($niveau);
+                        ?>
+                    </span>
                 </span>
-            </span>
-        </div>
-        <div class="recu-form-line">
-            <?php 
-            $mode_paiement = $paiement_unique ? ($paiement_unique['mode_de_paiement'] ?? 'espece') : 'espece';
-            $est_espece = ($mode_paiement === 'espece');
-            $est_cheque = ($mode_paiement === 'cheque');
-            ?>
-            <span class="recu-form-checkbox<?php echo $est_espece ? ' checked' : ''; ?>"></span>
-            <span class="recu-form-label">Espèces</span>
-            <span class="recu-form-checkbox<?php echo $est_cheque ? ' checked' : ''; ?>"></span>
-            <span style="margin-left: 20px;">Chèque n°</span> 
-            <span class="recu-form-dots">
-                <span class="recu-form-value" style="left:0;top:50%;transform:translateY(-60%);">
-                    <?php
-                    if ($est_cheque) {
-                        $num_cheque = $paiement_unique ? ($paiement_unique['numero_cheque'] ?? '') : '';
-                        if (!empty($num_cheque) && strtolower($num_cheque) !== 'Néant') {
-                            echo htmlspecialchars($num_cheque);
+            </div>
+            <div class="recu-form-line">
+                <?php
+                $mode_paiement = $paiement_unique ? ($paiement_unique['mode_de_paiement'] ?? 'espece') : 'espece';
+                $est_espece = ($mode_paiement === 'espece');
+                $est_cheque = ($mode_paiement === 'cheque');
+                ?>
+                <span class="recu-form-checkbox<?php echo $est_espece ? ' checked' : ''; ?>"></span>
+                <span class="recu-form-label">Espèces</span>
+                <span class="recu-form-checkbox<?php echo $est_cheque ? ' checked' : ''; ?>"></span>
+                <span style="margin-left: 20px;">Chèque n°</span>
+                <span class="recu-form-dots">
+                    <span class="recu-form-value" style="left:0;top:50%;transform:translateY(-60%);">
+                        <?php
+                        if ($est_cheque) {
+                            $num_cheque = $paiement_unique ? ($paiement_unique['numero_cheque'] ?? '') : '';
+                            if (!empty($num_cheque) && strtolower($num_cheque) !== 'Néant') {
+                                echo htmlspecialchars($num_cheque);
+                            }
                         }
-                    }
-                    ?>
+                        ?>
+                    </span>
                 </span>
-            </span>
-        </div>
-        <div class="recu-form-line" style="position:relative;">
-            <span class="recu-form-label">Date</span>
-            <span class="recu-form-dots">
-                <span class="recu-form-value" style="left:0;top:50%;transform:translateY(-60%);">
-                    <?php 
-                    $date_paiement = $paiement_unique ? $paiement_unique['date_paiement'] : $reglement['date_reglement'];
-                    echo date('d/m/Y', strtotime($date_paiement)); 
-                    ?>
+            </div>
+            <div class="recu-form-line" style="position:relative;">
+                <span class="recu-form-label">Date</span>
+                <span class="recu-form-dots">
+                    <span class="recu-form-value" style="left:0;top:50%;transform:translateY(-60%);">
+                        <?php echo date('d/m/Y', strtotime($date_paiement)); ?>
+                    </span>
                 </span>
-            </span>
-        </div>
-        <div class="recu-form-line" style="position:relative;">
-            <span class="recu-form-label">Reste à payer</span>
-            <span class="recu-form-dots">
-                <span class="recu-form-value" style="left:0;top:50%;transform:translateY(-60%);">
-                    <?php
-                    if ($paiement_unique && strpos($numero_recu, 'REG-') !== 0) {
-                        // Pour un paiement supplémentaire, calculer le reste après ce paiement
-                        $stmtTotalAvant = $pdo->prepare("
+            </div>
+            <div class="recu-form-line" style="position:relative;">
+                <span class="recu-form-label">Reste à payer</span>
+                <span class="recu-form-dots">
+                    <span class="recu-form-value" style="left:0;top:50%;transform:translateY(-60%);">
+                        <?php
+                        if ($paiement_unique && strpos($numero_recu, 'REG-') !== 0) {
+                            // Pour un paiement supplémentaire, calculer le reste après ce paiement
+                            $stmtTotalAvant = $pdo->prepare("
                             SELECT COALESCE(SUM(montant_paye), 0) 
                             FROM paiement_reglement 
                             WHERE id_reglement = ? AND date_paiement <= ? AND numero_recu <= ?
                         ");
-                        $stmtTotalAvant->execute([$id_reglement, $paiement_unique['date_paiement'], $paiement_unique['numero_recu']]);
-                        $totalPayeJusquaPaiement = floatval($stmtTotalAvant->fetchColumn()) + $total_paye_initial;
-                        $reste = max(0, $montant_total - $totalPayeJusquaPaiement);
-                        echo number_format($reste, 0, ',', ' ') . ' FCFA';
-                    } else {
-                        // Pour le règlement initial ou vue globale
-                        echo number_format($reste_a_payer, 0, ',', ' ') . ' FCFA';
-                    }
-                    ?>
+                            $stmtTotalAvant->execute([$id_reglement, $paiement_unique['date_paiement'], $paiement_unique['numero_recu']]);
+                            $totalPayeJusquaPaiement = floatval($stmtTotalAvant->fetchColumn()) + $total_paye_initial;
+                            $reste = max(0, $montant_total - $totalPayeJusquaPaiement);
+                            echo number_format($reste, 0, ',', ' ') . ' FCFA';
+                        } else {
+                            // Pour le règlement initial ou vue globale
+                            echo number_format($reste_a_payer, 0, ',', ' ') . ' FCFA';
+                        }
+                        ?>
+                    </span>
                 </span>
-            </span>
+            </div>
+        </div>
+        <div class="recu-form-signature" style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="recu-form-signature-block">
+                Signature et cachet
+                <div class="recu-form-signature-line"></div>
+            </div>
+            <div>
+                <div id="qrcode" class="qr-code-canvas"></div>
+            </div>
+        </div>
+        <div class="recu-form-footer">
+            <span style="font-family: 'Caveat', cursive; font-size: 18px; color: #1a237e;">imprimé via Check Master</span>
+        </div>
+        <div class="recu-form-mention">
+            N.B. : Aucun remboursement n'est possible après versement.
         </div>
     </div>
-    <div class="recu-form-signature">
-        <div class="recu-form-signature-block">
-            Signature et cachet
-            <div class="recu-form-signature-line"></div>
-        </div>
-    </div>
-    <div class="recu-form-footer">
-        <span style="font-family: 'Caveat', cursive; font-size: 18px; color: #1a237e;">Check Master<br>07 59 32 20 4</span>
-    </div>
-    <div class="recu-form-mention">
-        N.B. : Aucun remboursement n'est possible après versement.
-    </div>
-</div>
+
+    <script>
+        // Attendre que le DOM soit chargé
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM chargé, début de génération QR Code');
+
+            try {
+                // Vérifier si la bibliothèque QRCode est disponible
+                if (typeof QRCode === 'undefined') {
+                    console.error('Bibliothèque QRCode non chargée');
+                    document.getElementById('qrcode').innerHTML = 'QR Code indisponible';
+                    return;
+                }
+
+                // Vérifier si l'élément existe
+                var qrcodeElement = document.getElementById("qrcode");
+                if (!qrcodeElement) {
+                    console.error('Élément qrcode introuvable');
+                    return;
+                }
+
+                console.log('Élément qrcode trouvé:', qrcodeElement);
+
+                // Générer le QR Code avec les données du reçu
+                // var qrText = "<?php echo $_SERVER['HTTP_HOST']; ?>/GSCV+/public/verifier_recu.php?numero_recu=<?php echo urlencode($numero_recu); ?>&numero_reglement=<?php echo urlencode($numero_reglement); ?>&etudiant=<?php echo urlencode(trim($nom_complet)); ?>&montant=<?php echo urlencode(number_format($montant_affiche, 0, ',', ' ') . ' FCFA'); ?>&date=<?php echo urlencode(date('d/m/Y', strtotime($date_paiement))); ?>";
+                var qrText = "http://192.168.1.64:8000/GSCV+/public/verifier_recu.php?numero_recu=<?php echo urlencode($numero_recu); ?>&numero_reglement=<?php echo urlencode($numero_reglement); ?>&etudiant=<?php echo urlencode(trim($nom_complet)); ?>&montant=<?php echo urlencode(number_format($montant_affiche, 0, ',', ' ') . ' FCFA'); ?>&date=<?php echo urlencode(date('d/m/Y', strtotime($date_paiement))); ?>";
+
+                console.log('Texte QR Code:', qrText);
+
+                var qrcode = new QRCode(qrcodeElement, {
+                    text: qrText,
+                    width: 100,
+                    height: 100,
+                    colorDark: '#000000',
+                    colorLight: '#FFFFFF',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+
+                console.log('QR Code généré avec succès');
+
+                // Vérifier que le QR code a bien été généré
+                setTimeout(function() {
+                    if (qrcodeElement.innerHTML.trim() !== '') {
+                        console.log('QR Code visible dans le DOM');
+                        qrcodeElement.style.border = '2px solid green'; // Indicateur visuel
+                    } else {
+                        console.error('QR Code vide dans le DOM');
+                        qrcodeElement.innerHTML = 'Erreur: QR Code vide';
+                    }
+                }, 1000);
+
+            } catch (error) {
+                console.error('Erreur lors de la génération du QR Code:', error);
+                document.getElementById('qrcode').innerHTML = 'Erreur QR Code: ' + error.message;
+            }
+        });
+    </script>
 </body>
+
 </html>

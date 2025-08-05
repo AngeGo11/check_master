@@ -523,4 +523,251 @@ class EtudiantsController {
     public function rapportEnAttente($search_rapport = '', $statut = '', $date_rapport = '', $page = 1, $limit = 10){
         return $this->model->getRapportsEnAttente($search_rapport, $statut, $date_rapport, $page, $limit);
     }
+
+
+
+
+    /*=================================Étudiants à cheval=================================*/
+    
+    /**
+     * Récupère les données pour l'inscription à cheval
+     */
+    public function getInscriptionChevalData() {
+        try {
+            // Récupérer les étudiants autorisés seulement
+            $sql = "SELECT e.num_etd, e.nom_etd, e.prenom_etd, e.email_etd, e.id_niv_etd, e.id_promotion,
+                           ne.lib_niv_etd
+                    FROM etudiants e
+                    JOIN niveau_etude ne ON e.id_niv_etd = ne.id_niv_etd
+                    WHERE e.id_statut = 1
+                    AND EXISTS (
+                        SELECT 1 FROM evaluer_ecue ee 
+                        WHERE ee.num_etd = e.num_etd 
+                        AND ee.id_ac = (SELECT id_ac FROM annee_academique WHERE statut_annee = 'En cours' LIMIT 1)
+                    )
+                    ORDER BY e.nom_etd, e.prenom_etd";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            $etudiants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Récupérer les années académiques
+            $sql = "SELECT id_ac, CONCAT(YEAR(date_debut), '-', YEAR(date_fin)) as annee_ac 
+                    FROM annee_academique 
+                    ORDER BY date_debut DESC";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            $annees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Récupérer les promotions
+            $sql = "SELECT id_promotion, lib_promotion FROM promotion ORDER BY lib_promotion";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            $promotions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Récupérer les niveaux
+            $sql = "SELECT id_niv_etd, lib_niv_etd FROM niveau_etude ORDER BY lib_niv_etd";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            $niveaux = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return [
+                'etudiants' => $etudiants,
+                'annees' => $annees,
+                'promotions' => $promotions,
+                'niveaux' => $niveaux
+            ];
+        } catch (PDOException $e) {
+            error_log("Erreur récupération données inscription cheval: " . $e->getMessage());
+            return [
+                'etudiants' => [],
+                'annees' => [],
+                'promotions' => [],
+                'niveaux' => []
+            ];
+        }
+    }
+
+    /**
+     * Récupère les matières disponibles pour le rattrapage
+     */
+    public function getMatieresRattrapage($annee_id, $promotion_id, $etudiants_ids) {
+        try {
+            if (empty($etudiants_ids)) {
+                return ['success' => false, 'message' => 'Aucun étudiant sélectionné'];
+            }
+
+            // Récupérer les niveaux des étudiants sélectionnés
+            $placeholders = str_repeat('?,', count($etudiants_ids) - 1) . '?';
+            $sql = "SELECT DISTINCT e.id_niv_etd, ne.lib_niv_etd
+                    FROM etudiants e
+                    JOIN niveau_etude ne ON e.id_niv_etd = ne.id_niv_etd
+                    WHERE e.num_etd IN ($placeholders)";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($etudiants_ids);
+            $niveaux = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($niveaux)) {
+                return ['success' => false, 'message' => 'Aucun niveau trouvé pour les étudiants sélectionnés'];
+            }
+
+            // Récupérer les matières disponibles pour ces niveaux et l'année académique
+            $niveaux_ids = array_column($niveaux, 'id_niv_etd');
+            $placeholders = str_repeat('?,', count($niveaux_ids) - 1) . '?';
+            
+            $sql = "SELECT DISTINCT ec.id_ecue, ec.lib_ecue, ec.credit_ecue, ne.lib_niv_etd,
+                           COALESCE(ec.prix_matiere_cheval, 25000.00) as prix_matiere_cheval
+                    FROM ecue ec
+                    JOIN ue u ON ec.id_ue = u.id_ue
+                    JOIN niveau_etude ne ON u.id_niv_etd = ne.id_niv_etd
+                    WHERE u.id_niv_etd IN ($placeholders)";
+            
+            $params = $niveaux_ids;
+            
+            if ($annee_id) {
+                $sql .= " AND u.id_annee_academique = ?";
+                $params[] = $annee_id;
+            }
+            
+            $sql .= " ORDER BY ne.lib_niv_etd, ec.lib_ecue";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $matieres = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return [
+                'success' => true,
+                'matieres' => $matieres,
+                'niveaux' => $niveaux
+            ];
+        } catch (PDOException $e) {
+            error_log("Erreur récupération matières rattrapage: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Erreur lors de la récupération des matières'];
+        }
+    }
+
+    /**
+     * Inscrit plusieurs étudiants à cheval
+     */
+    public function inscrireEtudiantsCheval($data) {
+        try {
+            $this->pdo->beginTransaction();
+
+            $etudiants_ids = $data['selected_etudiants'] ?? [];
+            $matieres_ids = $data['selected_matieres'] ?? [];
+            $annee_id = $data['id_ac'] ?? '';
+            $promotion_principale = $data['promotion_principale'] ?? '';
+            $montant_inscription = $data['montant_inscription'] ?? 0;
+            $commentaire = $data['commentaire'] ?? '';
+
+            if (empty($etudiants_ids)) {
+                return ['success' => false, 'message' => 'Aucun étudiant sélectionné'];
+            }
+
+            if (empty($matieres_ids)) {
+                return ['success' => false, 'message' => 'Aucune matière sélectionnée'];
+            }
+
+            $success_count = 0;
+            $error_messages = [];
+
+            foreach ($etudiants_ids as $etudiant_id) {
+                try {
+                    // Vérifier si l'étudiant n'est pas déjà inscrit à cheval pour cette année
+                    if ($this->model->isEtudiantCheval($etudiant_id, $annee_id)) {
+                        $error_messages[] = "L'étudiant $etudiant_id est déjà inscrit à cheval pour cette année";
+                        continue;
+                    }
+
+                    // Inscrire l'étudiant à cheval
+                    $nombre_matieres = count($matieres_ids);
+                    $result = $this->model->inscrireEtudiantCheval(
+                        $etudiant_id,
+                        $annee_id,
+                        $promotion_principale,
+                        $nombre_matieres,
+                        $montant_inscription,
+                        $commentaire
+                    );
+
+                    if ($result) {
+                        // Ajouter les matières de rattrapage pour cet étudiant
+                        foreach ($matieres_ids as $matiere_id) {
+                            $this->model->ajouterMatiereRattrapage(
+                                $etudiant_id,
+                                $matiere_id,
+                                $annee_id,
+                                $promotion_principale,
+                                $promotion_principale
+                            );
+                        }
+                        $success_count++;
+                    } else {
+                        $error_messages[] = "Erreur lors de l'inscription de l'étudiant $etudiant_id";
+                    }
+                } catch (Exception $e) {
+                    $error_messages[] = "Erreur pour l'étudiant $etudiant_id: " . $e->getMessage();
+                }
+            }
+
+            if ($success_count > 0) {
+                $this->pdo->commit();
+                $message = "$success_count étudiant(s) inscrit(s) avec succès à cheval.";
+                if (!empty($error_messages)) {
+                    $message .= " Erreurs: " . implode(', ', $error_messages);
+                }
+                return ['success' => true, 'message' => $message];
+            } else {
+                $this->pdo->rollBack();
+                return ['success' => false, 'message' => 'Aucun étudiant n\'a pu être inscrit. ' . implode(', ', $error_messages)];
+            }
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            error_log("Erreur inscription multiple étudiants à cheval: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Erreur lors de l\'inscription: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Calcule les frais d'inscription à cheval avec les prix des matières
+     */
+    public function calculerFraisCheval($niveau_id, $annee_id, $matieres_ids = []) {
+        try {
+            // Récupérer les frais de base pour le niveau et l'année
+            $sql = "SELECT montant FROM frais_inscription 
+                    WHERE id_niv_etd = ? AND id_ac = ?";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$niveau_id, $annee_id]);
+            $frais_base = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $montant_base = $frais_base ? $frais_base['montant'] : 0;
+
+            // Calculer le total des prix des matières sélectionnées
+            $total_prix_matieres = 0;
+            if (!empty($matieres_ids)) {
+                $placeholders = str_repeat('?,', count($matieres_ids) - 1) . '?';
+                $sql = "SELECT SUM(COALESCE(prix_matiere_cheval, 25000.00)) as total_prix
+                        FROM ecue 
+                        WHERE id_ecue IN ($placeholders)";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($matieres_ids);
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                $total_prix_matieres = $result ? $result['total_prix'] : 0;
+            }
+
+            $total_frais = $montant_base + $total_prix_matieres;
+
+            return [
+                'success' => true,
+                'frais_base' => $montant_base,
+                'total_prix_matieres' => $total_prix_matieres,
+                'total_frais' => $total_frais
+            ];
+        } catch (PDOException $e) {
+            error_log("Erreur calcul frais cheval: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Erreur lors du calcul des frais'
+            ];
+        }
+    }
 } 

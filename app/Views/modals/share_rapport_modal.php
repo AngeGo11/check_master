@@ -11,7 +11,7 @@ $membresCommission = $enseignantsControllers->commissionMembers();
 
 ?>
 
-<div class="modal open" id="share-rapport-modal">
+<div class="modal" id="share-rapport-modal">
     <div class="modal-content share-modal">
         <div class="top-text">
             <h2 class="modal-title">Partager le rapport</h2>

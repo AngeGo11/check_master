@@ -1,10 +1,11 @@
 <?php
+require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../public/assets/traitements/messages_functions.php';
 require_once __DIR__ . '/../Controllers/MessageController.php';
 
 // Vérifier si l'utilisateur est connecté
 if (!isset($_SESSION['user_id'])) {
-    header('Location: ../authentication.php');
+    header('Location: ../pageConnexion.php');
     exit;
 }
 
@@ -14,10 +15,10 @@ $messageController = new MessageController($pdo);
 // Récupérer les données via le contrôleur
 $data = $messageController->index($_SESSION['user_id']);
 
-$messages = $data['messages'];
-$contacts = $data['contacts'];
-$messagesNonLus = $data['messagesNonLus'];
-$messagesArchives = $data['messagesArchives'];
+$messages = $data['messages'] ?? [];
+$contacts = $data['contacts'] ?? [];
+$messagesNonLus = $data['messagesNonLus'] ?? [];
+$messagesArchives = $data['messagesArchives'] ?? [];
 
 // ====== TRAITEMENT DES ACTIONS ======
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -178,6 +179,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transform: scale(1.05);
             box-shadow: 0 4px 15px rgba(26, 82, 118, 0.3);
         }
+
+        .message-info{
+            color: black;
+        }
+
+        input, textarea, select{
+            color: black;
+        }
     </style>
     <div class="section">
         <h2 style=" color: #154360;
@@ -189,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="action-card">
                 <i class="fas fa-inbox"></i>
                 <h3>Boîte de Réception</h3>
-                <p> <?= $messagesNonLus; ?> nouveau(x) message(s) non lu(s)</p>
+                <p> <?= count($messagesNonLus); ?> nouveau(x) message(s) non lu(s)</p>
                 <button onclick="openModal('inbox')">Voir Messages</button>
             </div>
             <div class="action-card">

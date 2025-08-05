@@ -1,12 +1,15 @@
 <?php
 require_once __DIR__ . '/../config/config.php'; // pour $pdo
 require_once __DIR__ . '/../Controllers/MenuController.php';
+require_once __DIR__ . '/../Controllers/MessageController.php';
 
 // Vérification de connexion et du type d'utilisateur
 if (!isset($_SESSION['user_id'])) {
     header('Location: /GSCV+/public/pageConnexion.php');
     exit();
 }
+
+$messageController = new MessageController($pdo);
 
 $profilePhoto = ''; // Image par défaut
 $sql = "SELECT 
@@ -22,7 +25,7 @@ $recupUser->execute([$_SESSION['user_id']]);
 $userData = $recupUser->fetch(PDO::FETCH_ASSOC);
 
 $_SESSION['photo_etd'] = $userData['photo_etd'];
-//$messagesNonLus = compterMessagesNonLus($_SESSION['user_id']);
+$messagesNonLus = $messageController->compterMessagesNonLus($_SESSION['user_id']);
 
 $page = isset($_GET['page']) ? basename($_GET['page']) : 'soutenances';
 
@@ -350,7 +353,7 @@ $menuController = new MenuController($pdo);
                 
                 <div class="notification">
                     <i class="fas fa-bell"></i>
-                    <span class="notification-badge">0</span>
+                    <span class="notification-badge"><?= $messagesNonLus; ?></span>
                 </div>
             </div>
 

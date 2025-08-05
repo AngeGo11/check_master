@@ -16,10 +16,11 @@ class Sauvegarde {
         $this->db = $db;
         $this->backupDir = __DIR__ . '/../../../storage/sauvegardes/';
         
-        // Créer le répertoire s'il n'existe pas
-        if (!is_dir($this->backupDir)) {
-            mkdir($this->backupDir, 0755, true);
-        }
+        
+    }
+
+    public function getDb() {
+        return $this->db;
     }
 
     public function getAllSauvegardes() {
@@ -56,8 +57,8 @@ class Sauvegarde {
             unlink($filepath);
             
             // Enregistrer dans la base de données
-            $sql = "INSERT INTO sauvegardes (nom_sauvegarde, description_sauvegarde, chemin_fichier, taille_fichier, date_creation, id_utilisateur_creation) 
-                    VALUES (?, ?, ?, ?, NOW(), ?)";
+            $sql = "INSERT INTO sauvegardes (nom_sauvegarde, description, nom_fichier, date_creation, taille_fichier) 
+                    VALUES (?, ?, ?, NOW(), ?)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 $nom,
@@ -173,8 +174,8 @@ class Sauvegarde {
         $stmt->execute([$backupId]);
         $backup = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if ($backup && file_exists($backup['chemin_fichier'])) {
-            return $backup['chemin_fichier'];
+        if ($backup && file_exists($backup['nom_fichier'])) {
+            return $backup['nom_fichier'];
         }
         
         return false;
@@ -358,7 +359,7 @@ class Sauvegarde {
         return false;
     }
 
-    private function restoreDatabaseFromFile($sqlFile, $overwrite = false) {
+    public function restoreDatabaseFromFile($sqlFile, $overwrite = false) {
         $sql = file_get_contents($sqlFile);
         $statements = explode(';', $sql);
         

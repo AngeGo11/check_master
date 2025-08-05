@@ -1006,3 +1006,446 @@
 .inactive-users-list li:not(.user-group-header):hover {
     background-color: #f9f9f9;
 }
+
+/* =================================
+   STYLES POUR LA MODALE AMÉLIORÉE
+   ================================= */
+
+/* Barre de recherche */
+#searchUsers {
+    transition: all 0.3s ease;
+}
+
+#searchUsers:focus {
+    box-shadow: 0 0 0 3px rgba(26, 82, 118, 0.1);
+}
+
+/* Boutons de filtre */
+.filter-btn {
+    padding: 8px 16px;
+    border: 1px solid #e0e0e0;
+    background: #ffffff;
+    color: #666;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filter-btn:hover {
+    background: #f8f9fa;
+    border-color: #1a5276;
+    color: #1a5276;
+}
+
+.filter-btn.active {
+    background: #1a5276;
+    color: white;
+    border-color: #1a5276;
+}
+
+.filter-btn.active:hover {
+    background: #154360;
+}
+
+/* Liste des utilisateurs */
+#usersList {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+#usersList::-webkit-scrollbar {
+    width: 6px;
+}
+
+#usersList::-webkit-scrollbar-track {
+    background: #f7fafc;
+    border-radius: 3px;
+}
+
+#usersList::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 3px;
+}
+
+#usersList::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+/* Éléments utilisateur */
+.user-item {
+    transition: all 0.2s ease;
+}
+
+.user-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(2px);
+}
+
+.user-item.hidden {
+    display: none;
+}
+
+/* Badges de type utilisateur */
+.user-type-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.user-type-badge.étudiant {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.user-type-badge.enseignant {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.user-type-badge.personnel-administratif {
+    background: #e8f5e8;
+    color: #388e3c;
+}
+
+.user-type-badge.autre {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+/* Pagination */
+#pagination {
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+}
+
+.pagination-btn {
+    padding: 6px 12px;
+    border: 1px solid #dee2e6;
+    background: #ffffff;
+    color: #6c757d;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #e9ecef;
+    border-color: #adb5bd;
+    color: #495057;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-btn.active {
+    background: #1a5276;
+    color: white;
+    border-color: #1a5276;
+}
+
+/* Checkbox personnalisée */
+.inactive-user-checkbox {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #d1d5db;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.inactive-user-checkbox:checked {
+    background: #1a5276;
+    border-color: #1a5276;
+}
+
+.inactive-user-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.inactive-user-checkbox:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(26, 82, 118, 0.1);
+}
+
+/* État vide */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Responsive pour la modale améliorée */
+@media (max-width: 768px) {
+    .filter-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+    
+    #usersList {
+        max-height: 200px;
+    }
+    
+    .user-item {
+        padding: 12px;
+    }
+    
+    .user-type-badge {
+        font-size: 0.7rem;
+        padding: 3px 6px;
+    }
+}
+
+/* =================================
+   STYLES AMÉLIORÉS POUR LA MODALE MODERNE
+   ================================= */
+
+/* Animations pour la modale */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes modalFadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+}
+
+/* Styles améliorés pour les filtres */
+.filter-btn {
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent;
+    background-color: #ffffff;
+    color: #374151;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.filter-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.filter-btn:hover::before {
+    left: 100%;
+}
+
+.filter-btn:hover {
+    background-color: #f8fafc;
+    border-color: #3b82f6;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.filter-btn.active {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: #ffffff;
+    border-color: #3b82f6;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -2px rgba(59, 130, 246, 0.2);
+}
+
+/* Styles améliorés pour les badges de type utilisateur */
+.user-type-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.user-type-badge::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.user-type-badge:hover::before {
+    left: 100%;
+}
+
+.user-type-badge.étudiant {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+}
+
+.user-type-badge.enseignant {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #d97706;
+    border: 1px solid #fbbf24;
+}
+
+.user-type-badge.personnel-administratif {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    color: #166534;
+    border: 1px solid #86efac;
+}
+
+.user-type-badge.autre {
+    background: linear-gradient(135deg, #f3e8ff, #e9d5ff);
+    color: #7c3aed;
+    border: 1px solid #c084fc;
+}
+
+/* Styles améliorés pour les checkboxes */
+.inactive-user-checkbox {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #d1d5db;
+    border-radius: 6px;
+    background-color: #ffffff;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.inactive-user-checkbox:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
+}
+
+.inactive-user-checkbox:checked {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border-color: #3b82f6;
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.inactive-user-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.inactive-user-checkbox:focus {
+    outline: none;
+    ring: 3px;
+    ring-color: rgba(59, 130, 246, 0.3);
+    ring-offset: 2px;
+}
+
+/* Styles améliorés pour l'état vide */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+    border-radius: 16px;
+    margin: 20px;
+}
+
+.empty-state i {
+    font-size: 64px;
+    background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.empty-state h3 {
+    color: #475569;
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.empty-state p {
+    color: #64748b;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+/* Responsive design amélioré */
+@media (max-width: 768px) {
+    .filter-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+    
+    .user-type-badge {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .pagination-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+    
+    #usersList {
+        max-height: 60vh;
+    }
+}

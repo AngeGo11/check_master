@@ -40,13 +40,19 @@ if ($ue !== '') {
 }
 $where_sql = count($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
 
-$having = '';
+$where_conditions = [];
 if ($statut !== '') {
     if (strtolower($statut) === 'validé') {
-        $having = 'HAVING moyenne_annuelle >= 10';
-    } elseif (strtolower($statut) === 'ajourné' || strtolower($statut) === 'non_valide') {
-        $having = 'HAVING moyenne_annuelle < 10';
+        $where_conditions[] = "mg.statut_academique = 'Validé'";
+    } elseif (strtolower($statut) === 'ajourné') {
+        $where_conditions[] = "mg.statut_academique = 'Ajourné'";
+    } elseif (strtolower($statut) === 'autorisé') {
+        $where_conditions[] = "mg.statut_academique = 'Autorisé'";
     }
+}
+
+if (!empty($where_conditions)) {
+    $where_sql .= (empty($where_sql) ? 'WHERE ' : ' AND ') . implode(' AND ', $where_conditions);
 }
 
 $subquery = "
@@ -55,11 +61,13 @@ $subquery = "
         e.num_carte_etd,
         e.nom_etd,
         e.prenom_etd,
-        ev.lib_ue,
         a.date_debut,
         a.date_fin,
         ne.lib_niv_etd AS niveau,
-        ROUND(AVG(ev.note), 2) AS moyenne_annuelle
+        mg.moyenne_generale AS moyenne_annuelle,
+        mg.statut_academique,
+        mg.total_credits_obtenus,
+        mg.total_credits_inscrits
     FROM etudiants e
             JOIN (
             -- Évaluations ECUE
@@ -89,6 +97,22 @@ $subquery = "
         ) ev ON e.num_etd = ev.num_etd
     JOIN annee_academique a ON a.id_ac = ev.id_ac
     JOIN niveau_etude ne ON ne.id_niv_etd = e.id_niv_etd
+    LEFT JOIN moyenne_generale mg ON e.num_etd = mg.num_etd 
+        AND mg.id_ac = a.id_ac
+        AND mg.id_semestre = (
+            SELECT s.id_semestre 
+            FROM semestre s 
+            WHERE s.id_niv_etd = e.id_niv_etd 
+            ORDER BY s.id_semestre DESC 
+            LIMIT 1
+        )
+    WHERE EXISTS (
+        SELECT 1 FROM (
+            SELECT CAST(num_etd AS UNSIGNED) as num_etd FROM evaluer_ecue WHERE id_ac = a.id_ac
+            UNION
+            SELECT CAST(num_etd AS UNSIGNED) as num_etd FROM evaluer_ue WHERE id_ac = a.id_ac
+        ) ev WHERE ev.num_etd = e.num_etd
+    )
     $where_sql
     GROUP BY e.num_etd
 ";
@@ -198,40 +222,24 @@ $total_pages = max(1, ceil($total_records / $limit));
                 $stmt->execute();
                 $totalEvalues = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-                // Requête pour les étudiants ayant validé (moyenne générale >= 10)
+                // Requête pour les étudiants ayant validé
                 $stmt = $pdo->prepare("
-                    SELECT COUNT(DISTINCT num_etd) as count 
-                    FROM (
-                        SELECT 
-                            num_etd,
-                            AVG(note) as moyenne_generale
-                        FROM (
-                            SELECT CAST(num_etd AS UNSIGNED) as num_etd, note FROM evaluer_ue
-                            UNION ALL
-                            SELECT CAST(num_etd AS UNSIGNED) as num_etd, note FROM evaluer_ecue
-                        ) as all_notes
-                        GROUP BY num_etd
-                        HAVING moyenne_generale >= 10
-                    ) as validated_students
+                    SELECT COUNT(*) as count 
+                    FROM moyenne_generale mg
+                    JOIN annee_academique a ON mg.id_ac = a.id_ac
+                    WHERE a.statut_annee = 'En cours' 
+                    AND mg.statut_academique = 'Validé'
                 ");
                 $stmt->execute();
                 $valides = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-                // Requête pour les étudiants n'ayant pas validé (moyenne générale < 10)
+                // Requête pour les étudiants ajournés
                 $stmt = $pdo->prepare("
-                    SELECT COUNT(DISTINCT num_etd) as count 
-                    FROM (
-                        SELECT 
-                            num_etd,
-                            AVG(note) as moyenne_generale
-                        FROM (
-                            SELECT CAST(num_etd AS UNSIGNED) as num_etd, note FROM evaluer_ue
-                            UNION ALL
-                            SELECT CAST(num_etd AS UNSIGNED) as num_etd, note FROM evaluer_ecue
-                        ) as all_notes
-                        GROUP BY num_etd
-                        HAVING moyenne_generale < 10
-                    ) as non_validated_students
+                    SELECT COUNT(*) as count 
+                    FROM moyenne_generale mg
+                    JOIN annee_academique a ON mg.id_ac = a.id_ac
+                    WHERE a.statut_annee = 'En cours' 
+                    AND mg.statut_academique = 'Ajourné'
                 ");
                 $stmt->execute();
                 $nonValides = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
@@ -344,6 +352,7 @@ $total_pages = max(1, ceil($total_records / $limit));
                                         class="block w-full px-4 py-3 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white transition-all duration-200">
                                     <option value="">Tous les statuts</option>
                                     <option value="Validé" <?php echo $statut === 'Validé' ? 'selected' : ''; ?>>Validé</option>
+                                    <option value="Autorisé" <?php echo $statut === 'Autorisé' ? 'selected' : ''; ?>>Autorisé</option>
                                     <option value="Ajourné" <?php echo $statut === 'Ajourné' ? 'selected' : ''; ?>>Ajourné</option>
                                 </select>
                             </div>
@@ -357,6 +366,9 @@ $total_pages = max(1, ceil($total_records / $limit));
                     
                     <!-- Action Buttons -->
                     <div class="flex flex-col sm:flex-row gap-3">
+                        <button id="recalculer-moyennes" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:shadow-lg transform hover:-translate-y-1">
+                            <i class="fas fa-calculator mr-2"></i>Recalculer moyennes
+                        </button>
                         <button id="bulk-delete-btn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:shadow-lg transform hover:-translate-y-1">
                             <i class="fas fa-trash mr-2"></i>Supprimer sélection
                         </button>
@@ -404,7 +416,7 @@ $total_pages = max(1, ceil($total_records / $limit));
                                     exit;
                                 }
 
-                                $sql = "$subquery $having ORDER BY nom_etd, prenom_etd LIMIT $limit OFFSET $offset";
+                                $sql = "$subquery ORDER BY nom_etd, prenom_etd LIMIT $limit OFFSET $offset";
                                 $stmt = $pdo->prepare($sql);
                                 $stmt->execute($params);
                                 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -414,9 +426,32 @@ $total_pages = max(1, ceil($total_records / $limit));
                                 } else {
                                     foreach ($rows as $row) {
                                         $promotion = date('Y', strtotime($row['date_debut'])) . '-' . date('Y', strtotime($row['date_fin']));
-                                        $statutClass = $row['moyenne_annuelle'] >= 10 ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100';
-                                        $statutText = $row['moyenne_annuelle'] >= 10 ? 'Validé' : 'Ajourné';
-                                        $statutIcon = $row['moyenne_annuelle'] >= 10 ? 'fa-check-circle' : 'fa-times-circle';
+                                        // Déterminer le statut selon la table moyenne_generale
+                                        $statut_academique = $row['statut_academique'] ?? 'Non évalué';
+                                        $moyenne_annuelle = $row['moyenne_annuelle'] ?? 0;
+                                        
+                                        switch ($statut_academique) {
+                                            case 'Validé':
+                                                $statutClass = 'text-green-600 bg-green-100';
+                                                $statutText = 'Validé';
+                                                $statutIcon = 'fa-check-circle';
+                                                break;
+                                            case 'Autorisé':
+                                                $statutClass = 'text-blue-600 bg-blue-100';
+                                                $statutText = 'Autorisé';
+                                                $statutIcon = 'fa-user-check';
+                                                break;
+                                            case 'Ajourné':
+                                                $statutClass = 'text-red-600 bg-red-100';
+                                                $statutText = 'Ajourné';
+                                                $statutIcon = 'fa-times-circle';
+                                                break;
+                                            default:
+                                                $statutClass = 'text-gray-600 bg-gray-100';
+                                                $statutText = 'Non évalué';
+                                                $statutIcon = 'fa-question-circle';
+                                                break;
+                                        }
 
                                         // Récupérer les moyennes des deux semestres pour cet étudiant
                                         $sql_semestres = "
@@ -433,12 +468,15 @@ $total_pages = max(1, ceil($total_records / $limit));
                                                     FROM evaluer_ue
                                                 ) ev
                                                 INNER JOIN semestre s ON s.id_semestre = ev.id_semestre
-                                                WHERE ev.num_etd = :num_etd
+                                                WHERE ev.num_etd = :num_etd AND ev.id_ac = :id_ac
                                                 GROUP BY s.id_semestre, s.lib_semestre
                                                 ORDER BY s.id_semestre ASC
                                             ";
                                         $stmt_sem = $pdo->prepare($sql_semestres);
-                                        $stmt_sem->execute(['num_etd' => $row['num_etd']]);
+                                        $stmt_sem->execute([
+                                            'num_etd' => $row['num_etd'],
+                                            'id_ac' => $pdo->query("SELECT id_ac FROM annee_academique WHERE statut_annee = 'En cours' LIMIT 1")->fetchColumn()
+                                        ]);
                                         $moyennes = $stmt_sem->fetchAll(PDO::FETCH_ASSOC);
                                         $moyenne_semestre1 = isset($moyennes[0]['moyenne_semestre']) ? number_format($moyennes[0]['moyenne_semestre'], 2) : '-';
                                         $moyenne_semestre2 = isset($moyennes[1]['moyenne_semestre']) ? number_format($moyennes[1]['moyenne_semestre'], 2) : '-';
@@ -453,7 +491,7 @@ $total_pages = max(1, ceil($total_records / $limit));
                                             <td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . $promotion . "</td>
                                             <td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium'>" . $moyenne_semestre1 . "</td>
                                             <td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium'>" . $moyenne_semestre2 . "</td>
-                                            <td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold'>" . number_format($row['moyenne_annuelle'], 2) . "</td>
+                                            <td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold'>" . number_format($moyenne_annuelle, 2) . "</td>
                                             <td class='px-6 py-4 whitespace-nowrap'>
                                                 <span class='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium $statutClass'>
                                                     <i class='fas $statutIcon mr-1'></i>$statutText
@@ -536,84 +574,148 @@ $total_pages = max(1, ceil($total_records / $limit));
     </div>
 
     <!-- Modern Evaluation Modal -->
-    <div class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50" id="eval-modal">
-        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-screen overflow-y-auto">
-            <div class="flex justify-between items-center p-6 border-b border-gray-200">
-                <h2 class="text-xl font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-chart-line mr-3 text-primary"></i>
-                    Nouvelle Évaluation
-                </h2>
-                <button id="close-modal-eval-btn" class="text-gray-400 hover:text-gray-600 text-xl">
+    <div class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm hidden items-center justify-center z-50" id="eval-modal">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full mx-4 max-h-[90vh] overflow-hidden">
+            <!-- Header -->
+            <div class="flex justify-between items-center p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-chart-line text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Nouvelle Évaluation</h2>
+                        <p class="text-sm text-gray-600">Saisie des notes et calcul des moyennes</p>
+                    </div>
+                </div>
+                <button id="close-modal-eval-btn" class="w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all duration-200">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             
-            <form id="eval-form" action="assets/traitements/enregistrer_evaluation.php" method="POST" class="p-6">
+            <form id="eval-form" action="assets/traitements/enregistrer_evaluation.php" method="POST" class="p-8 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <!-- Progress Indicator -->
+                <div class="mb-8">
+                    <div class="flex items-center justify-center space-x-4">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-bold" id="step-1">1</div>
+                            <span class="ml-2 text-sm font-medium text-gray-900">Informations Étudiant</span>
+                        </div>
+                        <div class="w-12 h-0.5 bg-gray-300"></div>
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-white text-sm font-bold" id="step-2">2</div>
+                            <span class="ml-2 text-sm font-medium text-gray-500">Sélection Semestre</span>
+                        </div>
+                        <div class="w-12 h-0.5 bg-gray-300"></div>
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-white text-sm font-bold" id="step-3">3</div>
+                            <span class="ml-2 text-sm font-medium text-gray-500">Saisie Notes</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Student Info Section -->
-                <div class="mb-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Informations Étudiant</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="numero" class="block text-sm font-medium text-gray-700 mb-2">N° carte étudiant</label>
-                            <input type="text" id="numero" name="numero" placeholder="Saisissez le numéro..."
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                        </div>
-                        <div>
-                            <label for="nom" class="block text-sm font-medium text-gray-700 mb-2">Nom</label>
-                            <input type="text" id="nom" name="nom" placeholder="Saisissez le nom..." readonly
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
-                        </div>
-                        <div>
-                            <label for="prenom" class="block text-sm font-medium text-gray-700 mb-2">Prénom</label>
-                            <input type="text" id="prenom" name="prenom" placeholder="Saisissez le prénom..." readonly
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
-                        </div>
-                        <div>
-                            <label for="promotion" class="block text-sm font-medium text-gray-700 mb-2">Promotion</label>
-                            <input type="text" id="promotion" name="promotion" placeholder="Saisissez la promotion" readonly
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
+                <div class="mb-8" id="step-1-content">
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-6">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                            <i class="fas fa-user-graduate mr-3 text-primary"></i>
+                            Informations Étudiant
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="relative">
+                                <label for="numero" class="block text-sm font-semibold text-gray-700 mb-3">N° carte étudiant *</label>
+                                <div class="relative">
+                                    <input type="text" id="numero" name="numero" placeholder="Ex: 2024-001"
+                                           class="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 text-lg">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                        <i class="fas fa-search text-gray-400"></i>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-2">Saisissez le numéro de carte pour rechercher l'étudiant</p>
+                            </div>
+                            <div>
+                                <label for="nom" class="block text-sm font-semibold text-gray-700 mb-3">Nom</label>
+                                <input type="text" id="nom" name="nom" placeholder="Nom de l'étudiant" readonly
+                                       class="w-full px-4 py-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-lg">
+                            </div>
+                            <div>
+                                <label for="prenom" class="block text-sm font-semibold text-gray-700 mb-3">Prénom</label>
+                                <input type="text" id="prenom" name="prenom" placeholder="Prénom de l'étudiant" readonly
+                                       class="w-full px-4 py-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-lg">
+                            </div>
+                            <div>
+                                <label for="promotion" class="block text-sm font-semibold text-gray-700 mb-3">Promotion</label>
+                                <input type="text" id="promotion" name="promotion" placeholder="Promotion" readonly
+                                       class="w-full px-4 py-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-lg">
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Semester Section -->
-                <div class="mb-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Sélection du semestre</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="niveau" class="block text-sm font-medium text-gray-700 mb-2">Niveau</label>
-                            <input type="text" id="niveau" name="niveau" placeholder="Saisissez le niveau..." readonly
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
-                        </div>
-                        <div>
-                            <label for="semestre" class="block text-sm font-medium text-gray-700 mb-2">Semestre</label>
-                            <select id="semestre" name="semestre" 
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                                <option value="">Sélectionnez un semestre...</option>
-                            </select>
+                <div class="mb-8" id="step-2-content" style="display: none;">
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 mb-6">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                            <i class="fas fa-calendar-alt mr-3 text-green-600"></i>
+                            Sélection du Semestre
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="niveau" class="block text-sm font-semibold text-gray-700 mb-3">Niveau</label>
+                                <input type="text" id="niveau" name="niveau" placeholder="Niveau de l'étudiant" readonly
+                                       class="w-full px-4 py-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-lg">
+                            </div>
+                            <div>
+                                <label for="semestre" class="block text-sm font-semibold text-gray-700 mb-3">Semestre *</label>
+                                <select id="semestre" name="semestre" 
+                                        class="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 text-lg appearance-none bg-white">
+                                    <option value="">Sélectionnez un semestre...</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-chevron-down text-gray-400"></i>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Notes Section -->
-                <div class="mb-6" id="notes-container" style="display: none;">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Notes par matière</h3>
-                    <div id="notes-list" class="space-y-4">
-                        <!-- Notes will be added dynamically -->
+                <div class="mb-8" id="step-3-content" style="display: none;">
+                    <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 mb-6">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                            <i class="fas fa-edit mr-3 text-purple-600"></i>
+                            Saisie des Notes
+                        </h3>
+                        <div id="notes-list" class="space-y-6">
+                            <!-- Notes will be added dynamically -->
+                        </div>
                     </div>
                 </div>
 
                 <!-- Average Section -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6" id="semester-average-section" style="display: none;">
-                    <h4 class="text-lg font-medium text-gray-900 mb-2 text-center">Moyenne Semestrielle</h4>
-                    <div class="text-3xl font-bold text-center text-primary" id="semester-average">0.00</div>
+                <div class="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl p-6 mb-8" id="semester-average-section" style="display: none;">
+                    <div class="text-center">
+                        <h4 class="text-xl font-semibold text-gray-900 mb-4 flex items-center justify-center">
+                            <i class="fas fa-calculator mr-3 text-orange-600"></i>
+                            Moyenne Semestrielle
+                        </h4>
+                        <div class="text-4xl font-bold text-primary mb-2" id="semester-average">0.00</div>
+                        <p class="text-sm text-gray-600">Moyenne calculée automatiquement</p>
+                    </div>
                 </div>
 
-                <!-- Submit Button -->
-                <div class="flex justify-end">
-                    <button type="submit" class="bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-lg font-medium transition-all duration-200 hover:shadow-lg transform hover:-translate-y-1">
-                        <i class="fas fa-save mr-2"></i>Enregistrer l'évaluation
+                <!-- Action Buttons -->
+                <div class="flex justify-between items-center pt-6 border-t border-gray-200">
+                    <button type="button" id="prev-step" class="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-medium transition-all duration-200 hover:bg-gray-50 hover:border-gray-400" style="display: none;">
+                        <i class="fas fa-arrow-left mr-2"></i>Précédent
                     </button>
+                    <div class="flex space-x-4">
+                        <button type="button" id="next-step" class="px-8 py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg transform hover:-translate-y-1">
+                            Suivant<i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                        <button type="submit" id="submit-eval" class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg transform hover:-translate-y-1" style="display: none;">
+                            <i class="fas fa-save mr-2"></i>Enregistrer l'évaluation
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -1475,6 +1577,186 @@ $total_pages = max(1, ceil($total_records / $limit));
                     }
                 }
             });
+
+            // Handle recalcul des moyennes
+            const recalculerBtn = document.getElementById('recalculer-moyennes');
+            if (recalculerBtn) {
+                recalculerBtn.addEventListener('click', async function() {
+                    if (confirm('Voulez-vous recalculer toutes les moyennes générales ? Cette opération peut prendre quelques minutes.')) {
+                        try {
+                            recalculerBtn.disabled = true;
+                            recalculerBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Calcul en cours...';
+                            
+                            const response = await fetch('assets/traitements/recalculer_moyennes.php', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                }
+                            });
+                            
+                            const result = await response.json();
+                            
+                            if (result.success) {
+                                showNotification(`Moyennes recalculées avec succès ! ${result.success_count} étudiants traités.`, 'success');
+                                // Recharger la page pour afficher les nouvelles moyennes
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 2000);
+                            } else {
+                                showNotification('Erreur lors du recalcul : ' + (result.message || 'Erreur inconnue'), 'error');
+                            }
+                        } catch (error) {
+                            showNotification('Erreur de connexion lors du recalcul', 'error');
+                        } finally {
+                            recalculerBtn.disabled = false;
+                            recalculerBtn.innerHTML = '<i class="fas fa-calculator mr-2"></i>Recalculer moyennes';
+                        }
+                    }
+                });
+            }
+
+            // ===== GESTION DES ÉTAPES DE LA MODALE D'ÉVALUATION =====
+            let currentStep = 1;
+            const totalSteps = 3;
+
+            // Fonction pour mettre à jour l'indicateur de progression
+            function updateProgressIndicator() {
+                for (let i = 1; i <= totalSteps; i++) {
+                    const stepElement = document.getElementById(`step-${i}`);
+                    const stepText = stepElement.nextElementSibling;
+                    
+                    if (i < currentStep) {
+                        // Étapes complétées
+                        stepElement.className = 'w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold';
+                        stepElement.innerHTML = '<i class="fas fa-check"></i>';
+                        if (stepText) stepText.className = 'ml-2 text-sm font-medium text-green-600';
+                    } else if (i === currentStep) {
+                        // Étape actuelle
+                        stepElement.className = 'w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-bold';
+                        stepElement.innerHTML = i;
+                        if (stepText) stepText.className = 'ml-2 text-sm font-medium text-gray-900';
+                    } else {
+                        // Étapes à venir
+                        stepElement.className = 'w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-white text-sm font-bold';
+                        stepElement.innerHTML = i;
+                        if (stepText) stepText.className = 'ml-2 text-sm font-medium text-gray-500';
+                    }
+                }
+            }
+
+            // Fonction pour afficher/masquer les étapes
+            function showStep(stepNumber) {
+                // Masquer toutes les étapes
+                for (let i = 1; i <= totalSteps; i++) {
+                    const stepContent = document.getElementById(`step-${i}-content`);
+                    if (stepContent) stepContent.style.display = 'none';
+                }
+                
+                // Afficher l'étape actuelle
+                const currentStepContent = document.getElementById(`step-${stepNumber}-content`);
+                if (currentStepContent) currentStepContent.style.display = 'block';
+                
+                // Gérer les boutons
+                const prevBtn = document.getElementById('prev-step');
+                const nextBtn = document.getElementById('next-step');
+                const submitBtn = document.getElementById('submit-eval');
+                
+                if (prevBtn) prevBtn.style.display = stepNumber > 1 ? 'block' : 'none';
+                if (nextBtn) nextBtn.style.display = stepNumber < totalSteps ? 'block' : 'none';
+                if (submitBtn) submitBtn.style.display = stepNumber === totalSteps ? 'block' : 'none';
+                
+                updateProgressIndicator();
+            }
+
+            // Gestionnaire pour le bouton "Suivant"
+            const nextStepBtn = document.getElementById('next-step');
+            if (nextStepBtn) {
+                nextStepBtn.addEventListener('click', function() {
+                    if (currentStep === 1) {
+                        // Validation de l'étape 1 : vérifier que l'étudiant est sélectionné
+                        const numero = document.getElementById('numero').value.trim();
+                        if (!numero) {
+                            showNotification('Veuillez saisir le numéro de carte de l\'étudiant', 'error');
+                            return;
+                        }
+                        // Ici on pourrait ajouter une validation AJAX pour vérifier que l'étudiant existe
+                    } else if (currentStep === 2) {
+                        // Validation de l'étape 2 : vérifier que le semestre est sélectionné
+                        const semestre = document.getElementById('semestre').value;
+                        if (!semestre) {
+                            showNotification('Veuillez sélectionner un semestre', 'error');
+                            return;
+                        }
+                    }
+                    
+                    if (currentStep < totalSteps) {
+                        currentStep++;
+                        showStep(currentStep);
+                    }
+                });
+            }
+
+            // Gestionnaire pour le bouton "Précédent"
+            const prevStepBtn = document.getElementById('prev-step');
+            if (prevStepBtn) {
+                prevStepBtn.addEventListener('click', function() {
+                    if (currentStep > 1) {
+                        currentStep--;
+                        showStep(currentStep);
+                    }
+                });
+            }
+
+            // Réinitialiser les étapes lors de l'ouverture de la modale
+            const evalModalSteps = document.getElementById('eval-modal');
+            if (evalModalSteps) {
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                            if (evalModalSteps.classList.contains('flex')) {
+                                // Modale ouverte, réinitialiser les étapes
+                                currentStep = 1;
+                                showStep(1);
+                                
+                                // Réinitialiser les champs
+                                document.getElementById('numero').value = '';
+                                document.getElementById('nom').value = '';
+                                document.getElementById('prenom').value = '';
+                                document.getElementById('promotion').value = '';
+                                document.getElementById('niveau').value = '';
+                                document.getElementById('semestre').innerHTML = '<option value="">Sélectionnez un semestre...</option>';
+                                document.getElementById('notes-list').innerHTML = '';
+                                document.getElementById('semester-average-section').style.display = 'none';
+                            }
+                        }
+                    });
+                });
+                
+                observer.observe(evalModalSteps, { attributes: true });
+            }
+
+            // Amélioration de la recherche d'étudiant avec autocomplétion
+            const numeroInputSteps = document.getElementById('numero');
+            if (numeroInputSteps) {
+                let searchTimeout;
+                
+                numeroInputSteps.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    const numero = this.value.trim();
+                    
+                    if (numero.length >= 3) {
+                        searchTimeout = setTimeout(() => {
+                            // Simuler une recherche AJAX (à implémenter selon vos besoins)
+                            // Pour l'instant, on utilise la logique existante
+                            if (numero) {
+                                // Déclencher la recherche d'étudiant
+                                const event = new Event('blur');
+                                numeroInputSteps.dispatchEvent(event);
+                            }
+                        }, 500);
+                    }
+                });
+            }
         });
     </script>
 </body>

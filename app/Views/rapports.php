@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 <!-- Styles CSS -->
 <link rel="stylesheet" href="/GSCV+/public/assets/css/rapports.css?v=<?php echo time(); ?>">
 <style>
-     .action-grid {
+    .action-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: 2rem;
@@ -144,6 +144,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         transform: scale(1.05);
         box-shadow: 0 4px 15px rgba(26, 82, 118, 0.3);
     }
+
+    #left-col i {
+        color: #1a5276;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+
+    }
 </style>
 
 <!-- Section principale de gestion des rapports -->
@@ -159,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <i class="fas fa-file-pen"></i>
             <h3>Création du rapport</h3>
             <p>Saisissez votre rapport</p>
-            <button id="new-report" class="write-btn<?php echo $hasExistingReport ? ' btn-desactive' : ''; ?>">
+            <button onclick="window.open('?page=redaction_rapport')" class="write-btn<?php echo ($hasExistingReport || $eligibility_status !== 'Éligible') ? ' btn-desactive' : ''; ?>">
                 Nouveau rapport
             </button>
         </div>
@@ -168,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <i class="fas fa-clipboard-list"></i>
             <h3>Statut du Dépôt</h3>
             <p>Consultez l'état de votre dernier dépôt</p>
-            <button id="check-status-report" class="write-btn btn-desactive">
+            <button id="check-status-report" class="write-btn<?php echo !$hasExistingReport ? ' btn-desactive' : ''; ?>">
                 Vérifier
             </button>
         </div>
@@ -184,131 +194,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     </div>
 </div>
 
-<!-- Modal pour les informations du rapport -->
-<div class="modal" id="info-report-modal">
-    <div class="modal-content">
-        <div class="top-text">
-            <h2 class="modal-title">Informations du rapport</h2>
-            <a href="#" class="close" id="close-modal-info-report-btn">
-                <i class="fa fa-xmark fa-2x"></i>
-            </a>
-        </div>
 
-        <form action="" method="POST" id="info-report-form" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="theme_report">Thème du mémoire :</label>
-                <input type="text" id="theme_report" name="theme_report"
-                    placeholder="Entrer le thème de votre mémoire ici..." required>
-            </div>
 
-            <div class="form-group">
-                <label for="name_report">Nom du rapport :</label>
-                <input type="text" id="name_report" name="name_report"
-                    value="<?php echo $name_report; ?>" disabled>
-            </div>
+<style>
+    /* Styles pour les boutons au survol */
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
+    }
 
-            <button type="submit" id="create-report-btn" class="submit-btn">
-                Passer à la création du rapport
-            </button>
-        </form>
-    </div>
-</div>
+    #editor-toolbar button:hover {
+        background: white !important;
+        transform: translateY(-1px);
+    }
 
-<!-- Modal pour la rédaction du rapport -->
-<div class="modal" id="create-report-modal">
-    <div class="modal-content">
-        <div class="top-text">
-            <h2 class="modal-title">Création de votre rapport</h2>
-            <a href="#" class="close" id="close-modal-create-report-btn">
-                <i class="fa fa-xmark fa-2x"></i>
-            </a>
-        </div>
+    /* Styles pour les champs de saisie au focus */
+    input:focus,
+    select:focus {
+        border-color: #1a5276 !important;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(26, 82, 118, 0.1) !important;
+    }
 
-        <!-- Interface OnlyOffice -->
-        <div class="container">
-            <div class="action-card">
-                <h3>Saisir votre rapport</h3>
-                <p>Utilisez l'éditeur OnlyOffice pour créer votre rapport avec la mise en forme exacte du modèle.</p>
+    /* Animation pour l'affichage de l'éditeur */
+    #local-editor-wrapper.show {
+        display: flex !important;
+        animation: fadeInEditor 0.5s ease-in-out;
+    }
 
-                <div style="display:flex;gap:8px;margin-bottom:16px;flex-direction:column">
-                    <div class="model-selection">
-                        <label for="model-select">Choisir un modèle :</label>
-                        <select id="model-select">
-                            <option value="">-- Sélectionner un modèle --</option>
-                            <option value="modele_rapport_de_stage.docx">Modèle 1 : Rapport de stage standard</option>
-                            <option value="template_rapport.html">Modèle 2 : Rapport académique complet</option>
-                        </select>
-                    </div>
-                    <div class="buttons-container" style="display: flex; justify-content:space-between; width:100%">
-                        <button id="load-template" class="button primary">Charger le modèle</button>
-                        <button id="download-pdf" class="button secondary">Exporter .pdf</button>
-                        <button id="save-report-onlyoffice" class="button secondary">Déposer le rapport</button>
-                    </div>
-                </div>
+    @keyframes fadeInEditor {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
 
-                <!-- Conteneur OnlyOffice -->
-                <div id="onlyoffice-container" style="width: 100%; height: 600px; border: 1px solid #ccc; display: none;">
-                    <div id="placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f5f5f5;">
-                        <div style="text-align: center;">
-                            <i class="fas fa-file-word" style="font-size: 48px; color: #0078d4; margin-bottom: 16px;"></i>
-                            <p>Cliquez sur "Charger le modèle" pour commencer l'édition</p>
-                        </div>
-                    </div>
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 
-                    <!-- Éditeur local -->
-                    <div id="local-editor-wrapper" style="display: none; width: 100%; height: 100%; flex-direction: column; background: white; border-radius: 8px; overflow: hidden;">
-                        <!-- Barre d'outils -->
-                        <div id="editor-toolbar" style="padding: 10px; background: #f8f9fa; border-bottom: 1px solid #dee2e6; display: flex; flex-wrap: wrap; gap: 5px; align-items: center;">
-                            <button onclick="document.execCommand('bold', false, null)" style="padding: 6px 12px; border: 1px solid #dee2e6; background: white; cursor: pointer; border-radius: 4px; font-size: 12px;">
-                                <i class="fas fa-bold"></i> Gras
-                            </button>
-                            <button onclick="document.execCommand('italic', false, null)" style="padding: 6px 12px; border: 1px solid #dee2e6; background: white; cursor: pointer; border-radius: 4px; font-size: 12px;">
-                                <i class="fas fa-italic"></i> Italique
-                            </button>
-                            <button onclick="document.execCommand('underline', false, null)" style="padding: 6px 12px; border: 1px solid #dee2e6; background: white; cursor: pointer; border-radius: 4px; font-size: 12px;">
-                                <i class="fas fa-underline"></i> Souligné
-                            </button>
-                            <span style="color: #ccc; margin: 0 5px;">|</span>
-                            <button onclick="document.execCommand('formatBlock', false, 'h1')" style="padding: 6px 12px; border: 1px solid #dee2e6; background: white; cursor: pointer; border-radius: 4px; font-size: 12px;">
-                                <i class="fas fa-heading"></i> Titre 1
-                            </button>
-                            <button onclick="document.execCommand('formatBlock', false, 'h2')" style="padding: 6px 12px; border: 1px solid #dee2e6; background: white; cursor: pointer; border-radius: 4px; font-size: 12px;">
-                                <i class="fas fa-heading"></i> Titre 2
-                            </button>
-                            <button onclick="document.execCommand('formatBlock', false, 'h3')" style="padding: 6px 12px; border: 1px solid #dee2e6; background: white; cursor: pointer; border-radius: 4px; font-size: 12px;">
-                                <i class="fas fa-heading"></i> Titre 3
-                            </button>
-                            <span style="color: #ccc; margin: 0 5px;">|</span>
-                            <button onclick="document.execCommand('insertUnorderedList', false, null)" style="padding: 6px 12px; border: 1px solid #dee2e6; background: white; cursor: pointer; border-radius: 4px; font-size: 12px;">
-                                <i class="fas fa-list-ul"></i> Liste à puces
-                            </button>
-                            <button onclick="document.execCommand('insertOrderedList', false, null)" style="padding: 6px 12px; border: 1px solid #dee2e6; background: white; cursor: pointer; border-radius: 4px; font-size: 12px;">
-                                <i class="fas fa-list-ol"></i> Liste numérotée
-                            </button>
-                            <span style="color: #ccc; margin: 0 5px;">|</span>
-                            <button onclick="document.execCommand('justifyLeft', false, null)" style="padding: 6px 12px; border: 1px solid #dee2e6; background: white; cursor: pointer; border-radius: 4px; font-size: 12px;">
-                                <i class="fas fa-align-left"></i> Align. Gauche
-                            </button>
-                            <button onclick="document.execCommand('justifyCenter', false, null)" style="padding: 6px 12px; border: 1px solid #dee2e6; background: white; cursor: pointer; border-radius: 4px; font-size: 12px;">
-                                <i class="fas fa-align-center"></i> Align. Centre
-                            </button>
-                            <button onclick="document.execCommand('justifyRight', false, null)" style="padding: 6px 12px; border: 1px solid #dee2e6; background: white; cursor: pointer; border-radius: 4px; font-size: 12px;">
-                                <i class="fas fa-align-right"></i> Align. Droite
-                            </button>
-                        </div>
+    /* Responsive design pour la modal */
+    @media (max-width: 1200px) {
+        .modal-content {
+            width: 98% !important;
+        }
 
-                        <!-- Zone d'édition -->
-                        <div id="local-editor" contenteditable="true" style="flex: 1; padding: 20px; border: none; outline: none; font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.6; overflow-y: auto; background: white;">
-                            <p>Commencez à rédiger votre rapport...</p>
-                        </div>
-                    </div>
-                </div>
+        #left-col {
+            flex: 0 0 300px !important;
+        }
+    }
 
-                <div id="status"></div>
-            </div>
-        </div>
-    </div>
-</div>
+    @media (max-width: 768px) {
+      
+        #left-col {
+            flex: none !important;
+            max-height: none !important;
+            margin-bottom: 20px;
+        }
+
+        #editor-toolbar {
+            padding: 12px !important;
+        }
+
+        #editor-toolbar button {
+            font-size: 11px !important;
+            padding: 6px 8px !important;
+        }
+    }
+
+    /* Style pour le statut */
+    #status.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    #status.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    #status.info {
+        background: #cce7ff;
+        color: #004085;
+        border: 1px solid #b3d7ff;
+    }
+</style>
 
 <!-- Modal pour les commentaires du rapport -->
 <div class="modal" id="comments-modal">
@@ -490,5 +463,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 <script src="https://unpkg.com/mammoth@1.4.21/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-<script>window.hasExistingReport = <?php echo $hasExistingReport ? 'true' : 'false'; ?>;</script>
+<script>
+    window.hasExistingReport = <?php echo $hasExistingReport ? 'true' : 'false'; ?>;
+    window.reportStatus = <?php echo json_encode($rapport_status); ?>;
+    window.eligibilityStatus = <?php echo json_encode($eligibility_status); ?>;
+    
+    // Debug
+    console.log('Debug - Variables de rapport:', {
+        hasExistingReport: window.hasExistingReport,
+        reportStatus: window.reportStatus,
+        eligibilityStatus: window.eligibilityStatus
+    });
+</script>
 <?php include 'C:/wamp64/www/GSCV+/app/Views/assets/js/jsRapports.php'; ?>

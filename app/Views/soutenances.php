@@ -14,12 +14,14 @@ ini_set('error_log', __DIR__ . '/../../storage/logs/php-error.log');
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../Controllers/SoutenanceController.php';
 
+// Initialiser la connexion à la base de données
+$pdo = DataBase::getConnection();
+
 // Enregistrer l'accès à la page des soutenances
 //enregistrer_acces_module($pdo, $_SESSION['user_id'], 'soutenances');
 
 // Initialiser le contrôleur
 $soutenanceController = new SoutenanceController($pdo);
-
 // Récupérer les données via le contrôleur
 $data = $soutenanceController->index($_SESSION['user_id']);
 
@@ -235,6 +237,10 @@ $file_path = $compte_rendu['fichier_cr'] ?? null;
         opacity: 0.8;
     }
 
+    input, select, textarea{
+        color: #000;
+    }
+
     .action-card button {
         background: #1a5276;
         color: white;
@@ -253,7 +259,7 @@ $file_path = $compte_rendu['fichier_cr'] ?? null;
         box-shadow: 0 4px 15px rgba(26, 82, 118, 0.3);
     }
 </style>
-</style>
+
 <div id="candidature" class="section">
     <h2 style=" color: #154360;
         font-size: 2rem;
@@ -300,13 +306,32 @@ $file_path = $compte_rendu['fichier_cr'] ?? null;
             <i class="fas fa-file-download"></i>
             <h3>Compte rendu</h3>
             <p>Télécharger le compte rendu</p>
-            <?php if (isset($compte_rendu) && isset($compte_rendu['fichier_cr'])): ?>
-                <form method="GET" action="assets/traitements/download_cr.php">
-                    <button type="submit" class="download-cr">Télécharger le compte rendu</button>
-                </form>
-
+            <?php 
+            // Vérifier si le compte rendu est disponible
+            $isCompteRenduDisponible = false;
+            $compte_rendu_id = null;
+            
+            if (isset($compte_rendu) && !empty($compte_rendu) && isset($compte_rendu['fichier_cr'])) {
+                $isCompteRenduDisponible = true;
+                $compte_rendu_id = $compte_rendu['id_cr'] ?? null;
+            }
+            
+            // Debug: Afficher les informations du compte rendu
+            if (isset($compte_rendu)) {
+                echo "<!-- Debug: Compte rendu trouvé - ID: " . ($compte_rendu['id_cr'] ?? 'null') . ", Fichier: " . ($compte_rendu['fichier_cr'] ?? 'null') . " -->";
+            } else {
+                echo "<!-- Debug: Aucun compte rendu trouvé -->";
+            }
+            ?>
+            
+            <?php if ($isCompteRenduDisponible && $compte_rendu_id): ?>
+                <button type="button" class="download-cr" onclick="downloadCompteRendu(<?php echo $compte_rendu_id; ?>)">
+                    <i class="fas fa-download mr-2"></i>
+                    Télécharger le compte rendu
+                </button>
             <?php else: ?>
                 <button class="download-cr" disabled>
+                    <i class="fas fa-clock mr-2"></i>
                     Compte rendu non disponible
                 </button>
             <?php endif; ?>
@@ -320,10 +345,6 @@ $file_path = $compte_rendu['fichier_cr'] ?? null;
         </div>
     </div>
 </div>
-
-
-
-
 
 
 <!-- Overlay pour les modales -->
@@ -822,6 +843,9 @@ $file_path = $compte_rendu['fichier_cr'] ?? null;
             <?php unset($_SESSION['show_confirmation']); ?>
         <?php endif; ?>
 
+        // Vérifier la disponibilité du compte rendu au chargement de la page
+        checkCompteRenduAvailability();
+
         // Gestion du bouton OK de la modale de confirmation après soumission
         const confirmationBtn = document.querySelector('.container.confirmation_soumission .continue-btn');
         if (confirmationBtn) {
@@ -880,5 +904,81 @@ $file_path = $compte_rendu['fichier_cr'] ?? null;
             modal.classList.remove('active');
             document.body.style.overflow = 'auto';
         }
+    }
+
+    // Fonction pour télécharger le compte rendu
+    function downloadCompteRendu(crId) {
+        if (!crId) {
+            console.error('ID du compte rendu manquant');
+            return;
+        }
+
+        // Afficher un indicateur de chargement
+        const downloadBtn = event.target;
+        const originalText = downloadBtn.innerHTML;
+        downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Téléchargement...';
+        downloadBtn.disabled = true;
+
+        // Créer un formulaire temporaire pour le téléchargement
+        const form = document.createElement('form');
+        form.method = 'GET';
+        form.action = 'assets/traitements/download_cr.php';
+        
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'id';
+        input.value = crId;
+        
+        form.appendChild(input);
+        document.body.appendChild(form);
+        
+        // Soumettre le formulaire
+        form.submit();
+        
+        // Nettoyer après un délai
+        setTimeout(() => {
+            downloadBtn.innerHTML = originalText;
+            downloadBtn.disabled = false;
+            document.body.removeChild(form);
+            
+            // Afficher un message de succès
+            showModal(document.querySelector('.container.download_success'));
+        }, 2000);
+    }
+
+    // Fonction pour vérifier la disponibilité du compte rendu via AJAX
+    function checkCompteRenduAvailability() {
+        const rapportId = <?php echo isset($rapport['id_rapport_etd']) ? $rapport['id_rapport_etd'] : 'null'; ?>;
+        
+        if (!rapportId) {
+            return;
+        }
+
+        fetch('assets/traitements/check_cr_availability.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                user_id: <?php echo $_SESSION['user_id'] ?? 'null'; ?>,
+                rapport_id: rapportId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.compte_rendu) {
+                // Mettre à jour l'interface si un compte rendu est disponible
+                const downloadBtn = document.querySelector('.download-cr');
+                if (downloadBtn) {
+                    downloadBtn.disabled = false;
+                    downloadBtn.innerHTML = '<i class="fas fa-download mr-2"></i>Télécharger le compte rendu';
+                    downloadBtn.onclick = () => downloadCompteRendu(data.compte_rendu.id_cr);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors de la vérification du compte rendu:', error);
+        });
     }
 </script>

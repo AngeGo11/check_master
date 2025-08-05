@@ -5,21 +5,31 @@ if (defined('CONFIG_LOADED')) {
 }
 define('CONFIG_LOADED', true);
 
-
-
 // Paramètres de connexion
 class DataBase
 {
     private static $pdo = null;
-    private static $host = 'localhost'; 
-    private static $db   = 'check_master_db';
-    private static $user = 'root';
-    private static $pass = ''; // mot de passe défini dans docker-compose.yml
+    private static $host = null; 
+    private static $db   = null;
+    private static $user = null;
+    private static $pass = null; 
     private static $charset = 'utf8';
+
+    private static function initConfig()
+    {
+        // Utiliser les variables d'environnement Docker si disponibles, sinon utiliser les valeurs par défaut
+        self::$host = $_ENV['DB_HOST'] ?? 'db';
+        self::$db   = $_ENV['DB_NAME'] ?? 'check_master_db';
+        self::$user = $_ENV['DB_USER'] ?? 'root';
+        self::$pass = $_ENV['DB_PASSWORD'] ?? 'root';
+    }
 
     public static function getConnection()
     {
         if (self::$pdo === null) {
+            // Initialiser la configuration
+            self::initConfig();
+            
             try {
                 $dsn = "mysql:host=" . self::$host . ";dbname=" . self::$db . ";charset=" . self::$charset;
                 self::$pdo = new PDO($dsn, self::$user, self::$pass);
@@ -59,6 +69,7 @@ class DataBase
 
     public static function getConnectionInfo()
     {
+        self::initConfig();
         return [
             'host' => self::$host,
             'database' => self::$db,

@@ -54,10 +54,12 @@ class ProfilController {
     /**
      * Organiser les notes par semestre
      */
-    public function organizeGradesBySemester($grades) {
-        $notesParSemestre = [];
+    public function organizeGradesBySemester($studentId) {
+        $notes = $this->model->getStudentGrades($studentId);
         
-        foreach ($grades as $note) {
+        // Organiser les notes par semestre, puis par UE
+        $notesParSemestre = [];
+        foreach ($notes as $note) {
             $semestre = $note['lib_semestre'] ?? 'Semestre inconnu';
             $id_ue = $note['id_ue'];
 
@@ -68,14 +70,15 @@ class ProfilController {
             if (!isset($notesParSemestre[$semestre][$id_ue])) {
                 $notesParSemestre[$semestre][$id_ue] = [
                     'lib_ue' => $note['lib_ue'],
-                    'credit_ue' => $note['credit_ue'],
+                    'credit_ue' => $note['credit_ue'], // Le crédit total de l'UE
                     'notes' => []
                 ];
             }
 
+            // On ajoute la note (qu'elle vienne d'une UE ou d'un ECUE)
             $notesParSemestre[$semestre][$id_ue]['notes'][] = [
                 'note' => $note['note'],
-                'credit' => $note['credit']
+                'credit' => $note['credit'] // Le crédit de l'évaluation (UE ou ECUE)
             ];
         }
 

@@ -65,9 +65,10 @@ if (isset($_GET['id'])) {
     $stmt->execute([$student_id]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($result) {
-        $statut_eligibilite = date('d/m/Y', strtotime($result['statut_eligibilite']));
+        $statut_eligibilite = $result['statut_eligibilite'];
     }
 }
+
 
 // Définition d'un message de confirmation/erreur
 $message = "";
@@ -350,7 +351,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_eligibility']))
                                     Actions
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Statut éligibilité
+                                    Statut de la demande
                                 </th>
                             </tr>
                         </thead>
@@ -397,13 +398,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_eligibility']))
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <?php 
-                                            $status = isset($demande['statut_eligibilite']) ? $demande['statut_eligibilite'] : 'En attente de confirmation...';
+                                            $status = isset($demande['statut_demande']) ? $demande['statut_demande'] : 'En attente';
                                             $statusClass = '';
                                             switch($status) {
-                                                case 'Éligible':
+                                                case 'Traitée':
                                                     $statusClass = 'bg-green-100 text-green-800';
                                                     break;
-                                                case 'Non éligible':
+                                                case 'En attente':
                                                     $statusClass = 'bg-red-100 text-red-800';
                                                     break;
                                                 default:
@@ -804,7 +805,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_eligibility']))
                                         <div class="text-sm text-gray-600"><?= $date_demande ? $date_demande : 'Non définie'; ?></div>
                                     </div>
                                     
-                                    <?php if(isset($statut_eligibilite) && $statut_eligibilite === 'En attente de confirmation '): ?>
+                                    <?php if($statut_eligibilite === 'En attente de confirmation'): ?>
                                         <button type="submit" 
                                                 class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200 flex items-center">
                                             <i class="fas fa-check mr-2"></i>

@@ -1,5 +1,22 @@
-  // Sélectionner les éléments nécessaires pour les ouvertures/fermetures modales si JS est activé
-  document.addEventListener('DOMContentLoaded', function() {
+// Sélectionner les éléments nécessaires pour les ouvertures/fermetures modales si JS est activé
+document.addEventListener('DOMContentLoaded', function() {
+    // Fonctions globales pour gérer les modales
+    window.openModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('open');
+            modal.style.display = 'flex';
+        }
+    };
+
+    window.closeModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('open');
+            modal.style.display = 'none';
+        }
+    };
+
     // Fermer les modales quand on clique sur la croix
     document.querySelectorAll('.close').forEach(function(button) {
         button.addEventListener('click', function(event) {
@@ -9,6 +26,7 @@
             if (modal) {
                 // Fermer la modale en enlevant la classe 'open'
                 modal.classList.remove('open');
+                modal.style.display = 'none';
             }
         });
     });
@@ -19,6 +37,7 @@
             // Si on clique directement sur la modale (et pas son contenu)
             if (event.target === modal) {
                 modal.classList.remove('open');
+                modal.style.display = 'none';
             }
         });
     });
@@ -27,15 +46,58 @@
     const addStudentBtn = document.getElementById('add_student');
     if (addStudentBtn) {
         addStudentBtn.addEventListener('click', function(event) {
-            if (!event.target.href) {
-                event.preventDefault();
-                document.querySelector('#add-student-modal').classList.add('open');
-            }
+            event.preventDefault();
+            openModal('add-student-modal');
         });
     }
 
+    // Ouvrir la modale de modification d'étudiant
+    document.querySelectorAll('.modify-student-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(event) {
+            event.preventDefault();
+            const studentId = this.getAttribute('data-id');
+            if (studentId) {
+                openModal('modify-student-modal');
+            }
+        });
+    });
+
+    // Ouvrir la modale de détails d'étudiant
+    document.querySelectorAll('.view-student-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(event) {
+            event.preventDefault();
+            const studentId = this.getAttribute('data-id');
+            if (studentId) {
+                openModal('view-student-details-modal');
+            }
+        });
+    });
+
+    // Ouvrir la modale de rapport d'étudiant
+    document.querySelectorAll('.view-rapport-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(event) {
+            event.preventDefault();
+            const studentId = this.getAttribute('data-id');
+            if (studentId) {
+                openModal('view-rapport-modal');
+            }
+        });
+    });
+
+    // Ouvrir la modale de partage de rapport
+    document.querySelectorAll('.share-rapport-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(event) {
+            event.preventDefault();
+            const studentId = this.getAttribute('data-id');
+            const rapportId = this.getAttribute('data-rapport');
+            if (studentId && rapportId) {
+                openModal('share-rapport-modal');
+            }
+        });
+    });
+
     // Logique pour la modale d'aperçu du rapport
-    const previewBtn = document.querySelector('#rapports-student-modal .preview-btn');
+    const previewBtn = document.querySelector('#view-rapport-modal .preview-btn');
     const previewModal = document.getElementById('preview-rapport-modal');
 
     if (previewBtn && previewModal) {
@@ -47,24 +109,85 @@
             const path = this.dataset.path;
             if (path && iframe) {
                 iframe.setAttribute('src', path);
-                previewModal.classList.add('open');
+                previewModal.classList.remove('hidden');
+                previewModal.classList.add('flex');
             }
         });
 
-        closePreviewBtn.addEventListener('click', function() {
-            previewModal.classList.remove('open');
-            iframe.setAttribute('src', ''); // Vider le src pour arrêter la lecture
+        if (closePreviewBtn) {
+            closePreviewBtn.addEventListener('click', function() {
+                previewModal.classList.add('hidden');
+                previewModal.classList.remove('flex');
+                iframe.setAttribute('src', '');
+            });
+        }
+
+        // Fermer la modale en cliquant en dehors
+        previewModal.addEventListener('click', function(e) {
+            if (e.target === previewModal) {
+                previewModal.classList.add('hidden');
+                previewModal.classList.remove('flex');
+                iframe.setAttribute('src', '');
+            }
         });
     }
 
-    // Ajouter les événements d'exportation aux boutons existants
-    const exportBtns = document.querySelectorAll('.bulk-export-btn');
-    exportBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            exportData();
+    // Modale de confirmation générique
+    let confirmCallback = null;
+
+    window.openConfirmationModal = function(message, onConfirm) {
+        const confirmationText = document.getElementById('confirmation-text');
+        const modal = document.getElementById('confirmation-modal');
+        if (confirmationText) {
+            confirmationText.textContent = message;
+        }
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        confirmCallback = onConfirm;
+    };
+
+    window.closeConfirmationModal = function() {
+        const modal = document.getElementById('confirmation-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        confirmCallback = null;
+    };
+
+    // Gestionnaires pour la modale de confirmation
+    const confirmBtn = document.getElementById('confirm-modal-btn');
+    const cancelBtn = document.getElementById('cancel-modal-btn');
+    const closeBtn = document.getElementById('close-confirmation-modal-btn');
+
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            closeConfirmationModal();
         });
-    });
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeConfirmationModal);
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeConfirmationModal);
+    }
+
+    // Fermer la modale en cliquant en dehors
+    const confirmationModal = document.getElementById('confirmation-modal');
+    if (confirmationModal) {
+        confirmationModal.addEventListener('click', function(e) {
+            if (e.target === confirmationModal) {
+                closeConfirmationModal();
+            }
+        });
+    }
 
     // Gestion de la sélection en masse
     const selectAllEtudiants = document.getElementById('select-all-etudiants');
@@ -87,28 +210,13 @@
         });
     }
 
-    // Modale de confirmation générique
-    let confirmCallback = null;
-
-    function openConfirmationModal(message, onConfirm) {
-        document.getElementById('confirmation-text').textContent = message;
-        document.getElementById('confirmation-modal').style.display = 'flex';
-        confirmCallback = onConfirm;
-    }
-
-    function closeConfirmationModal() {
-        document.getElementById('confirmation-modal').style.display = 'none';
-        confirmCallback = null;
-    }
-    document.getElementById('confirm-modal-btn').onclick = function() {
-        if (typeof confirmCallback === 'function') confirmCallback();
-        closeConfirmationModal();
-    };
-    document.getElementById('cancel-modal-btn').onclick = closeConfirmationModal;
-    document.getElementById('close-confirmation-modal-btn').onclick = closeConfirmationModal;
-    window.addEventListener('click', function(event) {
-        const modal = document.getElementById('confirmation-modal');
-        if (event.target === modal) closeConfirmationModal();
+    // Ajouter les événements d'exportation aux boutons existants
+    const exportBtns = document.querySelectorAll('.bulk-export-btn');
+    exportBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            exportData();
+        });
     });
 
     // Remplacement suppression multiple étudiants
@@ -213,6 +321,7 @@ function exportData() {
         </div>
     `;
     modal.classList.add('open');
+    modal.style.display = 'flex';
     document.body.appendChild(modal);
 }
 
@@ -223,30 +332,28 @@ function exportToCSV() {
 
     tables.forEach((table, index) => {
         // En-têtes du tableau
-        const headers = Array.from(table.querySelectorAll('thead th')).slice(1, -1); // Exclure checkbox et actions
+        const headers = Array.from(table.querySelectorAll('thead th')).slice(1, -1);
         csv.push(headers.map(th => th.textContent.trim().replace(/\r?\n|\r/g, ' ')).join(';'));
 
         // Données visibles uniquement
         const rows = table.querySelectorAll('tbody tr');
         rows.forEach(row => {
             if (row.style.display !== 'none') {
-                const cells = Array.from(row.querySelectorAll('td')).slice(1, -1); // Exclure checkbox et actions
+                const cells = Array.from(row.querySelectorAll('td')).slice(1, -1);
                 const rowData = cells.map(td => {
                     let text = td.textContent.trim().replace(/\s+/g, ' ');
-                    text = text.replace(/\r?\n|\r/g, ' '); // Supprimer les retours à la ligne
+                    text = text.replace(/\r?\n|\r/g, ' ');
                     text = text.replace(/"/g, '""');
                     return '"' + text + '"';
                 });
                 csv.push(rowData.join(';'));
             }
         });
-        // Séparateur entre les deux tableaux (sauf le dernier)
         if (index < tables.length - 1) {
             csv.push('---');
         }
     });
 
-    // Télécharger
     const csvContent = csv.join('\n');
     const blob = new Blob(['\ufeff' + csvContent], {
         type: 'text/csv;charset=utf-8;'
@@ -265,18 +372,14 @@ function exportToCSV() {
 
 // Export PDF
 function exportToPDF() {
-    // Créer une nouvelle fenêtre pour l'impression
     const printWindow = window.open('', '_blank');
-    // Préparer le tableau sans les colonnes checkbox et actions
     function getTableWithoutCheckboxAndActions(table) {
         const clone = table.cloneNode(true);
-        // Supprimer la colonne checkbox et actions dans thead
         const ths = clone.querySelectorAll('thead th');
         if (ths.length > 2) {
-            ths[0].remove(); // checkbox
-            ths[ths.length - 1].remove(); // actions
+            ths[0].remove();
+            ths[ths.length - 1].remove();
         }
-        // Supprimer la colonne checkbox et actions dans tbody
         clone.querySelectorAll('tbody tr').forEach(tr => {
             if (tr.children.length > 2) {
                 tr.children[0].remove();
@@ -324,7 +427,7 @@ function exportToPDF() {
             <div class="stats">
                 <h3>Statistiques</h3>
                 <div class="stats-grid">
-                    ${document.querySelector('.dashboard-grid').innerHTML}
+                    ${document.querySelector('.dashboard-grid') ? document.querySelector('.dashboard-grid').innerHTML : ''}
                 </div>
             </div>
             <div class="section">
@@ -345,7 +448,6 @@ function exportToPDF() {
     `);
     printWindow.document.close();
     printWindow.focus();
-    // Attendre que le contenu soit chargé puis imprimer
     setTimeout(() => {
         printWindow.print();
         printWindow.close();
@@ -378,4 +480,4 @@ function showFeedback(message, type = 'info') {
             }
         }, 300);
     }, 4000);
-}
+} 

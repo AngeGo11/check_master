@@ -1,5 +1,5 @@
 <?php
-require_once '../../../config/db_connect.php';
+require_once '../../../app/config/config.php';
 
 // Récupération du numéro de règlement depuis l'URL
 $id_reclamation = isset($_GET['id_reclamation']) ? $_GET['id_reclamation'] : '';

@@ -79,7 +79,7 @@ class ArchiveModel {
         // Requête principale
         $sql = "SELECT 
             a.id_rapport_etd AS id_document,
-            re.nom_rapport AS titre,
+            re.theme_memoire AS titre,
             CONCAT(e.nom_etd, ' ', e.prenom_etd) AS etudiant,
             'Rapport' AS type_document,
             a.date_archivage,

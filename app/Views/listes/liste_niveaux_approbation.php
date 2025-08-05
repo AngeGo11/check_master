@@ -6,7 +6,6 @@ if (!isset($_GET['liste']) || $_GET['liste'] !== 'niveaux_approbation') {
 
 require_once __DIR__ . '/../../config/config.php';
 
-
 $fullname = $_SESSION['user_fullname'];
 $lib_user_type = $_SESSION['lib_user_type'];
 

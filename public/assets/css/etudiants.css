@@ -2382,7 +2382,8 @@ textarea#share_message:focus {
 }
 
  /* Styles pour les modales d'exportation */
- .modal {
+/* Styles pour les modales d'export et autres modales génériques */
+.modal {
     display: none;
     position: fixed;
     z-index: 1000;
@@ -2391,12 +2392,24 @@ textarea#share_message:focus {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
 }
 
 .modal.open {
     display: flex;
-    align-items: center;
-    justify-content: center;
+}
+
+/* Styles génériques pour le contenu des modales */
+.modal-content {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 90%;
+    max-height: 90%;
+    overflow-y: auto;
+    position: relative;
+    padding: 20px;
 }
 
 .top-text {
@@ -2407,13 +2420,17 @@ textarea#share_message:focus {
     border-bottom: 1px solid #eee;
 }
 
+/* Styles pour les titres des modales */
 .modal-title {
     margin: 0;
     color: #2c3e50;
     font-size: 1.5em;
+    font-weight: 600;
 }
 
-.close-modal-btn {
+/* Styles pour les boutons de fermeture des modales */
+.close-modal-btn,
+.modal .close {
     background: none;
     border: none;
     font-size: 24px;
@@ -2425,14 +2442,51 @@ textarea#share_message:focus {
     display: flex;
     align-items: center;
     justify-content: center;
+    text-decoration: none;
 }
 
 .close-modal-btn:hover {
     color: #e74c3c;
 }
 
+/* Styles pour le corps des modales */
 .modal-body {
     padding: 20px;
+}
+
+/* Styles pour les formulaires dans les modales */
+.modal form {
+    margin: 0;
+}
+
+.modal .form-group {
+    margin-bottom: 15px;
+}
+
+.modal .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #333;
+}
+
+.modal .form-group input,
+.modal .form-group select,
+.modal .form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.modal .form-group input:focus,
+.modal .form-group select:focus,
+.modal .form-group textarea:focus {
+    outline: none;
+    border-color: #1a5276;
+    box-shadow: 0 0 0 2px rgba(26, 82, 118, 0.2);
 }
 
 .modal-body p {
@@ -2440,7 +2494,9 @@ textarea#share_message:focus {
     color: #555;
 }
 
-.modal-body .button {
+/* Styles pour les boutons dans les modales */
+.modal-body .button,
+.modal .button {
     width: 100%;
     padding: 12px;
     margin-bottom: 10px;
@@ -2453,24 +2509,35 @@ textarea#share_message:focus {
     justify-content: center;
     gap: 10px;
     transition: all 0.3s ease;
+    text-decoration: none;
 }
 
-.modal-body .button:not(.secondary) {
+/* Styles pour les boutons primaires dans les modales */
+.modal-body .button:not(.secondary),
+.modal .button:not(.secondary),
+.modal .submit-btn {
     background-color: #1a5276;
     color: white;
 }
 
-.modal-body .button:not(.secondary):hover {
-    background-color: #1a5276db;
+/* Styles pour les effets de survol des boutons primaires */
+.modal-body .button:not(.secondary):hover,
+.modal .button:not(.secondary):hover,
+.modal .submit-btn:hover {
+    background-color: #134d6b;
 }
 
-.modal-body .button.secondary {
-    background-color: #1a5276;
+/* Styles pour les boutons secondaires dans les modales */
+.modal-body .button.secondary,
+.modal .button.secondary {
+    background-color: #6c757d;
     color: white;
 }
 
-.modal-body .button.secondary:hover {
-    background-color: #7f8c8d;
+/* Styles pour les effets de survol des boutons secondaires */
+.modal-body .button.secondary:hover,
+.modal .button.secondary:hover {
+    background-color: #5a6268;
 }
 
 .modal-body small {

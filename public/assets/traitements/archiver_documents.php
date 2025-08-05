@@ -1,174 +1,224 @@
 <?php
+// Démarrer la session
 session_start();
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV/config/db_connect.php';
+require_once __DIR__ . '/../../../config/config.php';
 
-header('Content-Type: application/json');
+// Établir la connexion à la base de données
+$pdo = DataBase::getConnection();
 
-// Vérifier si l'utilisateur est connecté
+// Vérification de sécurité
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'error' => 'Session expirée. Veuillez vous reconnecter.']);
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'Non autorisé - Session non valide']);
     exit;
 }
 
-// Vérifier si la requête est en POST
+// Vérification de la méthode
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'error' => 'Méthode non autorisée.']);
+    http_response_code(405);
+    echo json_encode(['success' => false, 'error' => 'Méthode non autorisée']);
     exit;
 }
-
-if (!isset($_POST['doc_ids'])) {
-    error_log("archiver_documents.php: Aucun doc_ids reçu");
-    echo json_encode(['success' => false, 'error' => 'Aucun document sélectionné.']);
-    exit;
-}
-
-error_log("archiver_documents.php: doc_ids reçu: " . $_POST['doc_ids']);
-
-$doc_ids_json = $_POST['doc_ids'];
-$doc_ids_array = json_decode($doc_ids_json, true);
-
-if (empty($doc_ids_array)) {
-    echo json_encode(['success' => false, 'error' => 'Aucun document valide sélectionné.']);
-    exit;
-}
-
-$user_id = $_SESSION['user_id'];
-$date = date('Y-m-d H:i:s');
-
-// Vérifier que l'utilisateur existe
-$check_user_sql = "SELECT COUNT(*) FROM utilisateur WHERE id_utilisateur = ?";
-$check_user_stmt = $pdo->prepare($check_user_sql);
-$check_user_stmt->execute([$user_id]);
-if ($check_user_stmt->fetchColumn() == 0) {
-    echo json_encode(['success' => false, 'error' => 'Utilisateur non trouvé dans la base de données.']);
-    exit;
-}
-
-    // Récupérer l'année académique actuelle
-    try {
-        $sql = "SELECT id_ac FROM annee_academique WHERE statut_annee = 'En cours' LIMIT 1";
-        $stmt = $pdo->query($sql);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$result) {
-            echo json_encode(['success' => false, 'error' => 'Aucune année académique en cours trouvée.']);
-            exit;
-        }
-        
-        $id_ac = strval($result['id_ac']); // Convertir en string car id_ac est varchar(10)
-    } catch (Exception $e) {
-        echo json_encode(['success' => false, 'error' => 'Erreur lors de la récupération de l\'année académique: ' . $e->getMessage()]);
-        exit;
-    }
-
-$pdo->beginTransaction();
 
 try {
-    $archived_count = 0;
-    $errors = [];
-
-    error_log("Traitement de " . count($doc_ids_array) . " documents");
-    foreach ($doc_ids_array as $composite_id) {
-        error_log("Traitement du document: $composite_id");
-        if (strpos($composite_id, ':') !== false) {
-            list($type, $id) = explode(':', $composite_id, 2);
-            $id = intval($id);
-
-            // Vérifier si le document existe et s'il est déjà archivé par cet utilisateur
-            if ($type === 'Rapport') {
-                $check_sql = "SELECT COUNT(*) FROM archives WHERE id_rapport_etd = ? AND id_utilisateur = ?";
-                $file_sql = "SELECT fichier_rapport FROM rapport_etudiant WHERE id_rapport_etd = ?";
-                $exists_sql = "SELECT COUNT(*) FROM rapport_etudiant WHERE id_rapport_etd = ?";
-            } elseif ($type === 'Compte rendu') {
-                $check_sql = "SELECT COUNT(*) FROM archives WHERE id_cr = ? AND id_utilisateur = ?";
-                $file_sql = "SELECT fichier_cr FROM compte_rendu WHERE id_cr = ?";
-                $exists_sql = "SELECT COUNT(*) FROM compte_rendu WHERE id_cr = ?";
-            } else {
-                $errors[] = "Type de document invalide pour l'ID $id";
-                continue;
-            }
-
-            // Vérifier que le document existe
-            $exists_stmt = $pdo->prepare($exists_sql);
-            $exists_stmt->execute([$id]);
-            if ($exists_stmt->fetchColumn() == 0) {
-                $errors[] = "Le document $id ($type) n'existe pas dans la base de données.";
-                continue;
-            }
-
-            // Vérifier si déjà archivé
-            $check_stmt = $pdo->prepare($check_sql);
-            $check_stmt->execute([$id, $user_id]);
-            
-            if ($check_stmt->fetchColumn() > 0) {
-                $errors[] = "Le document $id ($type) est déjà archivé.";
-                error_log("Document $id ($type) déjà archivé par utilisateur $user_id");
-                continue;
-            }
-
-            // Récupérer le chemin du fichier
-            $file_stmt = $pdo->prepare($file_sql);
-            $file_stmt->execute([$id]);
-            $fichier = $file_stmt->fetchColumn();
-
-            if (!$fichier) {
-                $errors[] = "Fichier non trouvé pour le document $id ($type).";
-                continue;
-            }
-
-            // Vérifier que le fichier existe physiquement (optionnel pour le moment)
-            $file_path = $_SERVER['DOCUMENT_ROOT'] . '/GSCV/' . $fichier;
-            if (!file_exists($file_path)) {
-                error_log("Fichier physique non trouvé: $file_path");
-                // On continue quand même car le chemin peut être relatif
-            }
-
-            // Insérer dans les archives
-            if ($type === 'Rapport') {
-                $insert_sql = "INSERT INTO archives (id_rapport_etd, date_archivage, id_utilisateur, id_ac, fichier_archive) VALUES (?, ?, ?, ?, ?)";
-            } else {
-                $insert_sql = "INSERT INTO archives (id_cr, date_archivage, id_utilisateur, id_ac, fichier_archive) VALUES (?, ?, ?, ?, ?)";
-            }
-
-            $insert_stmt = $pdo->prepare($insert_sql);
-            
-            // Debug: afficher les valeurs avant insertion
-            error_log("Tentative d'archivage - ID: $id, Type: $type, Date: $date, User: $user_id, AC: $id_ac, Fichier: $fichier");
-            
-            $result = $insert_stmt->execute([$id, $date, $user_id, $id_ac, $fichier]);
-
-            if ($result && $insert_stmt->rowCount() > 0) {
-                $archived_count++;
-                error_log("Document $id ($type) archivé avec succès par utilisateur $user_id");
-            } else {
-                $error_info = $insert_stmt->errorInfo();
-                $errors[] = "Erreur lors de l'archivage du document $id ($type): " . $error_info[2];
-                error_log("Erreur archivage document $id ($type): " . $error_info[2]);
-                error_log("SQL: $insert_sql");
-                error_log("Paramètres: " . json_encode([$id, $date, $user_id, $id_ac, $fichier]));
-            }
-        }
+    $action = $_POST['action'] ?? '';
+    
+    switch ($action) {
+        case 'bulk_archive':
+            handleBulkArchive();
+            break;
+        case 'archive_single':
+            handleSingleArchive();
+            break;
+        default:
+            throw new Exception('Action non reconnue');
     }
-
-    $pdo->commit();
-
-    $message = "$archived_count document(s) archivé(s) avec succès.";
-    if (!empty($errors)) {
-        $message .= " Erreurs : " . implode(', ', $errors);
-    }
-
-    if ($archived_count > 0) {
-        echo json_encode(['success' => true, 'message' => $message]);
-    } else {
-        echo json_encode(['success' => false, 'error' => 'Aucun document n\'a été archivé. ' . implode(', ', $errors)]);
-    }
-
-} catch (PDOException $e) {
-    $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
-    $pdo->rollBack();
-    error_log("Erreur archivage documents: " . $e->getMessage());
-    echo json_encode(['success' => false, 'error' => 'Erreur de base de données lors de l\'archivage: ' . $e->getMessage()]);
+} catch (Exception $e) {
+    error_log('Erreur archivage documents: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
 
+function handleBulkArchive() {
+    global $pdo;
+    
+    $documents = json_decode($_POST['documents'], true);
+    if (!$documents || !is_array($documents)) {
+        throw new Exception('Données de documents invalides');
+    }
+    
+    $pdo->beginTransaction();
+    $successCount = 0;
+    $errors = [];
+    
+    try {
+        foreach ($documents as $doc) {
+            $documentId = $doc['id'];
+            $documentType = $doc['type'];
+            
+            // Déterminer la table source selon le type
+            if ($documentType === 'Rapport') {
+                $sourceTable = 'rapport_etudiant';
+                $idColumn = 'id_rapport_etd';
+            } elseif ($documentType === 'Compte rendu') {
+                $sourceTable = 'compte_rendu';
+                $idColumn = 'id_cr';
+            } else {
+                $errors[] = "Type de document non reconnu: $documentType";
+                continue;
+            }
+            
+            // Vérifier si le document existe et n'est pas déjà archivé
+            $stmt = $pdo->prepare("SELECT * FROM $sourceTable WHERE $idColumn = ?");
+            $stmt->execute([$documentId]);
+            $document = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$document) {
+                $errors[] = "Document $documentId non trouvé";
+                continue;
+            }
+            
+            // Vérifier si le document n'est pas déjà archivé
+            $stmt = $pdo->prepare("SELECT id_archives FROM archives WHERE $idColumn = ?");
+            $stmt->execute([$documentId]);
+            if ($stmt->rowCount() > 0) {
+                $errors[] = "Document $documentId déjà archivé";
+                continue;
+            }
+            
+            // Insérer dans la table archives
+            $archiveData = [
+                'id_utilisateur' => $_SESSION['user_id'],
+                'date_archivage' => date('Y-m-d H:i:s'),
+                'fichier_archive' => $document['fichier_rapport'] ?? $document['fichier_cr'] ?? null
+            ];
+            
+            // Ajouter l'ID du document selon le type
+            if ($documentType === 'Rapport') {
+                $archiveData['id_rapport_etd'] = $documentId;
+                $archiveData['id_cr'] = null;
+            } else {
+                $archiveData['id_cr'] = $documentId;
+                $archiveData['id_rapport_etd'] = null;
+            }
+            
+            // Récupérer l'année académique actuelle
+            $stmt = $pdo->prepare("SELECT id_ac FROM annee_academique WHERE statut_annee = 'En cours' LIMIT 1");
+            $stmt->execute();
+            $annee = $stmt->fetch(PDO::FETCH_ASSOC);
+            $archiveData['id_ac'] = $annee ? $annee['id_ac'] : date('Y');
+            
+            $columns = implode(', ', array_keys($archiveData));
+            $placeholders = ':' . implode(', :', array_keys($archiveData));
+            
+            $stmt = $pdo->prepare("INSERT INTO archives ($columns) VALUES ($placeholders)");
+            $stmt->execute($archiveData);
+            
+           
+            
+            $successCount++;
+        }
+        
+        $pdo->commit();
+        
+        $message = "$successCount document(s) archivé(s) avec succès";
+        if (!empty($errors)) {
+            $message .= ". Erreurs: " . implode(', ', $errors);
+        }
+        
+        echo json_encode(['success' => true, 'message' => $message, 'archived_count' => $successCount, 'errors' => $errors]);
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+}
+
+function handleSingleArchive() {
+    global $pdo;
+    
+    $documentId = $_POST['document_id'] ?? '';
+    $documentType = $_POST['document_type'] ?? '';
+    
+    if (!$documentId || !$documentType) {
+        throw new Exception('ID et type de document requis');
+    }
+    
+    // Déterminer la table source selon le type
+    if ($documentType === 'Rapport') {
+        $sourceTable = 'rapport_etudiant';
+        $idColumn = 'id_rapport_etd';
+    } elseif ($documentType === 'Compte rendu') {
+        $sourceTable = 'compte_rendu';
+        $idColumn = 'id_cr';
+    } else {
+        throw new Exception('Type de document non reconnu');
+    }
+    
+    // Vérifier si le document existe
+    $stmt = $pdo->prepare("SELECT * FROM $sourceTable WHERE $idColumn = ?");
+    $stmt->execute([$documentId]);
+    $document = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$document) {
+        throw new Exception('Document non trouvé');
+    }
+    
+    // Vérifier si le document n'est pas déjà archivé
+    $stmt = $pdo->prepare("SELECT id_archives FROM archives WHERE $idColumn = ?");
+    $stmt->execute([$documentId]);
+    if ($stmt->rowCount() > 0) {
+        throw new Exception('Document déjà archivé');
+    }
+    
+    $pdo->beginTransaction();
+    
+    try {
+        
+        // Insérer dans la table archives
+        $archiveData = [
+            'id_utilisateur' => $_SESSION['user_id'],
+            'date_archivage' => date('Y-m-d H:i:s'),
+            'fichier_archive' => $document['fichier_rapport'] ?? $document['fichier_cr'] ?? null
+        ];
+        
+        // Ajouter l'ID du document selon le type
+        if ($documentType === 'Rapport') {
+            $archiveData['id_rapport_etd'] = $documentId;
+            $archiveData['id_cr'] = null;
+        } else {
+            $archiveData['id_cr'] = $documentId;
+            $archiveData['id_rapport_etd'] = null;
+        }
+        
+        // Récupérer l'année académique actuelle
+        $stmt = $pdo->prepare("SELECT id_ac FROM annee_academique WHERE statut_annee = 'En cours' LIMIT 1");
+        $stmt->execute();
+        $annee = $stmt->fetch(PDO::FETCH_ASSOC);
+        $archiveData['id_ac'] = $annee ? $annee['id_ac'] : date('Y');
+        
+        $columns = implode(', ', array_keys($archiveData));
+        $placeholders = ':' . implode(', :', array_keys($archiveData));
+        
+        $stmt = $pdo->prepare("INSERT INTO archives ($columns) VALUES ($placeholders)");
+        $stmt->execute($archiveData);
+        
+        // Marquer comme archivé dans la table source (si les colonnes existent)
+        try {
+            $stmt = $pdo->prepare("UPDATE $sourceTable SET statut_archivage = 'archivé', date_archivage = ? WHERE $idColumn = ?");
+            $stmt->execute([date('Y-m-d H:i:s'), $documentId]);
+        } catch (Exception $e) {
+            // Si les colonnes n'existent pas, on continue sans erreur
+            error_log("Colonnes d'archivage non disponibles dans $sourceTable: " . $e->getMessage());
+        }
+        
+        $pdo->commit();
+        
+        echo json_encode(['success' => true, 'message' => 'Document archivé avec succès']);
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+}
 ?> 

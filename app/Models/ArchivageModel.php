@@ -97,7 +97,7 @@ class ArchivageModel {
         $sql = "SELECT * FROM (
             SELECT 
                 re.id_rapport_etd AS id_document,
-                COALESCE(re.nom_rapport, '') AS titre,
+                COALESCE(re.theme_memoire, '') AS titre,
                 COALESCE(CONCAT(COALESCE(e.nom_etd, ''), ' ', COALESCE(e.prenom_etd, '')), 'Étudiant inconnu') AS etudiant,
                 'Rapport' AS type_document,
                 d.date_depot AS date_soumission,

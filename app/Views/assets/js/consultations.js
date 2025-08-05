@@ -892,12 +892,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.addEventListener('keydown', handleEscape);
 
         // Charger le PDF via AJAX
-        fetch('./assets/preview/preview_cr.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'id=' + encodeURIComponent(id)
+        fetch(`C:/wamp64/www/GSCV+/public/assets/traitements/preview_cr.php?id=${encodeURIComponent(id)}`, {
+            method: 'GET'
         })
         .then(response => {
             if (!response.ok) {

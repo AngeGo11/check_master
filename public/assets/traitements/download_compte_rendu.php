@@ -27,7 +27,7 @@ try {
         exit;
     }
     
-    $filePath = "C:/wamp64/www/GSCV/pages/" . "". $compteRendu['fichier_cr'];;
+    $filePath = dirname(dirname(dirname(__FILE__))) . '/' . $compteRendu['fichier_cr'];
     
     if (!file_exists($filePath)) {
         http_response_code(404);
@@ -47,6 +47,17 @@ try {
     // Nettoyer le nom de fichier
     $customFileName = preg_replace('/[^a-zA-Z0-9_\-\s\.]/', '', $customFileName);
     $customFileName = str_replace(' ', '_', $customFileName);
+    
+    // Nettoyer tout buffer de sortie
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
+    
+    // Vérifier qu'aucun en-tête n'a été envoyé
+    if (headers_sent($file, $line)) {
+        error_log("Headers already sent in $file:$line");
+        exit();
+    }
     
     // Mode téléchargement - forcer le téléchargement
     header('Content-Type: ' . $fileType);

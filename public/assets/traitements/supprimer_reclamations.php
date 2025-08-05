@@ -61,7 +61,6 @@ try {
     }
 
     $pdo->commit();
-    enregistrer_piste_audit($pdo, $_SESSION['user_id'], 'reclamations', 'Suppression réclamations', $deleted_count);
 
     if ($deleted_count > 0) {
         echo json_encode(['success' => true, 'message' => "$deleted_count réclamation(s) ont été supprimée(s)."]);

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models;
+
 use PDO;
 use PDOException;
 use Exception;
@@ -12,7 +13,8 @@ ini_set('log_errors', 1);
 // Assurez-vous que ce chemin est accessible en écriture par le serveur web
 ini_set('error_log', __DIR__ . '/../../storage/logs/php-error.log');
 
-class ValidationModel {
+class ValidationModel
+{
     protected $pdo;
 
     public function __construct($pdo)
@@ -23,9 +25,10 @@ class ValidationModel {
     /**
      * Récupère les rapports en attente de validation
      */
-    public function getRapportsEnAttente($search = '', $date_filter = '', $page = 1, $limit = 10) {
+    public function getRapportsEnAttente($search = '', $date_filter = '', $page = 1, $limit = 10)
+    {
         $offset = ($page - 1) * $limit;
-        
+
         $where = ["re.statut_rapport = 'En attente de validation'"];
         $params = [];
 
@@ -94,7 +97,8 @@ class ValidationModel {
     /**
      * Récupère le nombre de validations pour un rapport
      */
-    private function getNbValidations($rapport_id) {
+    private function getNbValidations($rapport_id)
+    {
         $sql = "SELECT COUNT(*) FROM valider WHERE id_rapport_etd = ?";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$rapport_id]);
@@ -104,7 +108,8 @@ class ValidationModel {
     /**
      * Récupère le nombre de rejets pour un rapport
      */
-    private function getNbRejets($rapport_id) {
+    private function getNbRejets($rapport_id)
+    {
         $sql = "SELECT COUNT(*) FROM valider WHERE id_rapport_etd = ? AND decision = 'Rejeté'";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$rapport_id]);
@@ -114,7 +119,8 @@ class ValidationModel {
     /**
      * Récupère les détails d'un rapport
      */
-    public function getRapportDetails($rapport_id) {
+    public function getRapportDetails($rapport_id)
+    {
         $sql = "SELECT re.*, e.nom_etd, e.prenom_etd, e.email_etd,
                        d.date_depot, a.date_approbation, a.com_appr
                 FROM rapport_etudiant re
@@ -126,19 +132,20 @@ class ValidationModel {
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$rapport_id]);
         $rapport = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if ($rapport) {
             $rapport['nb_validations'] = $this->getNbValidations($rapport_id);
             $rapport['nb_rejets'] = $this->getNbRejets($rapport_id);
         }
-        
+
         return $rapport;
     }
 
     /**
      * Récupère les validations d'un rapport
      */
-    public function getValidationsRapport($rapport_id) {
+    public function getValidationsRapport($rapport_id)
+    {
         $sql = "SELECT v.*, e.nom_ens, e.prenoms_ens, e.email_ens
                 FROM valider v
                 LEFT JOIN enseignants e ON e.id_ens = v.id_ens
@@ -153,7 +160,8 @@ class ValidationModel {
     /**
      * Valide un rapport
      */
-    public function validerRapport($rapport_id, $enseignant_id, $decision, $commentaire = null) {
+    public function validerRapport($rapport_id, $enseignant_id, $commentaire, $decision) 
+    {
         try {
             $this->pdo->beginTransaction();
 
@@ -161,7 +169,7 @@ class ValidationModel {
             $check_sql = "SELECT COUNT(*) FROM valider WHERE id_ens = ? AND id_rapport_etd = ?";
             $check_stmt = $this->pdo->prepare($check_sql);
             $check_stmt->execute([$enseignant_id, $rapport_id]);
-            
+
             if ($check_stmt->fetchColumn() > 0) {
                 // Mise à jour de la validation existante
                 $sql = "UPDATE valider SET 
@@ -184,7 +192,6 @@ class ValidationModel {
 
             $this->pdo->commit();
             return true;
-
         } catch (Exception $e) {
             $this->pdo->rollBack();
             error_log('Erreur lors de la validation : ' . $e->getMessage());
@@ -195,7 +202,19 @@ class ValidationModel {
     /**
      * Met à jour le statut du rapport basé sur les validations
      */
-    private function updateRapportStatus($rapport_id) {
+    private function updateRapportStatus($rapport_id)
+    {
+        // Récupérer le nombre total de membres de la commission
+        $commission_sql = "SELECT COUNT(*) as total_members
+                          FROM enseignants e
+                          JOIN utilisateur u ON u.login_utilisateur = e.email_ens
+                          JOIN posseder p ON p.id_util = u.id_utilisateur
+                          WHERE p.id_gu = 9 OR p.id_gu = 8";
+
+        $commission_stmt = $this->pdo->prepare($commission_sql);
+        $commission_stmt->execute();
+        $total_members = (int)$commission_stmt->fetch(PDO::FETCH_ASSOC)['total_members'];
+
         // Compter les validations
         $count_sql = "SELECT 
                         COUNT(*) as total_validations,
@@ -203,31 +222,43 @@ class ValidationModel {
                         SUM(CASE WHEN decision = 'Rejeté' THEN 1 ELSE 0 END) as nb_rejets
                      FROM valider 
                      WHERE id_rapport_etd = ?";
-        
+
         $count_stmt = $this->pdo->prepare($count_sql);
         $count_stmt->execute([$rapport_id]);
         $counts = $count_stmt->fetch(PDO::FETCH_ASSOC);
 
+        // Convertir en entiers pour éviter les problèmes de comparaison
+        $total_validations = (int)$counts['total_validations'];
+        $nb_valides = (int)$counts['nb_valides'];
+        $nb_rejets = (int)$counts['nb_rejets'];
+
         $new_status = 'En attente de validation';
 
-        if ($counts['total_validations'] > 0) {
-            if ($counts['nb_rejets'] > 0) {
-                $new_status = 'Rejeté';
-            } elseif ($counts['nb_valides'] === 4) { // Au moins 2 validations positives
-                $new_status = 'Validé';
-            }
+        // Si au moins un rejet, le rapport est rejeté immédiatement
+        if ($nb_rejets > 0) {
+            $new_status = 'Rejeté';
         }
+        // Si tous les membres ont évalué et qu'il n'y a aucun rejet
+        elseif ($total_validations >= $total_members && $nb_rejets == 0) {
+            // Tous ont voté et aucun rejet = rapport validé
+            $new_status = 'Validé';
+        }
+        // Sinon, reste en attente de validation
 
         // Mettre à jour le statut
         $update_sql = "UPDATE rapport_etudiant SET statut_rapport = ? WHERE id_rapport_etd = ?";
         $update_stmt = $this->pdo->prepare($update_sql);
         $update_stmt->execute([$new_status, $rapport_id]);
+
+        // Log pour débogage amélioré
+        error_log("ValidationModel::updateRapportStatus - Rapport ID: $rapport_id, Total membres: $total_members, Validations: $total_validations, Valides: $nb_valides, Rejets: $nb_rejets, Nouveau statut: $new_status");
     }
 
     /**
      * Récupère les statistiques de validation
      */
-    public function getValidationStats() {
+    public function getValidationStats()
+    {
         $sql = "SELECT 
                     COUNT(*) as total_rapports,
                     SUM(CASE WHEN statut_rapport = 'En attente de validation' THEN 1 ELSE 0 END) as en_attente,
@@ -243,21 +274,51 @@ class ValidationModel {
     /**
      * Vérifie si un enseignant peut valider un rapport
      */
-    public function canValidateRapport($rapport_id, $enseignant_id) {
+    public function canValidateRapport($rapport_id, $enseignant_id)
+    {
         // Vérifier si l'enseignant a déjà validé ce rapport
         $sql = "SELECT COUNT(*) FROM valider WHERE id_ens = ? AND id_rapport_etd = ?";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$enseignant_id, $rapport_id]);
-        
+
         return $stmt->fetchColumn() == 0;
+    }
+
+    /**
+     * Vérifie si tous les membres de la commission ont évalué un rapport
+     */
+    public function tousMembresOntEvalue($rapport_id)
+    {
+        // Récupérer le nombre total de membres de la commission
+        $commission_sql = "SELECT COUNT(*) as total_members
+                          FROM enseignants e
+                          JOIN utilisateur u ON u.login_utilisateur = e.email_ens
+                          JOIN posseder p ON p.id_util = u.id_utilisateur
+                          WHERE p.id_gu = 9 OR p.id_gu = 8";
+
+        $commission_stmt = $this->pdo->prepare($commission_sql);
+        $commission_stmt->execute();
+        $total_members = $commission_stmt->fetch(PDO::FETCH_ASSOC)['total_members'];
+
+        // Compter les évaluations pour ce rapport
+        $evaluations_sql = "SELECT COUNT(*) as total_evaluations
+                           FROM valider 
+                           WHERE id_rapport_etd = ?";
+
+        $evaluations_stmt = $this->pdo->prepare($evaluations_sql);
+        $evaluations_stmt->execute([$rapport_id]);
+        $total_evaluations = $evaluations_stmt->fetch(PDO::FETCH_ASSOC)['total_evaluations'];
+
+        return $total_evaluations >= $total_members;
     }
 
     /**
      * Récupère les rapports par statut
      */
-    public function getRapportsByStatut($statut, $page = 1, $limit = 10) {
+    public function getRapportsByStatut($statut, $page = 1, $limit = 10)
+    {
         $offset = ($page - 1) * $limit;
-        
+
         $where = ["re.statut_rapport = ?"];
         $params = [$statut];
 
@@ -302,7 +363,8 @@ class ValidationModel {
     /**
      * Recherche de rapports
      */
-    public function rechercherRapports($terme_recherche, $filtres = []) {
+    public function rechercherRapports($terme_recherche, $filtres = [])
+    {
         $where = [];
         $params = [];
 
@@ -353,7 +415,8 @@ class ValidationModel {
     /**
      * Récupère les infos détaillées d'un rapport par son ID
      */
-    public function getRapportById($id_rapport) {
+    public function getRapportById($id_rapport)
+    {
         $sql = "SELECT re.*, e.nom_etd, e.prenom_etd, e.email_etd, a.date_approbation, a.com_appr
                 FROM rapport_etudiant re
                 LEFT JOIN etudiants e ON e.num_etd = re.num_etd
@@ -367,7 +430,8 @@ class ValidationModel {
     /**
      * Récupère les messages de discussion pour un rapport
      */
-    public function getMessagesByRapport($id_rapport) {
+    public function getMessagesByRapport($id_rapport)
+    {
         $sql = "SELECT m.*, e.nom_ens, e.prenoms_ens, e.id_ens
                 FROM messages m
                 JOIN chat_commission c ON m.id_message = c.id_message
@@ -392,7 +456,8 @@ class ValidationModel {
     /**
      * Récupère les validations (votes, commentaires, etc.) pour un rapport
      */
-    public function getValidationsByRapport($id_rapport) {
+    public function getValidationsByRapport($id_rapport)
+    {
         $sql = "SELECT v.*, e.nom_ens, e.prenoms_ens
                 FROM valider v
                 LEFT JOIN enseignants e ON v.id_ens = e.id_ens
@@ -406,7 +471,8 @@ class ValidationModel {
     /**
      * Récupère la validation de l'utilisateur courant pour ce rapport
      */
-    public function getUserValidation($id_rapport, $id_ens) {
+    public function getUserValidation($id_rapport, $id_ens)
+    {
         $sql = "SELECT v.*, e.nom_ens, e.prenoms_ens
                 FROM valider v
                 LEFT JOIN enseignants e ON v.id_ens = e.id_ens
@@ -419,7 +485,8 @@ class ValidationModel {
     /**
      * Ajoute un message de discussion à un rapport (chat commission)
      */
-    public function addMessageToRapport($id_rapport, $id_ens, $message) {
+    public function addMessageToRapport($id_rapport, $id_ens, $message)
+    {
         try {
             $sql = "INSERT INTO messages (expediteur_id, destinataire_type, contenu, type_message, categorie, priorite, statut, rapport_id)
                     VALUES (:expediteur_id, 'commission', :contenu, 'chat', 'commission', 'normale', 'envoyé', :rapport_id)";
@@ -445,4 +512,4 @@ class ValidationModel {
             return false;
         }
     }
-} 
+}

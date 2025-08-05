@@ -128,12 +128,10 @@
                 closeModal(infoReportModal);
                 setTimeout(() => {
                     openModal(createReportModal);
-                    setTimeout(() => {
-                        // Initialiser l'éditeur quand le modal s'ouvre
-                        console.log('Ouverture du modal, initialisation de l\'éditeur...');
-                        initializeOnlyOfficeEditor();
-                        setupEditorButtons();
-                    }, 100);
+                    // Initialiser l'éditeur immédiatement quand le modal s'ouvre
+                    console.log('Ouverture du modal, initialisation de l\'éditeur...');
+                    initializeOnlyOfficeEditor();
+                    setupEditorButtons();
                 }, 300);
             });
         }
@@ -193,15 +191,22 @@
         // Récupération du statut et de l'éligibilité
         const reportStatus = <?php echo json_encode($rapport_status); ?>;
         const eligibilityStatus = <?php echo json_encode($eligibility_status); ?>;
+        const hasExistingReport = <?php echo $hasExistingReport ? 'true' : 'false'; ?>;
 
-        // Mise à jour de l'UI selon l'éligibilité
+        // Mise à jour de l'UI selon l'éligibilité et l'existence d'un rapport
         function updateEligibilityUI() {
-            if (eligibilityStatus === 'Éligible') {
-                checkStatusReport.classList.remove('btn-desactive');
-                newReportBtn.classList.remove('btn-desactive');
+            // Le bouton "Nouveau rapport" est activé si l'étudiant est éligible ET n'a pas de rapport existant
+            if (eligibilityStatus === 'Éligible' && !hasExistingReport) {
+                if (newReportBtn) newReportBtn.classList.remove('btn-desactive');
             } else {
-                checkStatusReport.classList.add('btn-desactive');
-                newReportBtn.classList.add('btn-desactive');
+                if (newReportBtn) newReportBtn.classList.add('btn-desactive');
+            }
+
+            // Le bouton "Vérifier" est activé si l'étudiant a un rapport existant
+            if (hasExistingReport) {
+                if (checkStatusReport) checkStatusReport.classList.remove('btn-desactive');
+            } else {
+                if (checkStatusReport) checkStatusReport.classList.add('btn-desactive');
             }
         }
 
@@ -218,6 +223,11 @@
         function showReportModal(status) {
             hideAllStatusModals();
             modalOverlay.style.display = 'block';
+
+            // Si le statut est vide ou null, afficher le modal "Non soumis"
+            if (!status || status === '' || status === null) {
+                status = "Non soumis";
+            }
 
             let modalToShow;
             switch (status) {
@@ -244,12 +254,16 @@
                     break;
                 default:
                     console.warn("Statut inconnu :", status);
-                    return;
+                    // Par défaut, afficher le modal "Non soumis"
+                    modalToShow = document.querySelector('.alert.not_submitted');
+                    break;
             }
 
             if (modalToShow) {
                 modalToShow.classList.add('fade-in');
                 modalToShow.style.display = 'block';
+            } else {
+                console.error('Modal non trouvé pour le statut:', status);
             }
         }
 
@@ -336,7 +350,14 @@
 
         // Assigner l'éditeur globalement
         window.localEditor = document.getElementById('local-editor');
-        console.log('Éditeur initialisé:', !!window.localEditor);
+        
+        if (window.localEditor) {
+            console.log('Éditeur initialisé avec succès');
+            // S'assurer que l'éditeur est focusable
+            window.localEditor.focus();
+        } else {
+            console.error('Éditeur local non trouvé');
+        }
     }
 
     // Créer un éditeur local avec conversion DOCX
@@ -643,10 +664,18 @@
 
     // Configurer les boutons de l'éditeur
     function setupEditorButtons() {
+        console.log('Configuration des boutons de l\'éditeur...');
         const loadTemplateBtn = document.getElementById('load-template');
         const saveReportBtn = document.getElementById('save-report-onlyoffice');
         const downloadPdfBtn = document.getElementById('download-pdf');
         const statusDiv = document.getElementById('status');
+        
+        console.log('Boutons trouvés:', {
+            loadTemplate: !!loadTemplateBtn,
+            saveReport: !!saveReportBtn,
+            downloadPdf: !!downloadPdfBtn,
+            status: !!statusDiv
+        });
 
         // Fonction pour afficher le statut
         function setStatus(message, isSuccess = true) {
@@ -658,7 +687,9 @@
 
         // Charger le modèle
         if (loadTemplateBtn) {
+            console.log('Bouton de chargement trouvé, ajout de l\'événement click');
             loadTemplateBtn.addEventListener('click', async function() {
+                console.log('Bouton de chargement cliqué !');
                 try {
                     // Récupérer le modèle sélectionné
                     const modelSelect = document.getElementById('model-select');
@@ -674,21 +705,21 @@
                     this.textContent = 'Chargement...';
                     setStatus('Chargement du modèle...');
 
-                    console.log('Début du chargement du modèle...');
+                    console.log('Début du chargement du modèle:', selectedModel);
 
                     // S'assurer que l'éditeur est initialisé
                     if (!window.localEditor) {
                         console.log('Initialisation de l\'éditeur...');
                         initializeOnlyOfficeEditor();
+                        
+                        // Attendre un peu pour que l'éditeur soit prêt
+                        await new Promise(resolve => setTimeout(resolve, 200));
                     }
-
-                    // Attendre un peu pour que l'éditeur soit prêt
-                    await new Promise(resolve => setTimeout(resolve, 100));
 
                     console.log('Éditeur disponible:', !!window.localEditor);
 
                     if (!window.localEditor) {
-                        throw new Error('Éditeur non initialisé');
+                        throw new Error('Éditeur non initialisé - veuillez réessayer');
                     }
 
                     let content = '';
@@ -910,9 +941,15 @@
             });
         }
 
-        // Désactiver les boutons au début
+        // Désactiver les boutons au début (sauf le bouton de chargement)
         if (saveReportBtn) saveReportBtn.disabled = true;
         if (downloadPdfBtn) downloadPdfBtn.disabled = true;
+        
+        // S'assurer que le bouton de chargement est activé
+        if (loadTemplateBtn) {
+            loadTemplateBtn.disabled = false;
+            console.log('Bouton de chargement activé');
+        }
     }
 
     // Fonction pour créer un modèle de base

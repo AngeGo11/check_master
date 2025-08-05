@@ -4,7 +4,7 @@ $rapport_details = $controller->getRapportDetails($_GET['rapport'], $_GET['id'])
 ?>
 
 
-<div class="modal open" id="rapports-student-modal">
+<div class="modal" id="view-rapport-modal">
     <div class="modal-content">
         <div class="top-text">
             <h2 class="modal-title"><i class="fas fa-file-signature"></i> Détails du Rapport</h2>

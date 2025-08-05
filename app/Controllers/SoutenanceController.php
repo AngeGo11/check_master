@@ -67,4 +67,37 @@ class SoutenanceController {
     public function getCompteRendu($studentId) {
         return $this->model->getCompteRendu($studentId);
     }
+
+    /**
+     * Vérifier la disponibilité du compte rendu via AJAX
+     */
+    public function checkCompteRenduAvailability($userId, $rapportId) {
+        try {
+            // Vérifier que l'utilisateur a accès à ce rapport
+            $studentData = $this->model->getStudentData($userId);
+            if (!$studentData) {
+                return ['success' => false, 'error' => 'Utilisateur non trouvé'];
+            }
+
+            $studentId = $studentData['num_etd'];
+            
+            // Récupérer le compte rendu pour ce rapport
+            $compteRendu = $this->model->getCompteRenduByRapport($studentId, $rapportId);
+            
+            if ($compteRendu && !empty($compteRendu['fichier_cr'])) {
+                return [
+                    'success' => true,
+                    'compte_rendu' => $compteRendu
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Aucun compte rendu disponible pour ce rapport'
+                ];
+            }
+        } catch (Exception $e) {
+            error_log("Erreur vérification disponibilité compte rendu: " . $e->getMessage());
+            return ['success' => false, 'error' => 'Erreur lors de la vérification'];
+        }
+    }
 } 

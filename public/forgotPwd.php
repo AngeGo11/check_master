@@ -14,41 +14,10 @@ require_once __DIR__ . '/../app/Controllers/AuthController.php';
 $pdo = DataBase::getConnection();
 $authController = new AuthController($pdo);
 
-$message = '';
-$messageType = '';
-
 // Envoi du mail
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send-link'])) {
     $email = filter_var($_POST['email'], FILTER_VALIDATE_EMAIL);
-    if ($email) {
-        // Vérifier si l'utilisateur existe
-        $stmt = $pdo->prepare("SELECT id_utilisateur FROM utilisateur WHERE login_utilisateur = ?");
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
-
-        if ($user) {
-            $token = $authController->generateToken();
-            $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
-
-            // Supprimer les anciens tokens
-            $pdo->prepare("DELETE FROM reset_password WHERE email = ?")->execute([$email]);
-
-            // Insérer le nouveau token
-            $pdo->prepare("INSERT INTO reset_password (email, token, expires_at) VALUES (?, ?, ?)")->execute([$email, $token, $expires]);
-
-            // Lien
-            $link = "http://localhost/GSCV+/public/resetMdp.php?token=$token";
-
-            $message = "Un lien de réinitialisation a été envoyé à votre adresse e-mail.";
-            $messageType = 'success';
-        } else {
-            $message = "Aucun compte trouvé avec cette adresse e-mail.";
-            $messageType = 'error';
-        }
-    } else {
-        $message = "Adresse e-mail invalide.";
-        $messageType = 'error';
-    }
+    $authController->sendLinkResetPassword($email);
 }
 ?>
 
@@ -185,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send-link'])) {
         </div>
     <?php endif; ?>
 
-    <div class="min-h-full flex">
+    <div class="min-h-full flex flex-row-reverse">
         <!-- Section gauche - Formulaire de réinitialisation -->
         <div class="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:flex-none lg:px-20 xl:px-24 relative">
             <!-- Formes flottantes pour l'animation -->
@@ -236,14 +205,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send-link'])) {
                             </div>
 
                             <div>
-                                <button type="submit" 
-                                        name="send-link" 
+                                <input type="submit" 
+                                        name="send-link" value="Envoyer le lien de réinitialisation"
                                         class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-primary to-primary-light hover:from-primary-light hover:to-primary-lighter focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-300 transform hover:scale-105 hover:shadow-lg">
-                                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                                        <i class="fas fa-paper-plane text-white/80 group-hover:text-white transition-colors"></i>
-                                    </span>
-                                    Envoyer le lien de réinitialisation
-                                </button>
                             </div>
                         </form>
 

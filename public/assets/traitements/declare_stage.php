@@ -42,6 +42,9 @@ if ($_POST['date_fin_stage'] < $_POST['date_debut_stage']) {
 }
 
 try {
+    // Initialiser la connexion à la base de données
+    $pdo = DataBase::getConnection();
+    
     $soutenanceController = new SoutenanceController($pdo);
 
     // Récupérer les données via le contrôleur

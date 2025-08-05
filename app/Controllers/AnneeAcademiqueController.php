@@ -39,4 +39,8 @@ class AnneeAcademiqueController {
     public function delete($id) {
         return $this->model->supprimerAnneeAcademique($id);
     }
+
+    public function getCurrentYear() {  
+        return $this->model->getCurrentAcademicYear();
+    }
 } 

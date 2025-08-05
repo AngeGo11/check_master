@@ -2,6 +2,7 @@
 ob_start();
 require_once '../app/config/config.php'; // pour $pdo
 require_once '../app/Controllers/MenuController.php';
+require_once '../app/Controllers/MessageController.php';
 
 // Vérification de connexion et du type d'utilisateur
 if (!isset($_SESSION['user_id'])) {
@@ -9,9 +10,11 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+$messageController = new MessageController($pdo);
+
 $fullname = $_SESSION['user_fullname'] ?? 'Utilisateur';
 $lib_user_type = $_SESSION['lib_user_type'] ?? 'Inconnu';
-//$messagesNonLus = compterMessagesNonLus($_SESSION['user_id']);
+$messagesNonLus = $messageController->compterMessagesNonLus($_SESSION['user_id']);
 
 // Page demandée
 $page = isset($_GET['page']) ? basename($_GET['page']) : 'dashboard';
@@ -83,6 +86,30 @@ $menuController = new MenuController($pdo);
             background: linear-gradient(180deg, #1a5276 0%, #163d5a 100%);
             box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease-in-out;
+            width: 256px;
+            min-width: 256px;
+            max-width: 256px;
+            flex-shrink: 0;
+        }
+        
+        /* Styles pour stabiliser le layout principal */
+        .page-content {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        main {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        
+        /* Conteneur principal avec largeur fixe */
+        .main-content-container {
+            flex: 1;
+            min-width: 0;
+            width: calc(100% - 256px);
         }
         
         .sidebar-logo-section {
@@ -243,7 +270,7 @@ $menuController = new MenuController($pdo);
         </div>
 
         <!-- Main Content -->
-        <div class="flex-1 md:ml-0">
+        <div class="flex-1 md:ml-0 main-content-container">
             <!-- Header Moderne -->
             <header class="modern-header">
                 <div class="px-6 py-4">
@@ -267,7 +294,7 @@ $menuController = new MenuController($pdo);
                             <div class="relative">
                                 <button class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-3 rounded-full transition-all duration-200 relative">
                                     <i class="fas fa-bell text-lg"></i>
-                                    <span class="notification-badge"><?= 0; ?></span>
+                                    <span class="notification-badge"><?= $messagesNonLus; ?></span>
                                 </button>
                             </div>
 
@@ -286,7 +313,7 @@ $menuController = new MenuController($pdo);
             </header>
 
             <!-- Page Content -->
-            <main class="p-6">
+            <main class="p-6 page-content">
                 <?php include $file_path; ?>
             </main>
         </div>

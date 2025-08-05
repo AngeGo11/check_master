@@ -29,7 +29,7 @@ try {
                 exit();
             }
 
-            $controller->validerRapports($id_ens, $id_rapport, $commentaire, $decision);
+            $controller->validerRapports($id_rapport, $id_ens, $commentaire, $decision);
             exit();
 
         default:

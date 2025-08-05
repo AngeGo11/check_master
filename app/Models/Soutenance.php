@@ -93,27 +93,55 @@ class Soutenance
     public function getCompteRendu($studentId)
     {
         try {
-            // Récupérer le dernier rapport de l'étudiant
-            $query = "SELECT re.id_rapport_etd FROM rapport_etudiant re
-                      JOIN etudiants etd ON etd.num_etd = re.num_etd 
-                      WHERE etd.num_etd = :student_id
-                      ORDER BY re.date_rapport DESC LIMIT 1";
+            // Récupérer le compte rendu via la relation avec les enseignants et validations
+            $query = "SELECT cr.id_cr, cr.nom_cr, cr.fichier_cr, cr.date_cr,
+                             r.id_rapport_etd, r.nom_rapport, r.date_rapport
+                      FROM compte_rendu cr
+                      JOIN rendre rn ON rn.id_cr = cr.id_cr
+                      JOIN enseignants ens ON ens.id_ens = rn.id_ens
+                      JOIN valider v ON v.id_ens = ens.id_ens
+                      JOIN rapport_etudiant r ON r.id_rapport_etd = v.id_rapport_etd
+                      JOIN etudiants e ON e.num_etd = r.num_etd
+                      WHERE e.num_etd = :student_id
+                      ORDER BY cr.date_cr DESC 
+                      LIMIT 1";
+            
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':student_id', $studentId);
-            $stmt->execute();
-            $rapport = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!$rapport || !isset($rapport['id_rapport_etd'])) {
-                return false;
-            }
-            $id_rapport_etd = $rapport['id_rapport_etd'];
-
-            $query = "SELECT * FROM compte_rendu WHERE id_rapport_etd = :id_rapport_etd ORDER BY date_creation DESC LIMIT 1";
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':id_rapport_etd', $id_rapport_etd);
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Erreur récupération compte rendu: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Récupérer le compte rendu pour un rapport spécifique
+     */
+    public function getCompteRenduByRapport($studentId, $rapportId)
+    {
+        try {
+            // Vérifier que le rapport appartient à l'étudiant
+            $query = "SELECT cr.id_cr, cr.nom_cr, cr.fichier_cr, cr.date_cr,
+                             r.id_rapport_etd, r.nom_rapport, r.date_rapport
+                      FROM compte_rendu cr
+                      JOIN rendre rn ON rn.id_cr = cr.id_cr
+                      JOIN enseignants ens ON ens.id_ens = rn.id_ens
+                      JOIN valider v ON v.id_ens = ens.id_ens
+                      JOIN rapport_etudiant r ON r.id_rapport_etd = v.id_rapport_etd
+                      JOIN etudiants e ON e.num_etd = r.num_etd
+                      WHERE e.num_etd = :student_id AND r.id_rapport_etd = :rapport_id
+                      ORDER BY cr.date_cr DESC 
+                      LIMIT 1";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':student_id', $studentId);
+            $stmt->bindParam(':rapport_id', $rapportId);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Erreur récupération compte rendu par rapport: " . $e->getMessage());
             return false;
         }
     }

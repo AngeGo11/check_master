@@ -89,7 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_reclamation'])) 
             error_log("Insertion réussie");
             
             // Enregistrer la piste d'audit
-            enregistrer_piste_audit($pdo, $_SESSION['user_id'], 'reclamations', 'Dépôt réclamation étudiant', 1);
             
         } catch (PDOException $e) {
             error_log("Erreur SQL : " . $e->getMessage());

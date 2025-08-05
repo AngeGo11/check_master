@@ -39,20 +39,18 @@ class Profil
     /**
      * Récupérer les données du profil étudiant
      */
-    public function getStudentData($studentId)
+    public function getStudentData($userId)
     {
         try {
-            $query = "SELECT e.*, p.lib_promotion, n.lib_niv_etd 
-                      FROM etudiants e 
-                      LEFT JOIN promotion p ON e.id_promotion = p.id_promotion 
-                      LEFT JOIN niveau_etude n ON e.id_niv_etd = n.id_niv_etd 
-                      WHERE e.num_etd = :student_id";
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':student_id', $studentId);
-            $stmt->execute();
+            $sql = "SELECT * FROM etudiants e 
+                    JOIN utilisateur u ON u.login_utilisateur = e.email_etd
+                    WHERE id_utilisateur = ?";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$userId]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            error_log("Erreur récupération données étudiant: " . $e->getMessage());
+            error_log("Erreur récupération données étudiant réclamation: " . $e->getMessage());
             return false;
         }
     }
@@ -63,44 +61,38 @@ class Profil
     public function getStudentGrades($studentId)
     {
         try {
-            $query = " SELECT * FROM (
-            SELECT 
-                ev.id_ue as id_ecue,
+            $query = "SELECT 
+                s.lib_semestre,
+                u.id_ue,
+                u.lib_ue,
+                u.credit_ue,
+                'ue' as type,
                 ev.note,
-                ev.credit,
-                ue.credit_ue as credit_ecue,
-                ue.lib_ue as lib_ecue,
-                ue.id_ue,
-                ue.lib_ue
+                ev.credit
             FROM evaluer_ue ev
-            INNER JOIN ue ON ev.id_ue = ue.id_ue
-            WHERE ev.num_etd = (
-                SELECT num_etd FROM etudiants WHERE num_carte_etd = ?
-            )
-            AND ev.id_semestre = ?
+            JOIN ue u ON ev.id_ue = u.id_ue
+            JOIN semestre s ON ev.id_semestre = s.id_semestre
+            WHERE ev.num_etd = ?
 
             UNION ALL
 
             SELECT 
-                ev.id_ecue,
+                s.lib_semestre,
+                u.id_ue,
+                u.lib_ue,
+                u.credit_ue,
+                'ecue' as type,
                 ev.note,
-                ev.credit,
-                ec.credit_ecue,
-                ec.lib_ecue,
-                ue.id_ue,
-                ue.lib_ue
+                ev.credit
             FROM evaluer_ecue ev
-            INNER JOIN ecue ec ON ev.id_ecue = ec.id_ecue
-            INNER JOIN ue ON ec.id_ue = ue.id_ue
-            WHERE ev.num_etd = (
-                SELECT num_etd FROM etudiants WHERE num_carte_etd = ?
-            )
-            AND ev.id_semestre = :student_id
-        ) AS combined_notes
-        ORDER BY lib_ue, lib_ecue";
+            JOIN ecue e ON ev.id_ecue = e.id_ecue
+            JOIN ue u ON e.id_ue = u.id_ue
+            JOIN semestre s ON ev.id_semestre = s.id_semestre
+            WHERE ev.num_etd = ?
+            ORDER BY lib_semestre, lib_ue";
+            
             $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':student_id', $studentId);
-            $stmt->execute();
+            $stmt->execute([$studentId, $studentId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Erreur récupération notes: " . $e->getMessage());
@@ -114,11 +106,11 @@ class Profil
     public function getStudentInternships($studentId)
     {
         try {
-            $query = "SELECT s.*, e.lib_entr 
-                      FROM stage s 
-                      LEFT JOIN entreprise e ON s.entreprise_id = e.id_entr 
-                      WHERE s.etudiant_id = :student_id 
-                      ORDER BY s.date_debut DESC";
+            $query = "SELECT fs.*, ent.lib_entr
+                FROM faire_stage fs
+                JOIN entreprise ent ON fs.id_entr = ent.id_entr
+                WHERE fs.num_etd = :student_id 
+                ORDER BY fs.date_debut DESC";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':student_id', $studentId);
             $stmt->execute();
@@ -135,7 +127,7 @@ class Profil
     public function getStudentReports($studentId)
     {
         try {
-            $query = "SELECT * FROM rapport WHERE etudiant_id = :student_id ORDER BY date_soumission DESC";
+            $query = "SELECT * FROM rapport_etudiant WHERE num_etd = :student_id ORDER BY date_rapport DESC";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':student_id', $studentId);
             $stmt->execute();

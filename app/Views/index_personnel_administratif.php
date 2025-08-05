@@ -2,16 +2,18 @@
 ob_start();
 require_once __DIR__ . '/../../config/config.php'; // pour $pdo
 require_once __DIR__ . '/../Controllers/MenuController.php';
+require_once __DIR__ . '/../Controllers/MessageController.php';
 
 // Vérification de connexion et du type d'utilisateur
 if (!isset($_SESSION['user_id'])) {
     header('Location: /GSCV+/public/pageConnexion.php');
     exit();
 }
+$messageController = new MessageController($pdo);
 
 $fullname = $_SESSION['user_fullname'] ?? 'Utilisateur';
 $lib_user_type = $_SESSION['lib_user_type'] ?? 'Inconnu';
-//$messagesNonLus = compterMessagesNonLus($_SESSION['user_id']);
+$messagesNonLus = $messageController->compterMessagesNonLus($_SESSION['user_id']);
 
 // Page demandée
 $page = isset($_GET['page']) ? basename($_GET['page']) : 'etudiants';
@@ -267,7 +269,7 @@ $menuController = new MenuController($pdo);
                             <div class="relative">
                                 <button class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-3 rounded-full transition-all duration-200 relative">
                                     <i class="fas fa-bell text-lg"></i>
-                                    <span class="notification-badge"><?= 0; ?></span>
+                                    <span class="notification-badge"><?= $messagesNonLus; ?></span>
                                 </button>
                             </div>
 

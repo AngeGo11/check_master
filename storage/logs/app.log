@@ -1,0 +1,26 @@
+[2025-08-01 15:40:08] [INFO] [IP: ::1] [User: KOUA Brou (ID: 1)] Traitement des actions utilisateur démarré | Context: {"method":"GET","action":"none","user_id":1}
+[2025-08-01 15:40:23] [INFO] [IP: ::1] [User: KOUA Brou (ID: 1)] Traitement des actions utilisateur démarré | Context: {"method":"POST","action":"assign_multiple","user_id":1}
+[2025-08-01 15:40:23] [INFO] [IP: ::1] [User: KOUA Brou (ID: 1)] Traitement des actions utilisateur démarré | Context: {"method":"GET","action":"none","user_id":1}
+[2025-08-01 15:41:59] [INFO] [IP: ::1] [User: KOUA Brou (ID: 1)] Traitement des actions utilisateur démarré | Context: {"method":"GET","action":"none","user_id":1}
+[2025-08-01 15:42:22] [INFO] [IP: ::1] [User: KOUA Brou (ID: 1)] Traitement des actions utilisateur démarré | Context: {"method":"GET","action":"none","user_id":1}
+[2025-08-01 15:43:02] [INFO] [IP: ::1] [User: KOUA Brou (ID: 1)] Traitement des actions utilisateur démarré | Context: {"method":"GET","action":"none","user_id":1}
+[2025-08-01 15:43:47] [INFO] [IP: ::1] [User: anonymous (ID: unknown)] Test du système de logging | Context: {"test":"info"}
+[2025-08-01 15:43:47] [SUCCESS] [IP: ::1] [User: anonymous (ID: unknown)] Test de succès | Context: {"test":"success"}
+[2025-08-01 15:43:47] [WARNING] [IP: ::1] [User: anonymous (ID: unknown)] Test d'avertissement | Context: {"test":"warning"}
+[2025-08-01 15:43:47] [ERROR] [IP: ::1] [User: anonymous (ID: unknown)] Test d'erreur | Context: {"test":"error"}
+[2025-08-01 15:43:47] [DEBUG] [IP: ::1] [User: anonymous (ID: unknown)] Test de debug | Context: {"test":"debug"}
+[2025-08-01 15:43:50] [SUCCESS] [IP: ::1] [User: anonymous (ID: unknown)] Email de test envoyé avec succès | Context: {"to":"test@example.com"}
+[2025-08-01 15:44:10] [INFO] [IP: ::1] [User: anonymous (ID: unknown)] Test du système de logging | Context: {"test":"info"}
+[2025-08-01 15:44:10] [SUCCESS] [IP: ::1] [User: anonymous (ID: unknown)] Test de succès | Context: {"test":"success"}
+[2025-08-01 15:44:10] [WARNING] [IP: ::1] [User: anonymous (ID: unknown)] Test d'avertissement | Context: {"test":"warning"}
+[2025-08-01 15:44:10] [ERROR] [IP: ::1] [User: anonymous (ID: unknown)] Test d'erreur | Context: {"test":"error"}
+[2025-08-01 15:44:10] [DEBUG] [IP: ::1] [User: anonymous (ID: unknown)] Test de debug | Context: {"test":"debug"}
+[2025-08-01 15:44:13] [SUCCESS] [IP: ::1] [User: anonymous (ID: unknown)] Email de test envoyé avec succès | Context: {"to":"test@example.com"}
+[2025-08-01 15:45:25] [INFO] [IP: ::1] [User: anonymous (ID: unknown)] Tentative de génération de mots de passe | Context: {"user_ids":[39],"count":1}
+[2025-08-01 15:45:25] [ERROR] [IP: ::1] [User: anonymous (ID: unknown)] Échec de la génération de mots de passe | Context: {"error":"Unknown error"}
+[2025-08-01 15:45:25] [ERROR] [IP: ::1] [User: anonymous (ID: unknown)] Test d'activation échoué | Context: {"user_id":39,"error":"Unknown error"}
+[2025-08-01 15:45:27] [SUCCESS] [IP: ::1] [User: anonymous (ID: unknown)] Email de test envoyé avec succès | Context: {"to":"axelangegomez2004@gmail.com"}
+[2025-08-01 15:45:59] [INFO] [IP: ::1] [User: anonymous (ID: unknown)] Tentative de génération de mots de passe | Context: {"user_ids":[39],"count":1}
+[2025-08-01 15:45:59] [ERROR] [IP: ::1] [User: anonymous (ID: unknown)] Échec de la génération de mots de passe | Context: {"error":"Unknown error"}
+[2025-08-01 15:45:59] [ERROR] [IP: ::1] [User: anonymous (ID: unknown)] Test d'activation échoué | Context: {"user_id":39,"error":"Unknown error"}
+[2025-08-01 15:46:02] [SUCCESS] [IP: ::1] [User: anonymous (ID: unknown)] Email de test envoyé avec succès | Context: {"to":"axelangegomez2004@gmail.com"}

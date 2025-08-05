@@ -126,7 +126,7 @@ while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
     $membres_commission[] = $row;
 }
 $query = "
-    SELECT DISTINCT gu.lib_gu, COUNT(DISTINCT p.id_util) AS count
+    SELECT gu.lib_gu, gu.id_gu, COUNT(DISTINCT p.id_util) AS count
     FROM groupe_utilisateur gu
     LEFT JOIN posseder p ON gu.id_gu = p.id_gu
     GROUP BY gu.lib_gu, gu.id_gu
@@ -329,12 +329,7 @@ $line_chart_final_data = [
         <!-- Contenu principal -->
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <!-- Message de bienvenue -->
-            <div class="mb-8 animate-fade-in">
-                <h2 class="text-3xl font-bold text-gray-900 mb-2">
-                    Tableau de bord 📊
-                </h2>
-                <p class="text-gray-600">Bienvenue, <?= explode(' ', $_SESSION['user_fullname'])[0] ?? 'Utilisateur' ?> ! Voici un aperçu de l'activité du système.</p>
-            </div>
+            
 
             <!-- Cartes de statistiques principales -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

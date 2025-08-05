@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../config/config.php';
+
 // Vérification de sécurité
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_groups'])) {
     header('Location: ../public/pageConnection.php');
@@ -6,19 +8,28 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_groups'])) {
 }
 
 // Initialisation du contrôleur
-require_once '../app/Controllers/ArchivageController.php';
-$controller = new ArchivageController();
+require_once __DIR__ . '/../Controllers/ArchivageController.php';
+$controller = new ArchivageController($pdo);
 
 // Récupération des données via le contrôleur
 $data = $controller->viewArchivage();
 
-// Extraction des variables pour la vue
-$documents = $data['documents'];
-$statistics = $data['statistics'];
-$pagination = $data['pagination'];
-$filters = $data['filters'];
-$fullname = isset($_SESSION['user_fullname']) ? $_SESSION['user_fullname'] : 'Utilisateur';
-$lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] : '';
+// Extraction des variables pour la vue avec valeurs par défaut
+$documents = $data['documents'] ?? [];
+$statistics = $data['statistics'] ?? [
+    'rapports_valides' => 0,
+    'rapports_en_attente' => 0,
+    'rapports_rejetes' => 0,
+    'comptes_rendus' => 0
+];
+$pagination = $data['pagination'] ?? [
+    'current_page' => 1,
+    'total_pages' => 1,
+    'total_items' => 0
+];
+$filters = $data['filters'] ?? [];
+$fullname = $_SESSION['user_fullname'] ?? 'Utilisateur';
+$lib_user_type = $_SESSION['lib_user_type'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="fr" class="h-full bg-gray-50">
@@ -71,7 +82,6 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
 <body class="h-full bg-gray-50">
     <div class="min-h-full">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
 
             <!-- KPI Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-slide-up">
@@ -202,6 +212,7 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
                             <i class="fas fa-archive mr-2"></i>
                             Archiver la sélection
                         </button>
+                       
                     </div>
                 </div>
             </div>
@@ -216,8 +227,8 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                    <table class="w-full text-sm text-left text-gray-500">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left">
                                     <input type="checkbox" id="select-all" 
@@ -246,7 +257,7 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
                                 </th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tbody>
                             <?php if (!empty($documents)): ?>
                                 <?php foreach ($documents as $document): ?>
                                     <tr class="hover:bg-gray-50 transition-colors duration-200">
@@ -305,12 +316,23 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <a href="?page=archivage_documents&action=archive&id=<?php echo $document['id_document']; ?>&type=<?php echo urlencode($document['type_document']); ?>" 
-                                               class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-secondary hover:bg-yellow-600 transition-colors duration-200"
-                                               onclick="return confirm('Voulez-vous vraiment archiver ce document ?')">
-                                                <i class="fas fa-archive mr-2"></i>
-                                                Archiver
-                                            </a>
+                                            <div class="flex space-x-2">
+                                                <button onclick="archiveDocument(<?php echo $document['id_document']; ?>, '<?php echo $document['type_document']; ?>')"
+                                                        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-secondary hover:bg-yellow-600 transition-colors duration-200"
+                                                        title="Archiver">
+                                                    <i class="fas fa-archive"></i>
+                                                </button>
+                                                <button onclick="downloadDocument(<?php echo $document['id_document']; ?>, '<?php echo $document['type_document']; ?>')"
+                                                        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary hover:bg-primary-light transition-colors duration-200"
+                                                        title="Télécharger">
+                                                    <i class="fas fa-download"></i>
+                                                </button>
+                                                <button onclick="viewDocument(<?php echo $document['id_document']; ?>, '<?php echo $document['type_document']; ?>')"
+                                                        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-accent hover:bg-green-600 transition-colors duration-200"
+                                                        title="Voir">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -497,6 +519,7 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
                 function() {
                     // Envoyer les données d'archivage
                     const formData = new FormData();
+                    formData.append('action', 'bulk_archive');
                     formData.append('documents', JSON.stringify(documents));
                     
                     fetch('./assets/traitements/archiver_documents.php', {
@@ -518,6 +541,138 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
                 }
             );
         });
+
+        // Téléchargement multiple
+        document.getElementById('bulk-download-btn').addEventListener('click', function() {
+            const checkedBoxes = document.querySelectorAll('.document-checkbox:checked');
+            const documents = Array.from(checkedBoxes).map(cb => ({
+                id: cb.value,
+                type: cb.getAttribute('data-type')
+            }));
+            
+            if (documents.length === 0) {
+                openConfirmationModal('Veuillez sélectionner au moins un document à télécharger.', null);
+                return;
+            }
+            
+            // Créer un formulaire temporaire pour le téléchargement
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = './assets/traitements/download_documents.php';
+            form.style.display = 'none';
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'documents';
+            input.value = JSON.stringify(documents);
+            form.appendChild(input);
+            
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        });
+
+        // Export multiple
+        document.getElementById('bulk-export-btn').addEventListener('click', function() {
+            const checkedBoxes = document.querySelectorAll('.document-checkbox:checked');
+            const documents = Array.from(checkedBoxes).map(cb => ({
+                id: cb.value,
+                type: cb.getAttribute('data-type')
+            }));
+            
+            if (documents.length === 0) {
+                openConfirmationModal('Veuillez sélectionner au moins un document à exporter.', null);
+                return;
+            }
+            
+            openConfirmationModal(
+                `Voulez-vous exporter les ${documents.length} documents sélectionnés ?`,
+                function() {
+                    const formData = new FormData();
+                    formData.append('action', 'bulk_export');
+                    formData.append('documents', JSON.stringify(documents));
+                    
+                    fetch('./assets/traitements/export_documents.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'documents_export_' + new Date().toISOString().split('T')[0] + '.zip';
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    })
+                    .catch(error => {
+                        console.error('Erreur:', error);
+                        openConfirmationModal('Une erreur est survenue lors de l\'export.', null);
+                    });
+                }
+            );
+        });
+
+        // Fonctions pour les actions individuelles
+        function archiveDocument(id, type) {
+            openConfirmationModal(
+                `Voulez-vous vraiment archiver ce document ?`,
+                function() {
+                    const formData = new FormData();
+                    formData.append('action', 'archive_single');
+                    formData.append('document_id', id);
+                    formData.append('document_type', type);
+                    
+                    fetch('./assets/traitements/archiver_documents.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            openConfirmationModal(data.message || 'Document archivé avec succès.', function(){ location.reload(); });
+                        } else {
+                            openConfirmationModal('Une erreur est survenue : ' + (data.error || 'Erreur inconnue'), null);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur:', error);
+                        openConfirmationModal('Une erreur de communication est survenue.', null);
+                    });
+                }
+            );
+        }
+
+        function downloadDocument(id, type) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = './assets/traitements/download_document.php';
+            form.style.display = 'none';
+            
+            const inputId = document.createElement('input');
+            inputId.type = 'hidden';
+            inputId.name = 'document_id';
+            inputId.value = id;
+            form.appendChild(inputId);
+            
+            const inputType = document.createElement('input');
+            inputType.type = 'hidden';
+            inputType.name = 'document_type';
+            inputType.value = type;
+            form.appendChild(inputType);
+            
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+
+        function viewDocument(id, type) {
+            // Ouvrir le document dans une nouvelle fenêtre ou modal
+            const url = `./assets/traitements/view_document.php?id=${id}&type=${encodeURIComponent(type)}`;
+            window.open(url, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+        }
 
         // Animation au scroll
         const observerOptions = {

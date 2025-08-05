@@ -34,6 +34,8 @@ class DemandeSoutenance
         }
     }
 
+    
+
     // READ
     public function getAllDemandesSoutenance()
     {
@@ -110,9 +112,15 @@ class DemandeSoutenance
         }
         $where_sql = count($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
 
+        // Sous-requête pour obtenir la demande la plus récente par étudiant
         $sql = "SELECT d.*, e.nom_etd, e.prenom_etd, e.num_carte_etd, e.email_etd, e.statut_eligibilite
                 FROM demande_soutenance d
                 JOIN etudiants e ON d.num_etd = e.num_etd
+                INNER JOIN (
+                    SELECT num_etd, MAX(date_demande) as max_date
+                    FROM demande_soutenance
+                    GROUP BY num_etd
+                ) latest ON d.num_etd = latest.num_etd AND d.date_demande = latest.max_date
                 $where_sql
                 ORDER BY d.date_demande DESC
                 LIMIT $limit OFFSET $offset";
@@ -138,9 +146,16 @@ class DemandeSoutenance
             $params[] = $statut;
         }
         $where_sql = count($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
+        
+        // Compter les demandes uniques par étudiant (la plus récente)
         $sql = "SELECT COUNT(*) as total
                 FROM demande_soutenance d
                 JOIN etudiants e ON d.num_etd = e.num_etd
+                INNER JOIN (
+                    SELECT num_etd, MAX(date_demande) as max_date
+                    FROM demande_soutenance
+                    GROUP BY num_etd
+                ) latest ON d.num_etd = latest.num_etd AND d.date_demande = latest.max_date
                 $where_sql";
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);

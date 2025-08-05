@@ -184,6 +184,11 @@ $filters = $data['filters'];
                             <i class="fas fa-plus mr-2"></i>
                             Nouvelle réunion
                         </button>
+                        <button onclick="updateMeetingStatuses()" 
+                                class="px-4 py-3 bg-warning text-white rounded-lg hover:bg-yellow-600 transition-colors duration-200 flex items-center">
+                            <i class="fas fa-sync-alt mr-2"></i>
+                            Mettre à jour statuts
+                        </button>
                         <button onclick="exportMeetings()" 
                                 class="px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center">
                             <i class="fas fa-download mr-2"></i>
@@ -193,8 +198,26 @@ $filters = $data['filters'];
                 </div>
             </div>
 
+            <!-- Onglets -->
+            <div class="bg-white rounded-xl shadow-lg mb-8 animate-slide-up">
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+                        <button onclick="switchTab('list')" id="tab-list" 
+                                class="tab-button border-b-2 border-primary py-4 px-1 text-sm font-medium text-primary">
+                            <i class="fas fa-list mr-2"></i>
+                            Liste des réunions
+                        </button>
+                        <button onclick="switchTab('calendar')" id="tab-calendar" 
+                                class="tab-button border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-calendar-alt mr-2"></i>
+                            Calendrier
+                        </button>
+                    </nav>
+                </div>
+            </div>
+
             <!-- Liste des réunions -->
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden animate-slide-up">
+            <div id="list-view" class="bg-white rounded-xl shadow-lg overflow-hidden animate-slide-up">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-900">
                         <i class="fas fa-calendar mr-2 text-primary"></i>
@@ -216,7 +239,7 @@ $filters = $data['filters'];
                                     Lieu
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Participants
+                                    Participants invités
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Statut
@@ -290,30 +313,67 @@ $filters = $data['filters'];
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <?php
-                                            $status = $reunion['statut'] ?? 'planifiee';
+                                            $status = $reunion['statut'] ?? $reunion['status'] ?? 'programmée';
                                             $statusColors = [
+                                                'programmée' => 'bg-blue-100 text-blue-800',
                                                 'planifiee' => 'bg-blue-100 text-blue-800',
                                                 'en_cours' => 'bg-yellow-100 text-yellow-800',
+                                                'en cours' => 'bg-yellow-100 text-yellow-800',
                                                 'terminee' => 'bg-green-100 text-green-800',
-                                                'reportee' => 'bg-red-100 text-red-800'
+                                                'terminée' => 'bg-green-100 text-green-800',
+                                                'terminée' => 'bg-green-100 text-green-800',
+                                                'annulée' => 'bg-red-100 text-red-800',
+                                                'reportee' => 'bg-orange-100 text-orange-800'
                                             ];
                                             $statusLabels = [
+                                                'programmée' => 'Programmée',
                                                 'planifiee' => 'Planifiée',
                                                 'en_cours' => 'En cours',
+                                                'en cours' => 'En cours',
                                                 'terminee' => 'Terminée',
+                                                'terminée' => 'Terminée',
+                                                'terminée' => 'Terminée',
+                                                'annulée' => 'Annulée',
                                                 'reportee' => 'Reportée'
                                             ];
                                             $statusIcons = [
+                                                'programmée' => 'fas fa-clock',
                                                 'planifiee' => 'fas fa-clock',
                                                 'en_cours' => 'fas fa-play',
+                                                'en cours' => 'fas fa-play',
                                                 'terminee' => 'fas fa-check',
+                                                'terminée' => 'fas fa-check',
+                                                'terminée' => 'fas fa-check',
+                                                'annulée' => 'fas fa-times',
                                                 'reportee' => 'fas fa-pause'
                                             ];
+                                            
+                                            // Vérifier si la réunion est en cours maintenant
+                                            $now = new DateTime();
+                                            $reunionDateTime = new DateTime(($reunion['date_reunion'] ?? $reunion['date']) . ' ' . ($reunion['heure_debut'] ?? $reunion['heure']));
+                                            $duree = floatval($reunion['duree'] ?? 1.5); // Durée par défaut 1.5h
+                                            $finReunion = clone $reunionDateTime;
+                                            $finReunion->add(new DateInterval('PT' . intval($duree * 60) . 'M'));
+                                            
+                                            // Mise à jour automatique du statut affiché
+                                            if ($now < $reunionDateTime) {
+                                                $status = 'programmée';
+                                            } elseif ($now >= $reunionDateTime && $now <= $finReunion) {
+                                                $status = 'en cours';
+                                            } else {
+                                                $status = 'terminée';
+                                            }
                                             ?>
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <?php echo $statusColors[$status]; ?>">
-                                                <i class="<?php echo $statusIcons[$status]; ?> mr-1"></i>
-                                                <?php echo $statusLabels[$status]; ?>
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <?php echo $statusColors[$status] ?? 'bg-gray-100 text-gray-800'; ?>">
+                                                <i class="<?php echo $statusIcons[$status] ?? 'fas fa-question'; ?> mr-1"></i>
+                                                <?php echo $statusLabels[$status] ?? 'Inconnu'; ?>
                                             </span>
+                                            <?php if ($status === 'en cours'): ?>
+                                                <div class="text-xs text-yellow-600 mt-1">
+                                                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                                                    Réunion en cours
+                                                </div>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div class="flex space-x-2">
@@ -325,12 +385,7 @@ $filters = $data['filters'];
                                                         class="text-warning hover:text-yellow-600" title="Modifier">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
-                                                <?php if ($status === 'planifiee'): ?>
-                                                    <button onclick="startMeeting(<?php echo $reunion['id']; ?>)" 
-                                                            class="text-accent hover:text-green-600" title="Démarrer">
-                                                        <i class="fas fa-play"></i>
-                                                    </button>
-                                                <?php endif; ?>
+                                                
                                                 <button onclick="deleteMeeting(<?php echo $reunion['id']; ?>)" 
                                                         class="text-danger hover:text-red-600" title="Supprimer">
                                                     <i class="fas fa-trash"></i>
@@ -418,7 +473,54 @@ $filters = $data['filters'];
                 <?php endif; ?>
             </div>
         </div>
+
+        <!-- Vue Calendrier -->
+        <div id="calendar-view" class="bg-white rounded-xl shadow-lg overflow-hidden animate-slide-up" style="display: none;">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-calendar-alt mr-2 text-primary"></i>
+                    Calendrier des réunions
+                </h3>
+            </div>
+            
+            <div class="p-6">
+                <!-- Contrôles du calendrier -->
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center space-x-4">
+                        <button onclick="previousMonth()" class="p-2 rounded-lg border border-gray-300 hover:bg-gray-50">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <h2 id="current-month" class="text-xl font-semibold text-gray-900">
+                            <?php echo date('F Y'); ?>
+                        </h2>
+                        <button onclick="nextMonth()" class="p-2 rounded-lg border border-gray-300 hover:bg-gray-50">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <button onclick="goToToday()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors">
+                        Aujourd'hui
+                    </button>
+                </div>
+
+                <!-- Grille du calendrier -->
+                <div class="grid grid-cols-7 gap-1">
+                    <!-- En-têtes des jours -->
+                    <div class="p-3 text-center text-sm font-medium text-gray-500">Dim</div>
+                    <div class="p-3 text-center text-sm font-medium text-gray-500">Lun</div>
+                    <div class="p-3 text-center text-sm font-medium text-gray-500">Mar</div>
+                    <div class="p-3 text-center text-sm font-medium text-gray-500">Mer</div>
+                    <div class="p-3 text-center text-sm font-medium text-gray-500">Jeu</div>
+                    <div class="p-3 text-center text-sm font-medium text-gray-500">Ven</div>
+                    <div class="p-3 text-center text-sm font-medium text-gray-500">Sam</div>
+                </div>
+                
+                <div id="calendar-grid" class="grid grid-cols-7 gap-1">
+                    <!-- Les jours seront générés par JavaScript -->
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 
     <!-- Modal Nouvelle Réunion -->
     <div id="newMeetingModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
@@ -505,6 +607,118 @@ $filters = $data['filters'];
     </div>
 
     <script>
+        // Variables globales pour le calendrier
+        let currentDate = new Date();
+        let meetings = <?php echo json_encode($reunions); ?>;
+        
+        // Gestion des onglets
+        function switchTab(tab) {
+            // Masquer toutes les vues
+            document.getElementById('list-view').style.display = 'none';
+            document.getElementById('calendar-view').style.display = 'none';
+            
+            // Désactiver tous les onglets
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('border-primary', 'text-primary');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            // Afficher la vue sélectionnée
+            if (tab === 'list') {
+                document.getElementById('list-view').style.display = 'block';
+                document.getElementById('tab-list').classList.remove('border-transparent', 'text-gray-500');
+                document.getElementById('tab-list').classList.add('border-primary', 'text-primary');
+            } else if (tab === 'calendar') {
+                document.getElementById('calendar-view').style.display = 'block';
+                document.getElementById('tab-calendar').classList.remove('border-transparent', 'text-gray-500');
+                document.getElementById('tab-calendar').classList.add('border-primary', 'text-primary');
+                renderCalendar();
+            }
+        }
+        
+        // Fonctions du calendrier
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            // Mettre à jour le titre du mois
+            const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                               'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+            document.getElementById('current-month').textContent = `${monthNames[month]} ${year}`;
+            
+            // Obtenir le premier jour du mois et le nombre de jours
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            const calendarGrid = document.getElementById('calendar-grid');
+            calendarGrid.innerHTML = '';
+            
+            // Générer les jours du calendrier
+            for (let i = 0; i < 42; i++) {
+                const currentDay = new Date(startDate);
+                currentDay.setDate(startDate.getDate() + i);
+                
+                const dayElement = document.createElement('div');
+                dayElement.className = 'min-h-[100px] p-2 border border-gray-200 relative';
+                
+                // Vérifier si c'est le mois actuel
+                const isCurrentMonth = currentDay.getMonth() === month;
+                if (!isCurrentMonth) {
+                    dayElement.classList.add('bg-gray-50');
+                }
+                
+                // Vérifier si c'est aujourd'hui
+                const today = new Date();
+                const isToday = currentDay.toDateString() === today.toDateString();
+                if (isToday) {
+                    dayElement.classList.add('bg-primary/5', 'border-primary');
+                }
+                
+                // Numéro du jour
+                const dayNumber = document.createElement('div');
+                dayNumber.className = `text-sm font-medium ${isCurrentMonth ? 'text-gray-900' : 'text-gray-400'} ${isToday ? 'text-primary' : ''}`;
+                dayNumber.textContent = currentDay.getDate();
+                dayElement.appendChild(dayNumber);
+                
+                // Afficher les réunions pour ce jour
+                const dayMeetings = getMeetingsForDate(currentDay);
+                dayMeetings.forEach(meeting => {
+                    const meetingElement = document.createElement('div');
+                    meetingElement.className = 'text-xs p-1 mt-1 rounded bg-primary text-white cursor-pointer hover:bg-primary-light transition-colors';
+                    meetingElement.textContent = meeting.titre || 'Réunion';
+                    meetingElement.title = `${meeting.titre || 'Réunion'} - ${meeting.heure_debut || meeting.heure || ''} - ${meeting.lieu || ''}`;
+                    meetingElement.onclick = () => viewMeeting(meeting.id);
+                    dayElement.appendChild(meetingElement);
+                });
+                
+                calendarGrid.appendChild(dayElement);
+            }
+        }
+        
+        function getMeetingsForDate(date) {
+            return meetings.filter(meeting => {
+                const meetingDate = new Date(meeting.date_reunion || meeting.date);
+                return meetingDate.toDateString() === date.toDateString();
+            });
+        }
+        
+        function previousMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        }
+        
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        }
+        
+        function goToToday() {
+            currentDate = new Date();
+            renderCalendar();
+        }
+        
         // Gestion des modals
         function openNewMeetingModal() {
             document.getElementById('newMeetingModal').classList.remove('hidden');
@@ -569,11 +783,71 @@ $filters = $data['filters'];
             window.open('./assets/traitements/export_meetings.php', '_blank');
         }
 
+        // Fonction pour mettre à jour automatiquement les statuts des réunions
+        function updateMeetingStatuses() {
+            // Afficher un indicateur de chargement
+            const button = event.target.closest('button');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Mise à jour...';
+            button.disabled = true;
+            
+            fetch('./assets/traitements/update_meeting_status_auto.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    // Recharger la page pour afficher les nouveaux statuts
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showNotification('Erreur lors de la mise à jour: ' + (data.error || 'Erreur inconnue'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Une erreur est survenue lors de la mise à jour des statuts.', 'error');
+            })
+            .finally(() => {
+                // Restaurer le bouton
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+        }
+
+        // Fonction pour vérifier automatiquement les statuts toutes les minutes
+        function startAutoStatusCheck() {
+            setInterval(() => {
+                // Vérifier silencieusement les statuts en arrière-plan
+                fetch('./assets/traitements/update_meeting_status_auto.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.updated_count > 0) {
+                        // Si des statuts ont été mis à jour, recharger la page
+                        location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur vérification automatique:', error);
+                });
+            }, 60000); // Vérifier toutes les minutes
+        }
+
         // Gestion du formulaire de nouvelle réunion
         document.getElementById('newMeetingForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
             const formData = new FormData(this);
+            
+            // Ajouter l'action pour indiquer qu'il faut aussi enregistrer dans le calendrier
+            formData.append('add_to_calendar', '1');
+            formData.append('send_notifications', '1');
             
             fetch('./assets/traitements/create_meeting.php', {
                 method: 'POST',
@@ -583,7 +857,19 @@ $filters = $data['filters'];
             .then(data => {
                 if (data.success) {
                     closeNewMeetingModal();
-                    location.reload();
+                    
+                    // Mettre à jour la liste des réunions pour le calendrier
+                    if (data.meeting) {
+                        meetings.push(data.meeting);
+                    }
+                    
+                    // Afficher un message de succès
+                    showNotification('Réunion créée avec succès ! Les membres de la commission ont été notifiés.', 'success');
+                    
+                    // Recharger la page après un délai
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
                 } else {
                     alert('Erreur lors de la création de la réunion: ' + (data.error || 'Erreur inconnue'));
                 }
@@ -593,6 +879,23 @@ $filters = $data['filters'];
                 alert('Une erreur est survenue lors de la création de la réunion.');
             });
         });
+        
+        // Fonction pour afficher les notifications
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' : 
+                type === 'error' ? 'bg-red-500 text-white' : 
+                'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
 
         // Animation au scroll
         const observerOptions = {
@@ -623,6 +926,15 @@ $filters = $data['filters'];
                 closeNewMeetingModal();
             }
         }
+
+        // Démarrer la vérification automatique des statuts au chargement de la page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Vérifier les statuts une première fois au chargement
+            updateMeetingStatuses();
+            
+            // Démarrer la vérification automatique
+            startAutoStatusCheck();
+        });
     </script>
 
 </body>

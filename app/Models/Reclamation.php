@@ -3,6 +3,7 @@ namespace App\Models;
 
 use PDO;
 use PDOException;
+use Exception;
 
 class Reclamation {
     private $db;
@@ -76,11 +77,19 @@ class Reclamation {
         try {
             $this->db->beginTransaction();
 
-            $sql = "INSERT INTO reclamations (num_etd, motif_reclamation, matieres, piece_jointe, date_reclamation, statut_reclamation) 
-                    VALUES (?, ?, ?, ?, CURDATE(), 'En attente')";
+            // Récupération de l'année académique en cours
+            $query = "SELECT id_ac FROM annee_academique WHERE statut_annee = 'En cours'";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $id_ac = $result['id_ac'];
+
+            $sql = "INSERT INTO reclamations (id_ac, num_etd, motif_reclamation, matieres, piece_jointe, date_reclamation, statut_reclamation) 
+                    VALUES (?, ?, ?, ?, ?, CURDATE(), 'En attente de traitement')";
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
+                $id_ac,
                 $studentId,
                 $data['motif_reclamation'],
                 json_encode($data['noms_matieres']),
@@ -104,7 +113,7 @@ class Reclamation {
         try {
             $reclamations = $this->getStudentReclamations($studentId);
             return array_filter($reclamations, function ($r) {
-                return $r['statut_reclamation'] === 'En attente' || $r['statut_reclamation'] === 'En cours';
+                return $r['statut_reclamation'] === 'En attente de traitement';
             });
         } catch (PDOException $e) {
             error_log("Erreur récupération réclamations en cours: " . $e->getMessage());
@@ -134,102 +143,308 @@ class Reclamation {
         }
     }
 
-    // CREATE
-    public function ajouterReclamation($sujet, $description, $etudiant_id, $date_creation) {
+    /**
+     * Récupérer les statistiques des réclamations
+     */
+    public function getStatistics($userGroup = '')
+    {
         try {
-            $this->db->beginTransaction();
-            $query = "INSERT INTO reclamation (sujet, description, etudiant_id, date_creation) VALUES (:sujet, :description, :etudiant_id, :date_creation)";
+            // Récupération de l'année académique en cours
+            $query = "SELECT id_ac FROM annee_academique WHERE statut_annee = 'En cours'";
             $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':sujet', $sujet);
-            $stmt->bindParam(':description', $description);
-            $stmt->bindParam(':etudiant_id', $etudiant_id);
-            $stmt->bindParam(':date_creation', $date_creation);
             $stmt->execute();
-            $id = $this->db->lastInsertId();
-            $this->db->commit();
-            return $id;
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $id_ac = $result['id_ac'];
+
+            $stats = [
+                'total' => 0,
+                'en_cours' => 0,
+                'resolues' => 0
+            ];
+
+            // Construire la condition de filtrage selon le groupe utilisateur
+            $userFilter = '';
+            if (!empty($userGroup)) {
+                switch ($userGroup) {
+                    case 'Responsable scolarité':
+                        // Le responsable scolarité voit toutes les réclamations
+                        break;
+                    case 'Responsable filière':
+                    case 'Administrateur plateforme':
+                        // Le responsable filière et l'admin voient seulement les réclamations traitées par le responsable scolarité
+                        $userFilter = " AND r.statut_reclamation = 'Traitée par le responsable de scolarité'";
+                        break;
+                    default:
+                        // Par défaut, ne voir que les réclamations en attente
+                        $userFilter = " AND r.statut_reclamation = 'En attente de traitement'";
+                        break;
+                }
+            }
+
+            // Total des réclamations (selon le filtre utilisateur)
+            $sql_total = "SELECT COUNT(*) as total FROM reclamations r WHERE r.id_ac = ?" . $userFilter;
+            $stmt_total = $this->db->prepare($sql_total);
+            $stmt_total->execute([$id_ac]);
+            $stats['total'] = $stmt_total->fetch(PDO::FETCH_ASSOC)['total'];
+
+            // Réclamations en cours (selon le filtre utilisateur)
+            if (empty($userGroup) || $userGroup == 'Responsable scolarité') {
+                // Pour le responsable scolarité, compter les réclamations en attente
+                $sql_en_cours = "SELECT COUNT(*) as en_cours FROM reclamations WHERE id_ac = ? AND statut_reclamation = 'En attente de traitement'";
+                $stmt_en_cours = $this->db->prepare($sql_en_cours);
+                $stmt_en_cours->execute([$id_ac]);
+                $stats['en_cours'] = $stmt_en_cours->fetch(PDO::FETCH_ASSOC)['en_cours'];
+            } else {
+                // Pour les autres, compter les réclamations traitées par le responsable scolarité
+                $sql_en_cours = "SELECT COUNT(*) as en_cours FROM reclamations WHERE id_ac = ? AND statut_reclamation = 'Traitée par le responsable de scolarité'";
+                $stmt_en_cours = $this->db->prepare($sql_en_cours);
+                $stmt_en_cours->execute([$id_ac]);
+                $stats['en_cours'] = $stmt_en_cours->fetch(PDO::FETCH_ASSOC)['en_cours'];
+            }
+
+            // Réclamations résolues (selon le filtre utilisateur)
+            if (empty($userGroup) || $userGroup == 'Responsable scolarité') {
+                // Pour le responsable scolarité, compter toutes les réclamations traitées
+                $sql_resolues = "SELECT COUNT(*) as resolues FROM reclamations WHERE id_ac = ? AND (statut_reclamation = 'Traitée par le responsable de scolarité' OR statut_reclamation = 'Traitée par le responsable de filière')";
+                $stmt_resolues = $this->db->prepare($sql_resolues);
+                $stmt_resolues->execute([$id_ac]);
+                $stats['resolues'] = $stmt_resolues->fetch(PDO::FETCH_ASSOC)['resolues'];
+            } else {
+                // Pour les autres, compter les réclamations traitées par le responsable filière
+                $sql_resolues = "SELECT COUNT(*) as resolues FROM reclamations WHERE id_ac = ? AND statut_reclamation = 'Traitée par le responsable de filière'";
+                $stmt_resolues = $this->db->prepare($sql_resolues);
+                $stmt_resolues->execute([$id_ac]);
+                $stats['resolues'] = $stmt_resolues->fetch(PDO::FETCH_ASSOC)['resolues'];
+            }
+
+            return $stats;
         } catch (PDOException $e) {
-            $this->db->rollBack();
-            error_log("Erreur ajout réclamation: " . $e->getMessage());
+            error_log("Erreur lors de la récupération des statistiques : " . $e->getMessage());
+            return [
+                'total' => 0,
+                'en_cours' => 0,
+                'resolues' => 0
+            ];
+        }
+    }
+
+    /**
+     * Récupérer les réclamations avec filtres pour la vue admin
+     */
+    public function getReclamationsWithFilters($search = '', $date_filter = '', $status_filter = '', $userGroup = '')
+    {
+        try {
+            // Récupération de l'année académique en cours
+            $query = "SELECT id_ac FROM annee_academique WHERE statut_annee = 'En cours'";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $id_ac = $result['id_ac'];
+            
+            $params = [$id_ac];
+
+            $sql = "SELECT r.*,
+                            e.nom_etd,
+                            e.prenom_etd,
+                            e.num_carte_etd
+                            FROM reclamations r
+                            JOIN etudiants e ON e.num_etd = r.num_etd
+                            WHERE r.id_ac = ?";
+
+            if (!empty($search)) {
+                $sql .= " AND (e.nom_etd LIKE ? OR e.prenom_etd LIKE ? OR r.motif_reclamation LIKE ?)";
+                $search_param = "%$search%";
+                $params = array_merge($params, [$search_param, $search_param, $search_param]);
+            }
+
+            if (!empty($date_filter)) {
+                switch ($date_filter) {
+                    case 'today':
+                        $sql .= " AND DATE(r.date_reclamation) = CURDATE()";
+                        break;
+                    case 'week':
+                        $sql .= " AND YEARWEEK(r.date_reclamation) = YEARWEEK(CURDATE())";
+                        break;
+                    case 'month':
+                        $sql .= " AND MONTH(r.date_reclamation) = MONTH(CURDATE()) AND YEAR(r.date_reclamation) = YEAR(CURDATE())";
+                        break;
+                }
+            }
+
+            if (!empty($status_filter)) {
+                $sql .= " AND r.statut_reclamation = ?";
+                $params[] = $status_filter;
+            }
+
+            // Filtrer selon le groupe utilisateur
+            if (!empty($userGroup)) {
+                switch ($userGroup) {
+                    case 'Responsable scolarité':
+                        // Le responsable scolarité voit toutes les réclamations
+                        break;
+                    case 'Responsable filière':
+                    case 'Administrateur plateforme':
+                        // Le responsable filière et l'admin voient seulement les réclamations traitées par le responsable scolarité
+                        $sql .= " AND r.statut_reclamation = 'Traitée par le responsable de scolarité'";
+                        break;
+                    default:
+                        // Par défaut, ne voir que les réclamations en attente
+                        $sql .= " AND r.statut_reclamation = 'En attente de traitement'";
+                        break;
+                }
+            }
+
+            $sql .= " ORDER BY r.date_reclamation DESC";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Erreur lors de la récupération des réclamations : " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Récupérer les détails d'une réclamation
+     */
+    public function getReclamationDetails($id)
+    {
+        try {
+            $sql = "SELECT r.*, e.nom_etd, e.prenom_etd, e.num_carte_etd, n.lib_niv_etd,
+                    DATE_FORMAT(r.date_reclamation, '%d/%m/%Y') as date_reclamation
+                    FROM reclamations r
+                    JOIN etudiants e ON e.num_etd = r.num_etd
+                    JOIN niveau_etude n ON n.id_niv_etd = e.id_niv_etd
+                    WHERE r.id_reclamation = ?";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$id]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Erreur récupération détails réclamation: " . $e->getMessage());
             return false;
         }
     }
 
-    // READ
-    public function getAllReclamations() {
-        $query = "SELECT * FROM reclamation ORDER BY date_creation DESC";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
-    }
-
-    public function getReclamationById($id) {
-        $query = "SELECT * FROM reclamation WHERE id_reclamation = :id";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':id', $id);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_OBJ);
-    }
-
-    public function getReclamationsByEtudiant($etudiant_id) {
-        $query = "SELECT * FROM reclamation WHERE etudiant_id = :etudiant_id ORDER BY date_creation DESC";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':etudiant_id', $etudiant_id);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
-    }
-
-    // UPDATE
-    public function modifierReclamation($id, $sujet, $description, $statut) {
+    /**
+     * Traiter une réclamation (changer le statut)
+     */
+    /**
+     * Traiter une réclamation selon le type d'utilisateur
+     */
+    public function traiterReclamation($reclamationId, $commentaire, $userGroup)
+    {
         try {
             $this->db->beginTransaction();
-            $query = "UPDATE reclamation SET sujet = :sujet, description = :description, statut = :statut WHERE id_reclamation = :id";
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':sujet', $sujet);
-            $stmt->bindParam(':description', $description);
-            $stmt->bindParam(':statut', $statut);
-            $stmt->bindParam(':id', $id);
-            $stmt->execute();
+            
+            $nouveauStatut = '';
+            $commentaireField = '';
+            
+            // Déterminer le nouveau statut selon le groupe utilisateur
+            switch ($userGroup) {
+                case 'Responsable scolarité':
+                    $nouveauStatut = 'Traitée par le responsable de scolarité';
+                    $commentaireField = 'retour_traitement';
+                    break;
+                case 'Responsable filière':
+                    $nouveauStatut = 'Traitée par le responsable de filière';
+                    $commentaireField = 'retour_traitement';
+                    break;
+                case 'Administrateur plateforme':
+                    $nouveauStatut = 'Traitée par le responsable de filière';
+                    $commentaireField = 'retour_traitement';
+                    break;
+                default:
+                    throw new Exception("Groupe utilisateur non autorisé pour le traitement");
+            }
+            
+            $sql = "UPDATE reclamations SET 
+                    statut_reclamation = ?,
+                    $commentaireField = ?,
+                    date_traitement = NOW()
+                    WHERE id_reclamation = ?";
+            $stmt = $this->db->prepare($sql);
+            $result = $stmt->execute([$nouveauStatut, $commentaire, $reclamationId]);
+
             $this->db->commit();
-            return true;
-        } catch (PDOException $e) {
+            return $result;
+        } catch (Exception $e) {
             $this->db->rollBack();
-            error_log("Erreur modification réclamation: " . $e->getMessage());
+            error_log("Erreur lors du traitement de la réclamation : " . $e->getMessage());
             return false;
         }
     }
 
-    // DELETE
-    public function supprimerReclamation($id) {
+    /**
+     * Transférer une réclamation vers un niveau supérieur
+     */
+    public function transfererReclamation($reclamationId, $commentaireTransfert, $userGroup)
+    {
         try {
             $this->db->beginTransaction();
-            $query = "DELETE FROM reclamation WHERE id_reclamation = :id";
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':id', $id);
-            $stmt->execute();
+            
+            $nouveauStatut = '';
+            
+            // Déterminer le nouveau statut selon le groupe utilisateur qui transfère
+            switch ($userGroup) {
+                case 'Responsable scolarité':
+                    $nouveauStatut = 'Traitée par le responsable de scolarité';
+                    break;
+                default:
+                    throw new Exception("Groupe utilisateur non autorisé pour le transfert");
+            }
+            
+            $sql = "UPDATE reclamations SET 
+                    statut_reclamation = ?,
+                    retour_traitement = ?,
+                    date_traitement = NOW()
+                    WHERE id_reclamation = ?";
+            $stmt = $this->db->prepare($sql);
+            $result = $stmt->execute([$nouveauStatut, $commentaireTransfert, $reclamationId]);
+
             $this->db->commit();
-            return true;
-        } catch (PDOException $e) {
+            return $result;
+        } catch (Exception $e) {
             $this->db->rollBack();
-            error_log("Erreur suppression réclamation: " . $e->getMessage());
+            error_log("Erreur lors du transfert de la réclamation : " . $e->getMessage());
             return false;
         }
     }
 
-    public function traiterReclamation($id, $reponse, $statut) {
+    /**
+     * Supprimer une ou plusieurs réclamations
+     */
+    public function supprimerReclamations($reclamationIds)
+    {
         try {
             $this->db->beginTransaction();
-            $query = "UPDATE reclamation SET reponse = :reponse, statut = :statut, date_traitement = NOW() WHERE id_reclamation = :id";
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':reponse', $reponse);
-            $stmt->bindParam(':statut', $statut);
-            $stmt->bindParam(':id', $id);
-            $stmt->execute();
+
+            // Récupérer les chemins des fichiers à supprimer
+            $placeholders = implode(',', array_fill(0, count($reclamationIds), '?'));
+            $sql_files = "SELECT piece_jointe FROM reclamations WHERE id_reclamation IN ($placeholders) AND piece_jointe IS NOT NULL";
+            $stmt_files = $this->db->prepare($sql_files);
+            $stmt_files->execute($reclamationIds);
+            $files_to_delete = $stmt_files->fetchAll(PDO::FETCH_COLUMN);
+
+            // Supprimer les réclamations
+            $sql_delete = "DELETE FROM reclamations WHERE id_reclamation IN ($placeholders)";
+            $stmt_delete = $this->db->prepare($sql_delete);
+            $stmt_delete->execute($reclamationIds);
+            $deleted_count = $stmt_delete->rowCount();
+
+            // Supprimer les fichiers physiques
+            foreach ($files_to_delete as $file_path) {
+                if ($file_path && file_exists($file_path)) {
+                    unlink($file_path);
+                }
+            }
+
             $this->db->commit();
-            return true;
+            return $deleted_count;
         } catch (PDOException $e) {
             $this->db->rollBack();
-            error_log("Erreur traitement réclamation: " . $e->getMessage());
+            error_log("Erreur lors de la suppression des réclamations : " . $e->getMessage());
             return false;
         }
     }
@@ -237,7 +452,7 @@ class Reclamation {
     /**
      * Récupérer toutes les réclamations avec pagination pour la vue admin
      */
-    public function getAllReclamationsWithPagination() {
+    public function getAllReclamationsWithPagination($userGroup = '') {
         try {
             // Paramètres de pagination
             $page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
@@ -249,66 +464,15 @@ class Reclamation {
             $dateFilter = isset($_GET['date_filter']) ? $_GET['date_filter'] : '';
             $statusFilter = isset($_GET['status_filter']) ? $_GET['status_filter'] : '';
 
-            // Construction de la requête
-            $whereConditions = [];
-            $params = [];
-
-            if (!empty($search)) {
-                $whereConditions[] = "(sujet LIKE :search OR description LIKE :search)";
-                $params[':search'] = "%$search%";
-            }
-
-            if (!empty($dateFilter)) {
-                $whereConditions[] = "DATE(date_creation) = :date_filter";
-                $params[':date_filter'] = $dateFilter;
-            }
-
-            if (!empty($statusFilter)) {
-                $whereConditions[] = "statut = :status_filter";
-                $params[':status_filter'] = $statusFilter;
-            }
-
-            $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
-
-            // Requête principale
-            $sql = "SELECT r.*, e.nom_etd, e.prenom_etd 
-                    FROM reclamation r 
-                    LEFT JOIN etudiants e ON r.etudiant_id = e.num_etd 
-                    $whereClause 
-                    ORDER BY r.date_creation DESC 
-                    LIMIT :perPage OFFSET :offset";
-
-            $stmt = $this->db->prepare($sql);
+            // Récupération des réclamations avec filtres
+            $reclamations = $this->getReclamationsWithFilters($search, $dateFilter, $statusFilter, $userGroup);
             
-            // Binding des paramètres
-            foreach ($params as $key => $value) {
-                $stmt->bindValue($key, $value);
-            }
-            $stmt->bindValue(':perPage', $perPage, PDO::PARAM_INT);
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-            
-            $stmt->execute();
-            $reclamations = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Comptage total pour la pagination
-            $countSql = "SELECT COUNT(*) FROM reclamation r $whereClause";
-            $countStmt = $this->db->prepare($countSql);
-            foreach ($params as $key => $value) {
-                $countStmt->bindValue($key, $value);
-            }
-            $countStmt->execute();
-            $totalRecords = $countStmt->fetchColumn();
+            // Pagination manuelle
+            $totalRecords = count($reclamations);
+            $reclamations = array_slice($reclamations, $offset, $perPage);
 
             // Statistiques
-            $statsSql = "SELECT 
-                            COUNT(*) as total,
-                            SUM(CASE WHEN statut = 'en_attente' THEN 1 ELSE 0 END) as en_attente,
-                            SUM(CASE WHEN statut = 'en_cours' THEN 1 ELSE 0 END) as en_cours,
-                            SUM(CASE WHEN statut = 'resolu' THEN 1 ELSE 0 END) as resolu
-                         FROM reclamation";
-            $statsStmt = $this->db->prepare($statsSql);
-            $statsStmt->execute();
-            $statistics = $statsStmt->fetch(PDO::FETCH_ASSOC);
+            $statistics = $this->getStatistics($userGroup);
 
             return [
                 'reclamations' => $reclamations,
