@@ -52,6 +52,7 @@ $menuController = new MenuController($pdo);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Étudiant</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="shortcut icon" href="./assets/images/logo_cm_sbg.png" type="image/x-icon">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/GSCV+/public/assets/css/index_etudiant.css?v=<?php echo time(); ?>">
     <script src="../app/Views/assets/js/messages.js"></script>
@@ -358,7 +359,7 @@ $menuController = new MenuController($pdo);
             </div>
 
             <div class="header-logo">
-                <img src="../public/assets/images/logo_cm_sbg.png" alt="CheckMaster Logo">
+                <img src="./assets/images/logo_cm_sbg.png" alt="CheckMaster Logo">
                 <h1>Check Master</h1>
             </div>
         </div>

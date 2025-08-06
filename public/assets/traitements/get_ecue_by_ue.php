@@ -1,11 +1,13 @@
 <?php
 header('Content-Type: application/json');
-require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV/config/db_connect.php';
+require_once __DIR__ . '/../../../config/config.php';
 
 $id_ue = $_GET['id_ue'] ?? null;
 $all = isset($_GET['all']);
 
 try {
+    // Créer la connexion PDO
+    $pdo = DataBase::getConnection();
     if ($all) {
         // Retourner toutes les UE
         $stmt = $pdo->query("SELECT id_ue, lib_ue, credit_ue, 'ue' as type FROM ue");

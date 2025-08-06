@@ -8,6 +8,11 @@
 function getBasePath() {
     $scriptName = $_SERVER['SCRIPT_NAME'];
     $requestUri = $_SERVER['REQUEST_URI'];
+
+    // Vérifier si on est dans un environnement Docker (port 8083)
+    if (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == '8083') {
+        return '/';
+    }
     
     // Si on est dans le dossier public
     if (strpos($requestUri, '/public/') !== false) {

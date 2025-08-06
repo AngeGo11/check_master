@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: application/json');
-require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV/config/db_connect.php';
+require_once __DIR__ . '/../../../config/config.php';
 
 $id_semestre = $_GET['id_semestre'] ?? null;
 
@@ -10,6 +10,8 @@ if (!$id_semestre) {
 }
 
 try {
+    // Créer la connexion PDO
+    $pdo = DataBase::getConnection();
     // Requête simple pour récupérer les UE du semestre
     $stmt = $pdo->prepare("
         SELECT id_ue, lib_ue, credit_ue 

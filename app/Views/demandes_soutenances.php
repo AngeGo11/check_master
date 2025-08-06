@@ -527,7 +527,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_eligibility']))
             FROM etudiants e
              JOIN reglement r ON e.num_etd = r.num_etd
             WHERE e.num_etd = ?
-            GROUP BY e.num_etd, e.statut_eligibilite
+            GROUP BY e.num_etd, r.num_etd, e.statut_eligibilite, r.montant_a_payer, r.reste_a_payer
         ");
         $scolariteInfo->execute([$_GET['id']]);
         $scolarite = $scolariteInfo->fetch();

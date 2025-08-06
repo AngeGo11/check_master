@@ -1,9 +1,11 @@
 <?php
-require_once '../../../config/db_connect.php';
+require_once __DIR__ . '/../../../config/config.php';
 
 header('Content-Type: application/json');
 
 try {
+    // Créer la connexion PDO
+    $pdo = DataBase::getConnection();
     // Récupérer les paramètres
     $numero = $_GET['numero'] ?? '';
     $semestre = $_GET['semestre'] ?? '';

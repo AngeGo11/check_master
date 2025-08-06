@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: application/json');
-require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV/config/db_connect.php';
+require_once __DIR__ . '/../../../config/config.php';
 
 try {
     $num_carte = $_GET['num_carte'] ?? '';
@@ -10,6 +10,9 @@ try {
         exit;
     }
 
+    // Créer la connexion PDO
+    $pdo = DataBase::getConnection();
+    
     //Récupération de l'id de l'année en cours
     $query = "SELECT id_ac, date_debut, date_fin FROM annee_academique WHERE statut_annee = 'En cours'";
     $stmt = $pdo->prepare($query);

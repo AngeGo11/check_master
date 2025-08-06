@@ -1,8 +1,10 @@
 <?php
 header('Content-Type: application/json');
-require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV/config/db_connect.php';
+require_once __DIR__ . '/../../../config/config.php';
 
 try {
+    // Créer la connexion PDO
+    $pdo = DataBase::getConnection();
     if (!isset($_GET['id_niveau'])) {
         throw new Exception('ID du niveau manquant');
     }

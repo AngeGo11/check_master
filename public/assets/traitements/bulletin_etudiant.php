@@ -2,8 +2,8 @@
 // On s'assure que les erreurs sont affichées pour le débogage
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
-require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV+/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV+/app/Models/AnneeAcademique.php';
+require_once __DIR__ . '/../../../config/config.php';
+require_once __DIR__ . '/../../../app/Models/AnneeAcademique.php';
 
 // Créer la connexion PDO
 $pdo = DataBase::getConnection();

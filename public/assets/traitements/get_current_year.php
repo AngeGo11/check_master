@@ -25,7 +25,8 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
     
     try {
         // Inclure la connexion à la base de données
-        require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV/config/db_connect.php';
+        require_once __DIR__ . '/../../../config/config.php';
+        $pdo = DataBase::getConnection();
         
         // Récupérer l'année académique en cours
         $sql = "SELECT id_ac, date_debut, date_fin FROM annee_academique WHERE statut_annee = 'En cours' LIMIT 1";

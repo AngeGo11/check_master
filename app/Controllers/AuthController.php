@@ -283,7 +283,7 @@ class AuthController
     public function logout()
     {
         session_destroy();
-        header('Location: pageConnection.php');
+        header('Location: pageConnexion.php');
         exit();
     }
 

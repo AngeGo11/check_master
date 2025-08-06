@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV/config/db_connect.php';
+require_once __DIR__ . '/../../../config/config.php';
 
 // Vérifier si l'utilisateur est connecté
 if (!isset($_SESSION['user_id'])) {
@@ -12,6 +12,8 @@ if (!isset($_SESSION['user_id'])) {
 header('Content-Type: application/json');
 
 try {
+    // Créer la connexion PDO
+    $pdo = DataBase::getConnection();
     $numero = $_GET['numero'] ?? '';
     
     if (empty($numero)) {

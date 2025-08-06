@@ -114,7 +114,7 @@ $subquery = "
         ) ev WHERE ev.num_etd = e.num_etd
     )
     $where_sql
-    GROUP BY e.num_etd
+    GROUP BY e.num_etd, e.num_carte_etd, e.nom_etd, e.prenom_etd, a.date_debut, a.date_fin, ne.lib_niv_etd, ne.id_niv_etd, mg.moyenne_generale, mg.statut_academique, mg.total_credits_obtenus, mg.total_credits_inscrits
 ";
 
 $count_sql = "SELECT COUNT(*) FROM ( $subquery ) AS t";
@@ -685,8 +685,60 @@ $total_pages = max(1, ceil($total_records / $limit));
                             <i class="fas fa-edit mr-3 text-purple-600"></i>
                             Saisie des Notes
                         </h3>
-                        <div id="notes-list" class="space-y-6">
-                            <!-- Notes will be added dynamically -->
+                        
+                        <!-- Instructions -->
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-info-circle text-blue-400"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-blue-700">
+                                        <strong>Instructions :</strong> Saisissez les notes sur 20 pour chaque matière. Les moyennes sont calculées automatiquement.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes Table -->
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="text-lg font-medium text-gray-900">Matières à évaluer</h4>
+                                    <div class="flex items-center space-x-4">
+                                        <span class="text-sm text-gray-600">Total: <span id="total-subjects" class="font-semibold">0</span></span>
+                                        <span class="text-sm text-gray-600">Remplies: <span id="filled-subjects" class="font-semibold text-green-600">0</span></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UE</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ECUE</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Crédits</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Note /20</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="notes-list" class="bg-white divide-y divide-gray-200">
+                                        <!-- Notes will be added dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="mt-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-gray-700">Progression de saisie</span>
+                                <span class="text-sm font-medium text-gray-700" id="progress-percentage">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all duration-300" id="progress-bar" style="width: 0%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -698,8 +750,35 @@ $total_pages = max(1, ceil($total_records / $limit));
                             <i class="fas fa-calculator mr-3 text-orange-600"></i>
                             Moyenne Semestrielle
                         </h4>
-                        <div class="text-4xl font-bold text-primary mb-2" id="semester-average">0.00</div>
-                        <p class="text-sm text-gray-600">Moyenne calculée automatiquement</p>
+                        <div class="text-6xl font-bold text-primary mb-4" id="semester-average">0.00</div>
+                        <p class="text-sm text-gray-600 mb-6">Moyenne calculée automatiquement</p>
+                        
+                        <!-- Détails du calcul -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                            <div class="bg-white bg-opacity-50 rounded-lg p-4">
+                                <div class="text-2xl font-bold text-blue-600" id="majeures-info">0.00</div>
+                                <div class="text-sm text-gray-600">UE Majeures</div>
+                                <div class="text-xs text-gray-500" id="majeures-credits">0 crédits</div>
+                            </div>
+                            <div class="bg-white bg-opacity-50 rounded-lg p-4">
+                                <div class="text-2xl font-bold text-green-600" id="mineures-info">0.00</div>
+                                <div class="text-sm text-gray-600">UE Mineures</div>
+                                <div class="text-xs text-gray-500" id="mineures-credits">0 crédits</div>
+                            </div>
+                            <div class="bg-white bg-opacity-50 rounded-lg p-4">
+                                <div class="text-2xl font-bold text-purple-600" id="total-credits-info">0</div>
+                                <div class="text-sm text-gray-600">Total Crédits</div>
+                                <div class="text-xs text-gray-500">Évalués</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Indicateur de performance -->
+                        <div class="mt-6">
+                            <div class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium" id="performance-indicator">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                Performance à évaluer
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1027,84 +1106,161 @@ $total_pages = max(1, ceil($total_records / $limit));
                                 for (const ecue of ecueData.data) {
                                     console.log('Traitement ECUE:', ecue.lib_ecue);
                                     const note = notesMap.get(ecue.id_ecue);
-                                    const isFirstRow = itemsCreated === 0;
-                                    const row = document.createElement('div');
-                                    row.className = 'note-item';
+                                    const row = document.createElement('tr');
+                                    row.className = 'note-item hover:bg-gray-50 transition-colors duration-200';
                                     row.dataset.ueId = ue.id_ue;
                                     row.dataset.ecueId = ecue.id_ecue;
+                                    
+                                    const noteValue = note ? note.note : '';
+                                    const statusClass = noteValue ? 'text-green-600' : 'text-gray-400';
+                                    const statusText = noteValue ? 'Saisie' : 'En attente';
+                                    const statusIcon = noteValue ? 'fa-check-circle' : 'fa-clock';
+                                    
                                     row.innerHTML = `
-                                    <div class="form-group">
-                                        ${isFirstRow ? '<label>UE</label>' : ''}
-                                        <input type="text" value="${ue.lib_ue}" readonly>
-                                    </div>
-                                    <div class="form-group">
-                                        ${isFirstRow ? '<label>ECUE</label>' : ''}
-                                        <input type="text" value="${ecue.lib_ecue}" readonly>
-                                    </div>
-                                    <div class="form-group">
-                                        ${isFirstRow ? '<label>Crédit</label>' : ''}
-                                        <input type="number" value="${ecue.credit_ecue || ecue.credit_ue || 0}" readonly>
-                                    </div>
-                                    <div class="form-group">
-                                        ${isFirstRow ? '<label>Moyenne</label>' : ''}
-                                        <input type="number" name="moyenne[]" placeholder="0.00" step="0.01" min="0" max="20" value="${note ? note.note : ''}">
-                                    </div>
-                                `;
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            <div class="flex items-center">
+                                                <i class="fas fa-book text-blue-500 mr-2"></i>
+                                                ${ue.lib_ue}
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <div class="flex items-center">
+                                                <i class="fas fa-graduation-cap text-green-500 mr-2"></i>
+                                                ${ecue.lib_ecue}
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                ${ecue.credit_ecue || ecue.credit_ue || 0} crédits
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="relative">
+                                                <input type="number" 
+                                                       name="moyenne[]" 
+                                                       placeholder="0.00" 
+                                                       step="0.01" 
+                                                       min="0" 
+                                                       max="20" 
+                                                       value="${noteValue}"
+                                                       class="note-input block w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
+                                                       data-ue-id="${ue.id_ue}"
+                                                       data-ecue-id="${ecue.id_ecue}">
+                                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                                    <span class="text-gray-500 text-sm">/20</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
+                                                <i class="fas ${statusIcon} mr-1"></i>
+                                                ${statusText}
+                                            </span>
+                                        </td>
+                                    `;
                                     if (notesList) notesList.appendChild(row);
                                     if (note) hasNotes = true;
                                     itemsCreated++;
                                 }
                             } else {
                                 // Si pas d'ECUE, créer une ligne pour l'UE directement
-                                const row = document.createElement('div');
-                                row.className = 'note-item';
+                                const row = document.createElement('tr');
+                                row.className = 'note-item hover:bg-gray-50 transition-colors duration-200';
                                 row.dataset.ueId = ue.id_ue;
                                 row.dataset.ecueId = ue.id_ue; // Même ID pour UE évaluée directement
-                                const isFirstRow = itemsCreated === 0;
+                                
                                 row.innerHTML = `
-                                <div class="form-group">
-                                    ${isFirstRow ? '<label>UE</label>' : ''}
-                                    <input type="text" value="${ue.lib_ue}" readonly>
-                                </div>
-                                <div class="form-group">
-                                    ${isFirstRow ? '<label>ECUE</label>' : ''}
-                                    <input type="text" value="${ue.lib_ue}" readonly>
-                                </div>
-                                <div class="form-group">
-                                    ${isFirstRow ? '<label>Crédit</label>' : ''}
-                                    <input type="number" value="${ue.credit_ue || 0}" readonly>
-                                </div>
-                                <div class="form-group">
-                                    ${isFirstRow ? '<label>Moyenne</label>' : ''}
-                                    <input type="number" name="moyenne[]" placeholder="0.00" step="0.01" min="0" max="20" value="">
-                                </div>
-                            `;
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-book text-blue-500 mr-2"></i>
+                                            ${ue.lib_ue}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 italic">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-minus text-gray-400 mr-2"></i>
+                                            Évaluation directe
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            ${ue.credit_ue || 0} crédits
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="relative">
+                                            <input type="number" 
+                                                   name="moyenne[]" 
+                                                   placeholder="0.00" 
+                                                   step="0.01" 
+                                                   min="0" 
+                                                   max="20" 
+                                                   value=""
+                                                   class="note-input block w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
+                                                   data-ue-id="${ue.id_ue}"
+                                                   data-ecue-id="${ue.id_ue}">
+                                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                                <span class="text-gray-500 text-sm">/20</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-gray-400">
+                                            <i class="fas fa-clock mr-1"></i>
+                                            En attente
+                                        </span>
+                                    </td>
+                                `;
                                 if (notesList) notesList.appendChild(row);
                                 itemsCreated++;
                             }
                         } catch (ecueError) {
                             console.warn('Impossible de charger les ECUE pour UE', ue.id_ue, ':', ecueError);
                             // Créer une ligne simple pour l'UE
-                            const row = document.createElement('div');
-                            row.className = 'note-item';
-                            const isFirstRow = itemsCreated === 0;
+                            const row = document.createElement('tr');
+                            row.className = 'note-item hover:bg-gray-50 transition-colors duration-200';
+                            
                             row.innerHTML = `
-                                <div class="form-group">
-                                    ${isFirstRow ? '<label>UE</label>' : ''}
-                                    <input type="text" value="${ue.lib_ue}" readonly>
-                                </div>
-                                <div class="form-group">
-                                    ${isFirstRow ? '<label>ECUE</label>' : ''}
-                                    <input type="text" value="${ue.lib_ue}" readonly>
-                                </div>
-                                <div class="form-group">
-                                    ${isFirstRow ? '<label>Crédit</label>' : ''}
-                                    <input type="number" value="${ue.credit_ue || 0}" readonly>
-                                </div>
-                                <div class="form-group">
-                                    ${isFirstRow ? '<label>Moyenne</label>' : ''}
-                                    <input type="number" name="moyenne[]" placeholder="0.00" step="0.01" min="0" max="20" value="">
-                                </div>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-book text-blue-500 mr-2"></i>
+                                        ${ue.lib_ue}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 italic">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+                                        Erreur de chargement
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        ${ue.credit_ue || 0} crédits
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="relative">
+                                        <input type="number" 
+                                               name="moyenne[]" 
+                                               placeholder="0.00" 
+                                               step="0.01" 
+                                               min="0" 
+                                               max="20" 
+                                               value=""
+                                               class="note-input block w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
+                                               data-ue-id="${ue.id_ue}"
+                                               data-ecue-id="${ue.id_ue}">
+                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                            <span class="text-gray-500 text-sm">/20</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-red-400">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                                        Erreur
+                                    </span>
+                                </td>
                             `;
                             if (notesList) notesList.appendChild(row);
                             itemsCreated++;
@@ -1112,14 +1268,15 @@ $total_pages = max(1, ceil($total_records / $limit));
                     }
 
                     console.log('Affichage terminé, items créés:', itemsCreated, 'hasNotes:', hasNotes);
-                    if (notesContainer) notesContainer.style.display = 'block';
-
+                    
+                    // Mettre à jour les compteurs et la barre de progression
+                    updateProgressCounters();
+                    
                     if (itemsCreated === 0) {
-                        if (notesList) notesList.innerHTML = '<div style="color:orange;text-align:center;margin:1em 0;">Aucune matière trouvée pour ce semestre.</div>';
+                        if (notesList) notesList.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500"><i class="fas fa-exclamation-triangle mr-2"></i>Aucune matière trouvée pour ce semestre.</td></tr>';
                     } else if (!hasNotes) {
-                        const msg = document.createElement('div');
-                        msg.style = 'color:#888;text-align:center;margin:1em 0;';
-                        msg.textContent = 'Aucune note enregistrée pour ce semestre.';
+                        const msg = document.createElement('tr');
+                        msg.innerHTML = '<td colspan="5" class="px-6 py-4 text-center text-gray-500 italic"><i class="fas fa-info-circle mr-2"></i>Aucune note enregistrée pour ce semestre.</td>';
                         if (notesList) notesList.appendChild(msg);
                     }
                 } catch (err) {
@@ -1140,17 +1297,19 @@ $total_pages = max(1, ceil($total_records / $limit));
 
             // Fonction pour calculer la moyenne semestrielle
             function calculerMoyenneSemestre() {
-                const noteInputs = document.querySelectorAll('input[name="moyenne[]"]');
-                const ueLabels = document.querySelectorAll('.note-item input[readonly]');
+                const noteInputs = document.querySelectorAll('.note-input');
+                const averageSection = document.getElementById('semester-average-section');
 
                 let ueMajeures = [];
                 let ueMineures = [];
 
                 // Parcourir les notes et les classer
-                for (let i = 0; i < noteInputs.length; i++) {
-                    const note = parseFloat(noteInputs[i].value) || 0;
-                    const creditInput = noteInputs[i].closest('.note-item').querySelector('input[readonly][type="number"]');
-                    const credit = parseFloat(creditInput.value) || 0;
+                noteInputs.forEach(input => {
+                    const note = parseFloat(input.value) || 0;
+                    const row = input.closest('tr');
+                    const creditElement = row.querySelector('td:nth-child(3) span');
+                    const creditText = creditElement ? creditElement.textContent : '0';
+                    const credit = parseFloat(creditText.match(/\d+/)[0]) || 0;
 
                     if (note > 0 && credit > 0) {
                         if (credit >= 4) {
@@ -1165,7 +1324,7 @@ $total_pages = max(1, ceil($total_records / $limit));
                             });
                         }
                     }
-                }
+                });
 
                 // Calculer les moyennes
                 let moyenneMajeures = 0;
@@ -1197,29 +1356,139 @@ $total_pages = max(1, ceil($total_records / $limit));
 
                 // Afficher les résultats
                 const averageElement = document.getElementById('semester-average');
-                const detailsElement = document.getElementById('average-details');
                 const majeuresInfo = document.getElementById('majeures-info');
                 const mineuresInfo = document.getElementById('mineures-info');
+                const majeuresCredits = document.getElementById('majeures-credits');
+                const mineuresCredits = document.getElementById('mineures-credits');
+                const totalCreditsInfo = document.getElementById('total-credits-info');
+                const performanceIndicator = document.getElementById('performance-indicator');
 
                 if (averageElement) {
                     averageElement.textContent = moyenneSemestre.toFixed(2);
                 }
 
-                if (detailsElement && majeuresInfo && mineuresInfo) {
+                if (majeuresInfo) {
+                    majeuresInfo.textContent = moyenneMajeures.toFixed(2);
+                }
+
+                if (mineuresInfo) {
+                    mineuresInfo.textContent = moyenneMineures.toFixed(2);
+                }
+
+                if (majeuresCredits) {
+                    majeuresCredits.textContent = `${totalCreditMajeures} crédits`;
+                }
+
+                if (mineuresCredits) {
+                    mineuresCredits.textContent = `${totalCreditMineures} crédits`;
+                }
+
+                if (totalCreditsInfo) {
+                    totalCreditsInfo.textContent = totalCredits;
+                }
+
+                // Afficher la section de moyenne si des notes sont saisies
+                if (averageSection) {
                     if (totalCredits > 0) {
-                        detailsElement.style.display = 'block';
-                        majeuresInfo.textContent = `${moyenneMajeures.toFixed(2)} (${totalCreditMajeures} crédits)`;
-                        mineuresInfo.textContent = `${moyenneMineures.toFixed(2)} (${totalCreditMineures} crédits)`;
+                        averageSection.style.display = 'block';
                     } else {
-                        detailsElement.style.display = 'none';
+                        averageSection.style.display = 'none';
                     }
+                }
+
+                // Mettre à jour l'indicateur de performance
+                if (performanceIndicator) {
+                    let indicatorClass = 'bg-gray-100 text-gray-800';
+                    let indicatorIcon = 'fa-info-circle';
+                    let indicatorText = 'Performance à évaluer';
+
+                    if (moyenneSemestre >= 16) {
+                        indicatorClass = 'bg-green-100 text-green-800';
+                        indicatorIcon = 'fa-star';
+                        indicatorText = 'Excellente performance';
+                    } else if (moyenneSemestre >= 14) {
+                        indicatorClass = 'bg-blue-100 text-blue-800';
+                        indicatorIcon = 'fa-thumbs-up';
+                        indicatorText = 'Bonne performance';
+                    } else if (moyenneSemestre >= 12) {
+                        indicatorClass = 'bg-yellow-100 text-yellow-800';
+                        indicatorIcon = 'fa-check';
+                        indicatorText = 'Performance satisfaisante';
+                    } else if (moyenneSemestre >= 10) {
+                        indicatorClass = 'bg-orange-100 text-orange-800';
+                        indicatorIcon = 'fa-exclamation-triangle';
+                        indicatorText = 'Performance passable';
+                    } else if (moyenneSemestre > 0) {
+                        indicatorClass = 'bg-red-100 text-red-800';
+                        indicatorIcon = 'fa-times-circle';
+                        indicatorText = 'Performance insuffisante';
+                    }
+
+                    performanceIndicator.className = `inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${indicatorClass}`;
+                    performanceIndicator.innerHTML = `<i class="fas ${indicatorIcon} mr-2"></i>${indicatorText}`;
                 }
             }
 
-            // Ajouter des écouteurs d'événements pour recalculer les moyennes
+            // Fonction pour mettre à jour les compteurs de progression
+            function updateProgressCounters() {
+                const noteInputs = document.querySelectorAll('.note-input');
+                const totalSubjects = noteInputs.length;
+                const filledSubjects = Array.from(noteInputs).filter(input => input.value && input.value.trim() !== '').length;
+                const percentage = totalSubjects > 0 ? Math.round((filledSubjects / totalSubjects) * 100) : 0;
+                
+                // Mettre à jour les compteurs
+                const totalElement = document.getElementById('total-subjects');
+                const filledElement = document.getElementById('filled-subjects');
+                const percentageElement = document.getElementById('progress-percentage');
+                const progressBar = document.getElementById('progress-bar');
+                
+                if (totalElement) totalElement.textContent = totalSubjects;
+                if (filledElement) filledElement.textContent = filledSubjects;
+                if (percentageElement) percentageElement.textContent = percentage + '%';
+                if (progressBar) progressBar.style.width = percentage + '%';
+                
+                // Mettre à jour les statuts des lignes
+                noteInputs.forEach(input => {
+                    const row = input.closest('tr');
+                    if (row) {
+                        const statusCell = row.querySelector('td:last-child span');
+                        if (statusCell) {
+                            const hasValue = input.value && input.value.trim() !== '';
+                            statusCell.className = `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${hasValue ? 'text-green-600' : 'text-gray-400'}`;
+                            statusCell.innerHTML = `<i class="fas ${hasValue ? 'fa-check-circle' : 'fa-clock'} mr-1"></i>${hasValue ? 'Saisie' : 'En attente'}`;
+                        }
+                    }
+                });
+            }
+
+            // Ajouter des écouteurs d'événements pour recalculer les moyennes et mettre à jour la progression
             document.addEventListener('input', function(e) {
-                if (e.target.name === 'moyenne[]') {
+                if (e.target.classList.contains('note-input')) {
                     calculerMoyenneSemestre();
+                    updateProgressCounters();
+                    
+                    // Validation en temps réel
+                    const value = parseFloat(e.target.value);
+                    if (value < 0 || value > 20) {
+                        e.target.classList.add('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+                        e.target.classList.remove('border-gray-300', 'focus:ring-primary', 'focus:border-primary');
+                    } else {
+                        e.target.classList.remove('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+                        e.target.classList.add('border-gray-300', 'focus:ring-primary', 'focus:border-primary');
+                    }
+                }
+            });
+
+            // Ajouter des écouteurs d'événements pour les effets visuels
+            document.addEventListener('focus', function(e) {
+                if (e.target.classList.contains('note-input')) {
+                    e.target.closest('tr').classList.add('bg-blue-50');
+                }
+            });
+
+            document.addEventListener('blur', function(e) {
+                if (e.target.classList.contains('note-input')) {
+                    e.target.closest('tr').classList.remove('bg-blue-50');
                 }
             });
 

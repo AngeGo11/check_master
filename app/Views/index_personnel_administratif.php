@@ -49,6 +49,7 @@ $menuController = new MenuController($pdo);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tableau de Bord Personnel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="shortcut icon" href="./assets/images/logo_cm_sbg.png" type="image/x-icon">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -254,7 +255,7 @@ $menuController = new MenuController($pdo);
                         <div class="flex items-center space-x-4">
                             <div class="flex-shrink-0">
                                 <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                                    <img src="/GSCV+/public/assets/images/logo_mi_sbg.png" alt="MasterCheck" class="w-8 h-8">
+                                    <img src="./assets/images/logo_mi_sbg.png" alt="MasterCheck" class="w-8 h-8">
                                 </div>
                             </div>
                             <div>
