@@ -83,400 +83,339 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <!DOCTYPE html>
-<html lang="fr">
-
+<html lang="fr" class="h-full bg-gray-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liste des Niveaux d'Études - Tableau de Bord Commission</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="/GSCV+/app/Views/listes/assets/css/listes.css?v=<?php echo time(); ?>">
+    <title>Liste des Niveaux d'Accès - GSCV+</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1a5276',
+                        'primary-light': '#2980b9',
+                        'primary-lighter': '#3498db',
+                        secondary: '#ff8c00',
+                        accent: '#4caf50',
+                        success: '#4caf50',
+                        warning: '#f39c12',
+                        danger: '#e74c3c',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'bounce-in': 'bounceIn 0.6s ease-out',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* Styles pour les modales */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.3); }
+            50% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(26, 82, 118, 0.1), 0 10px 10px -5px rgba(26, 82, 118, 0.04);
+        }
+        .modal-transition {
+            transition: all 0.3s ease-in-out;
+        }
+        .fade-in {
             animation: fadeIn 0.3s ease-in-out;
         }
-
-        .modal-content {
-            position: relative;
-            background-color: #fff;
-            margin: 5% auto;
-            padding: 20px;
-            width: 25%;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            animation: slideIn 0.3s ease-in-out;
+        .btn-icon {
+            transition: all 0.2s ease-in-out;
         }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+        .btn-icon:hover {
+            transform: scale(1.1);
         }
-
-        .modal-header h2 {
-            margin: 0;
-            color: #333;
-            font-size: 1.5em;
-        }
-
-        .close {
-            color: #aaa;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: color 0.3s;
-        }
-
-        .close:hover {
-            color: #333;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            border-color: #4a90e2;
-            outline: none;
-        }
-
-        .modal-footer {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-            text-align: right;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateY(-20px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        /* Styles pour les boutons dans la modale */
-        .modal-footer .button {
-            margin-left: 10px;
-        }
-
-        .modal-footer .button.secondary {
-            background-color: #f5f5f5;
-            color: #333;
-        }
-
-        .modal-footer .button.secondary:hover {
-            background-color: #e5e5e5;
+        .bg-gradient {
+            background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%);
         }
     </style>
 </head>
 
-<body>
-    <div class="header">
-        <div class="header-title">
-            <div class="img-container">
-                <img src="/GSCV+/public/assets/images/logo_mi_sbg.png" alt="">
-            </div>
-            <div class="text-container">
-                <h1>Liste des Niveaux d'accès aux données</h1>
-                <p>Gestion des niveaux d'accès aux données du système</p>
-            </div>
-        </div>
-        <div class="header-actions">
+<body class="h-full bg-gray-50">
+    <div class="min-h-full">
+        <!-- Contenu principal -->
+        <main class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-            <div class="user-avatar"><?php echo substr($fullname, 0, 1); ?></div>
-            <div>
-                <div class="user-name"><?php echo $fullname; ?></div>
-                <div class="user-role"><?php echo $lib_user_type; ?></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Barre d'actions -->
-    <div class="actions-bar">
-        <a href="?page=parametres_generaux" class="button back-to-params"><i class="fas fa-arrow-left"></i> Retour aux paramètres généraux</a>
-        <form method="GET" class="search-box" style="display:inline-flex;align-items:center;gap:5px;">
-            <input type="hidden" name="page" value="parametres_generaux">
-            <input type="hidden" name="liste" value="niveaux_acces">
-            <i class="fas fa-search"></i>
-            <input type="text" name="search" placeholder="Rechercher un niveau d'accès..." value="<?php echo htmlspecialchars($search); ?>">
-            <button type="submit" class="button" style="margin-left:5px;">Rechercher</button>
-        </form>
-        <button class="button" onclick="showAddModal()">
-            <i class="fas fa-plus"></i> Ajouter un niveau d'accès
-        </button>
-    </div>
-
-    <!-- Messages de succès/erreur -->
-    <?php if (isset($_SESSION['success'])): ?>
-        <div class="alert alert-success">
-            <?php echo $_SESSION['success'];
-            unset($_SESSION['success']); ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if (isset($_SESSION['error'])): ?>
-        <div class="alert alert-danger">
-            <?php echo $_SESSION['error'];
-            unset($_SESSION['error']); ?>
-        </div>
-    <?php endif; ?>
-
-    <!-- Bouton de suppression multiple -->
-    <form id="bulkDeleteForm" method="POST" style="margin-bottom:10px;">
-        <input type="hidden" name="page" value="parametres_generaux">
-        <input type="hidden" name="liste" value="niveaux_acces">
-        <input type="hidden" name="bulk_delete" value="1">
-        <button type="button" class="button danger" id="bulkDeleteBtn"><i class="fas fa-trash"></i> Supprimer la sélection</button>
-        <input type="hidden" name="delete_selected_ids[]" id="delete_selected_ids">
-    </form>
-
-    <div class="data-table-container">
-        <div class="data-table-header">
-            <div class="data-table-title">Liste des niveaux d'accès (<?php echo $total_niveaux; ?> éléments)</div>
-        </div>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th style="width: 50px;"><input type="checkbox" id="selectAll"></th>
-                    <th style="width: 50px;">ID</th>
-                    <th>Libellé</th>
-                    <th style="width: 120px;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (count($niveaux) === 0): ?>
-                    <tr>
-                        <td colspan="4" style="text-align:center;">Aucun niveau d'accès trouvé.</td>
-                    </tr>
-                <?php else: ?>
-                    <?php foreach ($niveaux as $niveau): ?>
-                        <tr>
-                            <td><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($niveau['id_niveau_acces']); ?>"></td>
-                            <td><?php echo htmlspecialchars($niveau['id_niveau_acces']); ?></td>
-                            <td><?php echo htmlspecialchars($niveau['lib_niveau_acces']); ?></td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="action-button edit-button" title="Modifier" onclick="editNiveau(<?= $niveau['id_niveau_acces']; ?>, '<?= htmlspecialchars(addslashes($niveau['lib_niveau_acces'])); ?>')">
-                                        <i class="fas fa-pen"></i>
-                                    </button>
-                                    <button class="action-button delete-button" title="Supprimer" onclick="showDeleteModal(<?= $niveau['id_niveau_acces']; ?>, '<?= htmlspecialchars(addslashes($niveau['lib_niveau_acces'])); ?>')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Pagination -->
-    <div class="pagination">
-        <?php if ($page > 1): ?>
-            <a class="page-item" href="?page=parametres_generaux&liste=niveaux_acces&search=<?php echo urlencode($search); ?>&page=1">«</a>
-            <a class="page-item" href="?page=parametres_generaux&liste=niveaux_acces&search=<?php echo urlencode($search); ?>&page=<?php echo $page - 1; ?>">‹</a>
-        <?php endif; ?>
-        <?php
-        // Affichage de 5 pages max autour de la page courante
-        $start = max(1, $page - 2);
-        $end = min($total_pages, $page + 2);
-        for ($i = $start; $i <= $end; $i++):
-        ?>
-            <a class="page-item<?php if ($i == $page) echo ' active'; ?>" href="?page=parametres_generaux&liste=niveaux_acces&search=<?php echo urlencode($search); ?>&page=<?php echo $i; ?>"><?php echo $i; ?></a>
-        <?php endfor; ?>
-        <?php if ($page < $total_pages): ?>
-            <a class="page-item" href="?page=parametres_generaux&liste=niveaux_acces&search=<?php echo urlencode($search); ?>&page=<?php echo $page + 1; ?>">›</a>
-            <a class="page-item" href="?page=parametres_generaux&liste=niveaux_acces&search=<?php echo urlencode($search); ?>&page=<?php echo $total_pages; ?>">»</a>
-        <?php endif; ?>
-    </div>
-
-    <!-- Modal pour ajouter/modifier un niveau d'accès -->
-    <div id="niveauModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">Ajouter un niveau d'accès</h2>
-                <span class="close">&times;</span>
-            </div>
-            <form id="niveauForm" method="POST">
-                <input type="hidden" name="page" value="parametres_generaux">
-                <input type="hidden" name="liste" value="niveaux_acces">
-                <input type="hidden" id="niveauId" name="id_niveau_acces">
-                <div class="form-group">
-                    <label for="lib_niveau_acces">Libellé :</label>
-                    <input type="text" id="lib_niveau_acces" name="lib_niveau_acces" required>
+            <!-- En-tête de page -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8 animate-slide-up">
+                <div class="border-l-4 border-primary bg-white rounded-r-lg shadow-sm p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="bg-primary/10 rounded-lg p-3 mr-4">
+                                <i class="fas fa-shield-alt text-2xl text-primary"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-3xl font-bold text-gray-900 mb-2">Liste des Niveaux d'Accès</h1>
+                                <p class="text-gray-600">Gestion des niveaux d'accès du système</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">Connecté en tant que</div>
+                                <div class="font-semibold text-gray-900"><?php echo $fullname; ?></div>
+                                <div class="text-sm text-primary"><?php echo $lib_user_type; ?></div>
+                            </div>
+                            <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                <?php echo substr($fullname, 0, 1); ?>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="button secondary" onclick="closeModal()">Annuler</button>
-                    <button type="submit" class="button">Enregistrer</button>
+            </div>
+
+            <!-- Statistiques -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-lg p-6 stat-card transition-all duration-300">
+                    <div class="flex items-center">
+                        <div class="bg-blue-100 rounded-lg p-3 mr-4">
+                            <i class="fas fa-shield-alt text-2xl text-blue-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Total Niveaux</p>
+                            <p class="text-2xl font-bold text-gray-900"><?php echo $total_niveaux; ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barre d'outils -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <!-- Recherche -->
+                    <div class="flex-1 max-w-md">
+                        <form method="GET" class="flex">
+                            <input type="hidden" name="page" value="parametres_generaux">
+                            <input type="hidden" name="liste" value="niveaux_acces">
+                            <div class="relative flex-1">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-search text-gray-400"></i>
+                                </div>
+                                <input type="text" 
+                                       name="search" 
+                                       value="<?php echo htmlspecialchars($search); ?>" 
+                                       placeholder="Rechercher un niveau d'accès..."
+                                       class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
+                            </div>
+                            <button type="submit" class="ml-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200">
+                                <i class="fas fa-search mr-2"></i>Rechercher
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Boutons d'action -->
+                    <div class="flex space-x-3">
+                        <button onclick="openAddModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center">
+                            <i class="fas fa-plus mr-2"></i>Ajouter
+                        </button>
+                        <button onclick="deleteSelected()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 flex items-center">
+                            <i class="fas fa-trash mr-2"></i>Supprimer
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tableau -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <input type="checkbox" id="select-all" class="rounded border-gray-300 text-primary focus:ring-primary">
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Libellé</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <?php foreach ($niveaux as $niveau): ?>
+                            <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <input type="checkbox" name="delete_selected_ids[]" value="<?php echo $niveau['id_niveau_acces']; ?>" class="rounded border-gray-300 text-primary focus:ring-primary">
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <?php echo $niveau['id_niveau_acces']; ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <?php echo htmlspecialchars($niveau['lib_niveau_acces']); ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <div class="flex space-x-2">
+                                        <button onclick="openEditModal(<?php echo $niveau['id_niveau_acces']; ?>, '<?php echo htmlspecialchars($niveau['lib_niveau_acces']); ?>')" 
+                                                class="text-indigo-600 hover:text-indigo-900 btn-icon">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="deleteNiveau(<?php echo $niveau['id_niveau_acces']; ?>)" 
+                                                class="text-red-600 hover:text-red-900 btn-icon">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <?php if ($total_pages > 1): ?>
+                <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <?php if ($page > 1): ?>
+                            <a href="?page=parametres_generaux&liste=niveaux_acces&search=<?php echo urlencode($search); ?>&page=<?php echo $page - 1; ?>" 
+                               class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Précédent
+                            </a>
+                            <?php endif; ?>
+                            <?php if ($page < $total_pages): ?>
+                            <a href="?page=parametres_generaux&liste=niveaux_acces&search=<?php echo urlencode($search); ?>&page=<?php echo $page + 1; ?>" 
+                               class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Suivant
+                            </a>
+                            <?php endif; ?>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">
+                                    Affichage de <span class="font-medium"><?php echo ($offset + 1); ?></span> à <span class="font-medium"><?php echo min($offset + $per_page, $total_niveaux); ?></span> sur <span class="font-medium"><?php echo $total_niveaux; ?></span> résultats
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                                    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                                    <a href="?page=parametres_generaux&liste=niveaux_acces&search=<?php echo urlencode($search); ?>&page=<?php echo $i; ?>" 
+                                       class="relative inline-flex items-center px-4 py-2 border text-sm font-medium <?php echo $i == $page ? 'z-10 bg-primary border-primary text-white' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'; ?>">
+                                        <?php echo $i; ?>
+                                    </a>
+                                    <?php endfor; ?>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Ajout/Modification -->
+    <div id="niveauModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900" id="modalTitle">Ajouter un niveau d'accès</h2>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form method="POST" class="p-6">
+                <input type="hidden" name="id_niveau_acces" id="edit_id">
+                <div class="mb-4">
+                    <label for="lib_niveau_acces" class="block text-sm font-medium text-gray-700 mb-2">Libellé du niveau d'accès</label>
+                    <input type="text" 
+                           name="lib_niveau_acces" 
+                           id="edit_lib_niveau_acces" 
+                           required 
+                           class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                        Annuler
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200">
+                        Enregistrer
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Modal de confirmation de suppression -->
-    <div id="deleteModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Confirmer la suppression</h2>
-                <span class="close" onclick="closeDeleteModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="deleteForm" method="POST">
-                    <input type="hidden" name="page" value="parametres_generaux">
-                    <input type="hidden" name="liste" value="niveaux_acces">
-                    <input type="hidden" id="delete_niveau_id" name="delete_niveau_id">
-                    <p id="deleteMessage">Êtes-vous sûr de vouloir supprimer ce niveau d'accès ?</p>
-                    <div class="modal-footer">
-                        <button type="button" class="button secondary" onclick="closeDeleteModal()">Annuler</button>
-                        <button type="submit" class="button delete">Supprimer</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de confirmation de suppression multiple harmonisée -->
-    <div id="confirmation-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeDeleteMultipleModal()">&times;</span>
-            <div class="modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
-            <h2>Confirmation de suppression</h2>
-            <p id="deleteMultipleMessage"></p>
-            <div class="modal-footer" id="deleteMultipleFooter"></div>
-        </div>
-    </div>
-
     <script>
-        // Fonctions pour la gestion des modals
-        function showAddModal() {
+        // Gestion des modales
+        function openAddModal() {
             document.getElementById('modalTitle').textContent = 'Ajouter un niveau d\'accès';
-            document.getElementById('niveauForm').reset();
-            document.getElementById('niveauId').value = '';
-            document.getElementById('niveauModal').style.display = 'block';
+            document.getElementById('edit_id').value = '';
+            document.getElementById('edit_lib_niveau_acces').value = '';
+            document.getElementById('niveauModal').classList.remove('hidden');
+            document.getElementById('niveauModal').classList.add('flex');
         }
 
-        function editNiveau(id, libelle) {
+        function openEditModal(id, libelle) {
             document.getElementById('modalTitle').textContent = 'Modifier un niveau d\'accès';
-            document.getElementById('niveauId').value = id;
-            document.getElementById('lib_niveau_acces').value = libelle;
-            document.getElementById('niveauModal').style.display = 'block';
-        }
-
-        function showDeleteModal(id, libelle) {
-            document.getElementById('delete_niveau_id').value = id;
-            document.getElementById('deleteMessage').textContent = "Êtes-vous sûr de vouloir supprimer le niveau d'accès : '" + libelle + "' ?";
-            document.getElementById('deleteModal').style.display = 'block';
+            document.getElementById('edit_id').value = id;
+            document.getElementById('edit_lib_niveau_acces').value = libelle;
+            document.getElementById('niveauModal').classList.remove('hidden');
+            document.getElementById('niveauModal').classList.add('flex');
         }
 
         function closeModal() {
-            document.getElementById('niveauModal').style.display = 'none';
+            document.getElementById('niveauModal').classList.add('hidden');
+            document.getElementById('niveauModal').classList.remove('flex');
         }
 
-        function closeDeleteModal() {
-            document.getElementById('deleteModal').style.display = 'none';
-        }
+        // Gestion de la sélection multiple
+        document.getElementById('select-all').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('input[name="delete_selected_ids[]"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
 
-        // Fermer la modale si on clique en dehors
-        window.onclick = function(event) {
-            if (event.target == document.getElementById('niveauModal') || event.target == document.getElementById('deleteModal')) {
-                closeModal();
-                closeDeleteModal();
+        // Suppression d'un niveau
+        function deleteNiveau(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce niveau d\'accès ?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.innerHTML = `<input type="hidden" name="delete_niveau_id" value="${id}">`;
+                document.body.appendChild(form);
+                form.submit();
             }
         }
-
-        // Empêcher la fermeture de la modale lors du clic sur son contenu
-        document.querySelectorAll('.modal-content').forEach(function(content) {
-            content.onclick = function(event) {
-                event.stopPropagation();
-            }
-        });
-
-        // Sélection/désélection tout
-        const selectAll = document.getElementById('selectAll');
-        const checkboxes = document.querySelectorAll('.row-checkbox');
-        selectAll.addEventListener('change', function() {
-            checkboxes.forEach(cb => cb.checked = this.checked);
-        });
-
-        // Bouton suppression multiple
-        const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
-        bulkDeleteBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            openDeleteMultipleModal();
-        });
 
         // Suppression multiple
-        function openDeleteMultipleModal() {
-            const checked = document.querySelectorAll('.row-checkbox:checked');
-            const msg = document.getElementById('deleteMultipleMessage');
-            const footer = document.getElementById('deleteMultipleFooter');
-            if (checked.length === 0) {
-                msg.innerHTML = "Aucune sélection. Veuillez sélectionner au moins un niveau d'accès à supprimer.";
-                footer.innerHTML = '<button type="button" class="button" onclick="closeDeleteMultipleModal()">OK</button>';
-            } else {
-                msg.innerHTML = `Êtes-vous sûr de vouloir supprimer <b>${checked.length}</b> niveau(x) d'accès sélectionné(s) ?<br><span style='color:#c0392b;font-size:0.95em;'>Cette action est irréversible.</span>`;
-                footer.innerHTML = '<button type="button" class="button" onclick="confirmDeleteMultiple()">Oui, supprimer</button>' +
-                    '<button type="button" class="button secondary" onclick="closeDeleteMultipleModal()">Non</button>';
+        function deleteSelected() {
+            const selected = document.querySelectorAll('input[name="delete_selected_ids[]"]:checked');
+            if (selected.length === 0) {
+                alert('Veuillez sélectionner au moins un niveau d\'accès à supprimer.');
+                return;
             }
-            document.getElementById('confirmation-modal').style.display = 'flex';
+            
+            if (confirm(`Êtes-vous sûr de vouloir supprimer ${selected.length} niveau(x) d'accès ?`)) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.innerHTML = `<input type="hidden" name="delete_selected_ids" value="${Array.from(selected).map(cb => cb.value).join(',')}">`;
+                document.body.appendChild(form);
+                form.submit();
+            }
         }
 
-        function closeDeleteMultipleModal() {
-            document.getElementById('confirmation-modal').style.display = 'none';
-        }
-
-        function confirmDeleteMultiple() {
-            document.getElementById('bulkDeleteForm').submit();
-        }
+        // Fermer la modale en cliquant à l'extérieur
+        document.getElementById('niveauModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
     </script>
 </body>
-
 </html>

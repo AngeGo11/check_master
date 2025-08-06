@@ -1,4 +1,9 @@
 <?php
+// Vérifier si on est dans le bon contexte
+if (!isset($_GET['liste']) || $_GET['liste'] !== 'ue') {
+    return;
+}
+
 require_once __DIR__ . '/../../config/config.php';
 
 
@@ -36,42 +41,81 @@ $totalPages = max(1, ceil($totalUes / $perPage));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Traitement des actions
-    $lib_ue = $_POST['lib_ue'];
-    $credit_ue = $_POST['credit_ue'];
-    $volume_horaire = $_POST['volume_horaire'];
-    $niveau = $_POST['niveau'];
-    $semestre = $_POST['semestre'];
-    $id_ens = !empty($_POST['id_ens']) ? intval($_POST['id_ens']) : null;
+    if (isset($_POST['lib_ue'])) {
+        $lib_ue = trim($_POST['lib_ue']);
+        $credit_ue = intval($_POST['credit_ue']);
+        $volume_horaire = intval($_POST['volume_horaire']);
+        $niveau = intval($_POST['niveau']);
+        $semestre = intval($_POST['semestre']);
+        $id_ens = !empty($_POST['id_ens']) ? intval($_POST['id_ens']) : null;
 
-    // Génération du code UE unique
-    try {
-        $code_ue = genererCodeUEUnique($pdo, $niveau, $semestre);
+        // Validation des données
+        if (empty($lib_ue)) {
+            $_SESSION['error'] = "Le libellé de l'UE ne peut pas être vide.";
+        } elseif ($credit_ue < 1 || $credit_ue > 30) {
+            $_SESSION['error'] = "Le nombre de crédits doit être entre 1 et 30.";
+        } elseif ($volume_horaire < 1) {
+            $_SESSION['error'] = "Le volume horaire doit être supérieur à 0.";
+        } elseif ($niveau <= 0) {
+            $_SESSION['error'] = "Veuillez sélectionner un niveau.";
+        } elseif ($semestre <= 0) {
+            $_SESSION['error'] = "Veuillez sélectionner un semestre.";
+        } else {
+            // Génération du code UE unique
+            try {
+                $code_ue = genererCodeUEUnique($pdo, $niveau, $semestre);
 
-        $sql = "INSERT INTO ue (id_ue, lib_ue, credit_ue, volume_horaire, id_niv_etd, id_semestre, id_ens) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$code_ue, $lib_ue, $credit_ue, $volume_horaire, $niveau, $semestre, $id_ens]);
-        $_SESSION['success_message'] = "UE ajoutée avec succès.";
-      
+                $sql = "INSERT INTO ue (id_ue, lib_ue, credit_ue, volume_horaire, id_niv_etd, id_semestre, id_ens) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$code_ue, $lib_ue, $credit_ue, $volume_horaire, $niveau, $semestre, $id_ens]);
+                $_SESSION['success'] = "UE ajoutée avec succès.";
+            } catch (PDOException $e) {
+                $_SESSION['error'] = "Erreur lors de l'ajout de l'UE.";
+            } catch (Exception $e) {
+                $_SESSION['error'] = "Erreur lors de la génération du code UE : " . $e->getMessage();
+            }
+        }
 
         // Redirection pour éviter la soumission multiple
-        header('Location: ' . $_SERVER['PHP_SELF']);
+        header('Location: ?page=parametres_generaux&liste=ue');
         exit();
-    } catch (Exception $e) {
-        $error_message = "Erreur lors de la génération du code UE : " . $e->getMessage();
+    }
+
+    // Suppression simple
+    if (isset($_POST['action']) && $_POST['action'] === 'delete' && isset($_POST['id_ue'])) {
+        $id_ue = trim($_POST['id_ue']);
+        if (!empty($id_ue)) {
+            try {
+                $sql = "DELETE FROM ue WHERE id_ue = ?";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$id_ue]);
+                $_SESSION['success'] = "UE supprimée avec succès.";
+            } catch (PDOException $e) {
+                $_SESSION['error'] = "Erreur lors de la suppression de l'UE.";
+            }
+        } else {
+            $_SESSION['error'] = "ID de l'UE invalide.";
+        }
+        header('Location: ?page=parametres_generaux&liste=ue');
+        exit;
     }
 
     // Ajout du traitement PHP pour la suppression multiple
     if (isset($_POST['delete_selected_ids']) && is_array($_POST['delete_selected_ids'])) {
         $ids = array_filter($_POST['delete_selected_ids'], 'strlen');
         if (!empty($ids)) {
-            $placeholders = implode(',', array_fill(0, count($ids), '?'));
-            $stmt = $pdo->prepare("DELETE FROM ue WHERE id_ue IN ($placeholders)");
-            $stmt->execute($ids);
-            $_SESSION['success'] = count($ids) . " UE supprimée(s) avec succès.";
+            try {
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $stmt = $pdo->prepare("DELETE FROM ue WHERE id_ue IN ($placeholders)");
+                $stmt->execute($ids);
+                $_SESSION['success'] = count($ids) . " UE supprimée(s) avec succès.";
+            } catch (PDOException $e) {
+                $_SESSION['error'] = "Erreur lors de la suppression multiple.";
+            }
         } else {
             $_SESSION['error'] = "Aucune UE sélectionnée.";
         }
-        header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
+        header('Location: ?page=parametres_generaux&liste=ue');
         exit;
     }
 }
@@ -79,1206 +123,630 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liste des UE</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/GSCV+/app/Views/listes/assets/css/listes.css?v=<?php echo time(); ?>">
+    <title>Liste des Unités d'Enseignement - GSCV+</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1a5276',
+                        'primary-light': '#2980b9',
+                        accent: '#27ae60',
+                        warning: '#f39c12',
+                        danger: '#e74c3c',
+                        success: '#27ae60'
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'bounce-in': 'bounceIn 0.6s ease-out',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* Styles pour les modales */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(26, 82, 118, 0.1), 0 10px 10px -5px rgba(26, 82, 118, 0.04);
+        }
+
+        .modal-transition {
+            transition: all 0.3s ease-in-out;
+        }
+
+        .fade-in {
             animation: fadeIn 0.3s ease-in-out;
         }
 
-        .modal-content {
-            position: relative;
-            background-color: #fff;
-            margin: 5% auto;
-            padding: 30px;
-            width: 60%;
-            max-width: 800px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-            animation: slideIn 0.3s ease-in-out;
+        .btn-icon {
+            transition: all 0.2s ease-in-out;
         }
 
-        .form-group select option {
-            color: #000000;
-            background-color: #fff;
-            padding: 12px;
-            font-size: 1em;
+        .btn-icon:hover {
+            transform: scale(1.1);
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .modal-header h2 {
-            margin: 0;
-            color: #2c3e50;
-            font-size: 1.8em;
-            font-weight: 600;
-        }
-
-        .close {
-            background: none;
-            border: none;
-            font-size: 28px;
-            color: #666;
-            cursor: pointer;
-            transition: color 0.3s ease;
-            padding: 5px;
-        }
-
-        .close:hover {
-            color: #e74c3c;
-        }
-
-        #ueForm {
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #34495e;
-            font-weight: 500;
-            font-size: 0.95em;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: all 0.3s ease;
-            background-color: #f8f9fa;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            border-color: #3498db;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-            outline: none;
-            background-color: #fff;
-        }
-
-        .form-group select {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: all 0.3s ease;
-            background-color: #f8f9fa;
-            color: #000000;
-        }
-
-        .form-group select option {
-            color: #000000;
-            background-color: #ffffff;
-            padding: 12px;
-            font-size: 1em;
-        }
-
-        .form-row {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .form-row .form-group {
-            flex: 1;
-            margin-bottom: 0;
-        }
-
-        .modal-footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid #f0f0f0;
-            text-align: right;
-            display: flex;
-            justify-content: flex-end;
-            gap: 15px;
-        }
-
-        .modal-footer button {
-            padding: 12px 25px;
-            border-radius: 8px;
-            font-size: 1em;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .modal-footer .button {
-            background-color: #1a5276;
-            color: white;
-            border: none;
-        }
-
-        .modal-footer .button:hover {
-            background-color: #1a5276db;
-        }
-
-        .modal-footer .button.secondary {
-            background-color: #f8f9fa;
-            color: #2c3e50;
-            border: 1px solid #ddd;
-        }
-
-        .modal-footer .button.secondary:hover {
-            background-color: #e9ecef;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateY(-30px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        /* Message d'erreur */
-        .error-message {
-            color: #e74c3c;
-            background-color: #fde8e8;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.9em;
-            display: none;
-        }
-
-        .error-message.show {
-            display: block;
-        }
-
-        /* Styles pour les détails */
-        .detail-group {
-            margin-bottom: 15px;
-        }
-
-        .detail-group label {
-            font-weight: bold;
-            color: #666;
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        .detail-group span {
-            color: #333;
-            font-size: 1.1em;
-        }
-
-        /* Style pour le bouton de suppression */
-        .button.delete {
-            width: 100%;
-            background-color: #e74c3c;
-        }
-
-        .button.delete:hover {
-            background-color: #c0392b;
-        }
-
-       /* Style pour la confirmation de suppression */
-       .delete-confirmation {
-            text-align: center;
-            padding: 20px;
-        }
-
-        .delete-confirmation .warning-icon {
-            font-size: 64px;
-            color: #ef4444;
-            margin-bottom: 20px;
-        }
-
-        .delete-confirmation h3 {
-            color: #1f2937;
-            margin-bottom: 15px;
-            font-size: 1.5em;
-        }
-
-        .delete-confirmation p {
-            color: #6b7280;
-            margin-bottom: 25px;
-            line-height: 1.6;
-        }
-
-        .ue-info {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-        }
-
-        .ue-info strong {
-            color: #dc2626;
-        }
-
-        .button.danger {
-            background: linear-gradient(135deg, #dc2626, #ef4444);
-            color: white;
-        }
-
-        .button.danger:hover {
-            background: linear-gradient(135deg, #b91c1c, #dc2626);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.3);
-        }
-
-        .button.secondary {
-            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
-            color: #1a5276;
-            border: 2px solid #cbd5e1;
-        }
-
-        .button.secondary:hover {
-            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-            border-color: #94a3b8;
-            transform: translateY(-1px);
-        }
-
-        @keyframes popIn {
-            from {
-                transform: scale(0.95);
-                opacity: 0;
-            }
-
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
-        /* Style amélioré pour la modale de détails */
-        #viewModal.modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.6);
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(2px);
-        }
-
-        #viewModal[style*="display: block"] {
-            display: flex !important;
-        }
-
-        #viewModal .modal-content {
-            position: relative;
-            background: linear-gradient(145deg, #ffffff, #fdfdfd);
-            margin: 0;
-            padding: 32px;
-            width: min(90vw, 800px);
-            max-height: 90vh;
-            border-radius: 16px;
-            box-shadow:
-                0 10px 40px rgba(0, 0, 0, 0.15),
-                0 4px 12px rgba(0, 0, 0, 0.1);
-            animation: modalAppear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            overflow-y: auto;
-            border: 1px solid rgba(255, 255, 255, 0.8);
-        }
-
-        @keyframes modalAppear {
-            0% {
-                opacity: 0;
-                transform: scale(0.8) translateY(-20px);
-            }
-
-            100% {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-
-        #viewModal .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 28px;
-            padding-bottom: 18px;
-            border-bottom: 2px solid #f5f6fa;
-            position: relative;
-        }
-
-        #viewModal .modal-header::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 60px;
-            height: 3px;
-            background: linear-gradient(90deg, #1a5276, #3498db);
-            border-radius: 2px;
-        }
-
-        #viewModal .modal-header h2 {
-            margin: 0;
-            color: #1a202c;
-            font-size: 1.9em;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-        }
-
-        #viewModal .close {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: #64748b;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 300;
-        }
-
-        #viewModal .close:hover {
-            background: #fee2e2;
-            color: #dc2626;
-            border-color: rgba(220, 38, 38, 0.2);
-            transform: rotate(90deg);
-        }
-
-        #viewModal .modal-body {
-            margin: 0 0 12px 0;
-            color: #2d3748;
-            font-size: 1.1em;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 22px 28px;
-            line-height: 1.6;
-        }
-
-        #viewModal .detail-group {
-            display: flex;
-            flex-direction: column;
-            padding: 18px;
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-            border-radius: 12px;
-            border-left: 4px solid #1a5276;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        #viewModal .detail-group::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(26, 82, 118, 0.3), transparent);
-        }
-
-        #viewModal .detail-group:hover {
-            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(26, 82, 118, 0.1);
-        }
-
-        #viewModal .detail-group label {
-            color: #475569;
-            font-weight: 600;
-            font-size: 0.95em;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-size: 0.85em;
-        }
-
-        #viewModal .detail-group span {
-            color: #1e293b;
-            font-weight: 500;
-            font-size: 1.05em;
-            word-break: break-word;
-            padding: 4px 0;
-        }
-
-        #viewModal .modal-footer {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 2px solid #f5f6fa;
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-        }
-
-        #viewModal .button {
-            background: linear-gradient(135deg, #1a5276, #2980b9);
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            padding: 14px 24px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            font-size: 0.95em;
-            letter-spacing: 0.3px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        #viewModal .button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s ease;
-        }
-
-        #viewModal .button:hover::before {
-            left: 100%;
-        }
-
-        #viewModal .button.secondary {
-            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
-            color: #1a5276;
-            border: 2px solid #cbd5e1;
-        }
-
-        #viewModal .button.secondary:hover {
-            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-            border-color: #94a3b8;
-            transform: translateY(-1px);
-        }
-
-        #viewModal .button:hover {
-            background: linear-gradient(135deg, #154360, #1f618d);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(26, 82, 118, 0.3);
-        }
-
-        #viewModal .button:active {
-            transform: translateY(0);
-        }
-
-        /* Animations et transitions fluides */
-        @keyframes slideIn {
-            0% {
-                opacity: 0;
-                transform: scale(0.9) translateY(-30px);
-            }
-
-            100% {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-
-        /* Media queries améliorées */
-        @media (max-width: 768px) {
-            #viewModal .modal-content {
-                padding: 20px;
-                width: 95vw;
-                margin: 2.5vh auto;
-                border-radius: 12px;
-            }
-
-            #viewModal .modal-header h2 {
-                font-size: 1.5em;
-            }
-
-            #viewModal .modal-body {
-                grid-template-columns: 1fr;
-                gap: 16px;
-            }
-
-            #viewModal .detail-group {
-                padding: 14px;
-            }
-
-            #viewModal .modal-footer {
-                flex-direction: column-reverse;
-                gap: 8px;
-            }
-
-            #viewModal .button {
-                width: 100%;
-                justify-content: center;
-                padding: 16px 20px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            #viewModal .modal-content {
-                padding: 16px;
-                width: 98vw;
-                margin: 1vh auto;
-            }
-
-            #viewModal .modal-header {
-                margin-bottom: 20px;
-                padding-bottom: 12px;
-            }
-
-            #viewModal .modal-header h2 {
-                font-size: 1.3em;
-            }
-
-            #viewModal .close {
-                width: 36px;
-                height: 36px;
-                font-size: 18px;
-            }
-        }
-
-
-        .form-group-inline label {
-            white-space: nowrap;
-        }
-
-        .form-group-inline select {
-            flex: 1;
+        .bg-gradient {
+            background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%);
         }
     </style>
 </head>
 
-<body>
-    <!-- En-tête -->
-    <div class="header">
-        <div class="header-title">
-            <img src="/GSCV+/public/assets/images/logo_mi_sbg.png" alt="">
-            <div>
-                <h1>Liste des UE</h1>
-                <p>Gestion des unités d'enseignement</p>
+<body class="h-full bg-gray-50">
+    <div class="min-h-full">
+        <!-- Contenu principal -->
+        <main class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+            <!-- En-tête de page -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8 animate-slide-up">
+                <div class="border-l-4 border-primary bg-white rounded-r-lg shadow-sm p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="bg-primary/10 rounded-lg p-3 mr-4">
+                                <i class="fas fa-book text-2xl text-primary"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-3xl font-bold text-gray-900 mb-2">Liste des Unités d'Enseignement</h1>
+                                <p class="text-gray-600">Gestion des UE du système</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">Connecté en tant que</div>
+                                <div class="font-semibold text-gray-900"><?php echo $fullname; ?></div>
+                                <div class="text-sm text-primary"><?php echo $lib_user_type; ?></div>
+                            </div>
+                            <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                <?php echo substr($fullname, 0, 1); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
 
-
-        <div class="header-actions">
-
-            <div class="user-avatar"><?php echo substr($fullname, 0, 1); ?></div>
-            <div>
-                <div class="user-name"><?php echo $fullname; ?></div>
-                <div class="user-role"><?php echo $lib_user_type; ?></div>
+            <!-- KPI Card -->
+            <div class="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8 animate-slide-up">
+                <div class="stat-card bg-white rounded-xl shadow-lg border-l-4 border-primary-light overflow-hidden transition-all duration-300">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 mb-1">Total des UE</p>
+                                <p class="text-3xl font-bold text-gray-900"><?php echo number_format($totalUes); ?></p>
+                            </div>
+                            <div class="bg-primary-light/10 rounded-full p-4">
+                                <i class="fas fa-book text-2xl text-primary-light"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
 
+            <!-- Section Liste des UE -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8 animate-slide-up">
+                <!-- Barre d'actions -->
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                        <!-- Bouton de retour -->
+                        <a href="?page=parametres_generaux"
+                            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            Retour aux paramètres
+                        </a>
 
-    <!-- Barre d'actions -->
-    <div class="content">
-        <div class="actions-bar">
-        <a href="?page=parametres_generaux" class="button back-to-params">
-                <i class="fas fa-arrow-left"></i> Retour aux paramètres généraux
-            </a>
-            <form class="search-box" method="get" style="display:flex;">
-                <i class="fas fa-search"></i>
-                <input type="text" name="search" placeholder="Rechercher une UE..." value="<?php echo htmlspecialchars($search); ?>">
-                <button type="submit" style="display:none;">Rechercher</button>
-            </form>
-            <form id="deleteMultipleForm" method="POST" style="display:inline; margin-right:10px;">
-                <input type="hidden" name="delete_multiple" value="1">
-                <button type="button" class="button delete-multiple-btn" onclick="openDeleteMultipleModal()">
-                    <i class="fas fa-trash"></i> Supprimer la sélection
-                </button>
-            </form>
-            <button class="button" onclick="showAddModal()">
-                <i class="fas fa-plus"></i> Ajouter une UE
-            </button>
-        </div>
-
-        <!-- Messages de notification -->
-        <?php if (isset($_SESSION['success_message'])): ?>
-            <div class="alert alert-success" style="position: fixed; top: 20px; right: 20px; z-index: 1000; background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; border: 1px solid #c3e6cb;">
-                <?php
-                echo $_SESSION['success_message'];
-                unset($_SESSION['success_message']);
-                ?>
-                <button onclick="this.parentElement.remove()" style="margin-left: 10px; background: none; border: none; color: #155724; font-weight: bold; cursor: pointer;">×</button>
-            </div>
-        <?php endif; ?>
-
-        <?php if (isset($_SESSION['error_message'])): ?>
-            <div class="alert alert-danger" style="position: fixed; top: 20px; right: 20px; z-index: 1000; background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; border: 1px solid #f5c6cb;">
-                <?php
-                echo $_SESSION['error_message'];
-                unset($_SESSION['error_message']);
-                ?>
-                <button onclick="this.parentElement.remove()" style="margin-left: 10px; background: none; border: none; color: #721c24; font-weight: bold; cursor: pointer;">×</button>
-            </div>
-        <?php endif; ?>
-
-        <!-- Filtres -->
-
-
-        <!-- Table de données -->
-        <div class="data-table-container">
-            <div class="data-table-header">
-                <div class="data-table-title">Liste des UE</div>
-            </div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th style="width: 50px;"><input type="checkbox" id="selectAll"></th>
-                        <th>Code UE</th>
-                        <th>Libellé UE</th>
-                        <th style="width: 50px;">Crédit</th>
-                        <th>Volume horaire</th>
-                        <th style="width: 120px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($ues as $ue): ?>
-                        <tr>
-                            <td><input type="checkbox" class="row-checkbox" name="delete_selected_ids[]" value="<?php echo $ue['id_ue']; ?>"></td>
-                            <td><?php echo $ue['id_ue']; ?></td>
-                            <td><?php echo $ue['lib_ue']; ?></td>
-                            <td><?php echo $ue['credit_ue']; ?></td>
-                            <td><?php echo $ue['volume_horaire']; ?></td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="action-button view-button" title="Voir" onclick="showViewModal(<?php echo $ue['id_ue']; ?>)">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="action-button edit-button" title="Modifier" onclick="showEditModal(<?php echo $ue['id_ue']; ?>)">
-                                        <i class="fas fa-pen"></i>
-                                    </button>
-                                    <button class="action-button delete-button" title="Supprimer" onclick="showDeleteModal(<?php echo $ue['id_ue']; ?>)">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                        <!-- Recherche -->
+                        <div class="flex-1 w-full lg:w-auto">
+                            <form method="GET" class="flex gap-3">
+                                <input type="hidden" name="page" value="parametres_generaux">
+                                <input type="hidden" name="liste" value="ue">
+                                <div class="relative flex-1">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="fas fa-search text-gray-400"></i>
+                                    </div>
+                                    <input type="text"
+                                        name="search"
+                                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        placeholder="Rechercher une UE..."
+                                        value="<?php echo htmlspecialchars($search); ?>">
                                 </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+                                <button type="submit"
+                                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200 flex items-center">
+                                    <i class="fas fa-search mr-2"></i>
+                                    Rechercher
+                                </button>
+                            </form>
+                        </div>
 
-        <!-- Pagination -->
-        <div class="pagination">
-            <?php if ($page > 1): ?>
-                <a class="page-item" href="?search=<?php echo urlencode($search); ?>&page=<?php echo $page - 1; ?>">«</a>
-            <?php endif; ?>
-            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                <a class="page-item<?php if ($i == $page) echo ' active'; ?>" href="?search=<?php echo urlencode($search); ?>&page=<?php echo $i; ?>"><?php echo $i; ?></a>
-            <?php endfor; ?>
-            <?php if ($page < $totalPages): ?>
-                <a class="page-item" href="?search=<?php echo urlencode($search); ?>&page=<?php echo $page + 1; ?>">»</a>
-            <?php endif; ?>
-        </div>
+                        <!-- Bouton d'ajout -->
+                        <button onclick="showAddModal()"
+                            class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-green-600 transition-colors duration-200 flex items-center">
+                            <i class="fas fa-plus mr-2"></i>
+                            Ajouter une UE
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages d'alerte -->
+                <?php if (isset($_SESSION['success'])): ?>
+                    <div class="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-lg fade-in">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                            <span class="text-green-800"><?php echo $_SESSION['success']; unset($_SESSION['success']); ?></span>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (isset($_SESSION['error'])): ?>
+                    <div class="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg fade-in">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
+                            <span class="text-red-800"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></span>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Bouton de suppression multiple -->
+                <div class="px-6 pt-4">
+                    <form id="deleteMultipleForm" method="POST">
+                        <input type="hidden" name="page" value="parametres_generaux">
+                        <input type="hidden" name="liste" value="ue">
+                        <input type="hidden" name="delete_multiple" value="1">
+                        <input type="hidden" name="delete_selected_ids[]" id="delete_selected_ids">
+                        <button type="button" 
+                            class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center"
+                            id="bulkDeleteBtn">
+                            <i class="fas fa-trash mr-2"></i>
+                            Supprimer la sélection
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Tableau des données -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-primary focus:ring-primary">
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Code UE
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Libellé
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Crédits
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Volume Horaire
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <?php if (empty($ues)): ?>
+                                <tr>
+                                    <td colspan="6" class="px-6 py-12 text-center">
+                                        <div class="flex flex-col items-center">
+                                            <i class="fas fa-inbox text-4xl text-gray-300 mb-4"></i>
+                                            <p class="text-gray-500 text-lg">
+                                                <?php echo empty($search) ? 'Aucune UE trouvée.' : 'Aucun résultat pour "' . htmlspecialchars($search) . '".'; ?>
+                                            </p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($ues as $ue): ?>
+                                    <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <input type="checkbox" 
+                                                class="row-checkbox rounded border-gray-300 text-primary focus:ring-primary" 
+                                                value="<?php echo htmlspecialchars($ue['id_ue']); ?>">
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            <?php echo htmlspecialchars($ue['id_ue']); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?php echo htmlspecialchars($ue['lib_ue']); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?php echo htmlspecialchars($ue['credit_ue']); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?php echo htmlspecialchars($ue['volume_horaire']); ?>h
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div class="flex space-x-2">
+                                                <button class="btn-icon text-blue-600 hover:text-blue-900" 
+                                                    title="Modifier"
+                                                    onclick="editUE('<?php echo htmlspecialchars($ue['id_ue'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($ue['lib_ue'], ENT_QUOTES); ?>', <?php echo $ue['credit_ue']; ?>, <?php echo $ue['volume_horaire']; ?>, <?php echo $ue['id_niv_etd']; ?>, <?php echo $ue['id_semestre']; ?>, <?php echo $ue['id_ens'] ?: 'null'; ?>)">
+                                                    <i class="fas fa-pen"></i>
+                                                </button>
+                                                <button class="btn-icon text-red-600 hover:text-red-900" 
+                                                    title="Supprimer"
+                                                    onclick="deleteUE('<?php echo htmlspecialchars($ue['id_ue'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($ue['lib_ue'], ENT_QUOTES); ?>')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <?php if ($totalPages > 1): ?>
+                    <div class="px-6 py-4 border-t border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm text-gray-700">
+                                Page <?php echo $page; ?> sur <?php echo $totalPages; ?>
+                            </div>
+                            <div class="flex space-x-2">
+                                <?php if ($page > 1): ?>
+                                    <a href="?page=parametres_generaux&liste=ue&search=<?php echo urlencode($search); ?>&page=<?php echo $page - 1; ?>" 
+                                        class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                        Précédent
+                                    </a>
+                                <?php endif; ?>
+                                
+                                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                    <a href="?page=parametres_generaux&liste=ue&search=<?php echo urlencode($search); ?>&page=<?php echo $i; ?>" 
+                                        class="px-3 py-2 text-sm font-medium <?php echo $page == $i ? 'text-white bg-primary' : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'; ?> rounded-md">
+                                        <?php echo $i; ?>
+                                    </a>
+                                <?php endfor; ?>
+                                
+                                <?php if ($page < $totalPages): ?>
+                                    <a href="?page=parametres_generaux&liste=ue&search=<?php echo urlencode($search); ?>&page=<?php echo $page + 1; ?>" 
+                                        class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                        Suivant
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </main>
     </div>
 
-
-    <!-- Modal pour ajouter/modifier une UE -->
-    <div id="ueModal" class="modal">
-        <div class="modal-content" style="max-width: 1500px;">
-            <div class="modal-header">
-                <h2 id="modalTitle">Ajouter une UE</h2>
-                <button class="close" onclick="closeModal()">&times;</button>
-            </div>
-            <?php if (isset($error_message)): ?>
-                <div class="error-message show"><?php echo $error_message; ?></div>
-            <?php endif; ?>
-            <form id="ueForm" method="POST">
-                <input type="hidden" id="id_ue" name="id_ue">
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="lib_ue">Libellé UE</label>
-                        <input type="text" id="lib_ue" name="lib_ue" required placeholder="Entrez le libellé de l'UE">
-                    </div>
-
-                    <div class="form-group form-group-inline">
-                        <label for="id_ens">Nom de l'enseignant <span style="color:red; font-weight:700;">(Seulement si l'ue ne dispose pas d'ecue) </span>:</label>
-                        <select name="id_ens" id="id_ens">
-                            <option value="">-- Sélectionnez un enseignant --</option>
-                            <?php
-                            $enseignants = $pdo->prepare("
-                                SELECT e.id_ens, e.nom_ens, e.prenoms_ens
-                                FROM enseignants e");
-                            $enseignants->execute();
-                            $enseignants_list = $enseignants->fetchAll();
-                            foreach ($enseignants_list as $ens) {
-                                echo "<option value=\"{$ens['id_ens']}\">{$ens['nom_ens']} {$ens['prenoms_ens']}</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="niveau">Niveau</label>
-                        <select id="niveau" name="niveau" required onchange="updateSemestres(this.value)">
-                            <option value="">Sélectionnez un niveau</option>
-                            <?php
-                            $niveaux = $pdo->prepare('SELECT * FROM niveau_etude');
-                            $niveaux->execute();
-                            $niveaux_list = $niveaux->fetchAll();
-                            foreach ($niveaux_list as $niv) {
-                                echo "<option value=\"{$niv['id_niv_etd']}\">{$niv['lib_niv_etd']}</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="semestre">Semestre</label>
-                        <select id="semestre" name="semestre" required>
-                            <option value="">Sélectionnez un semestre</option>
-                        </select>
-                    </div>
-
-                </div>
-
-
-                <div class="form-row">
-
-                    <div class="form-group">
-                        <label for="credit_ue">Crédit UE</label>
-                        <input type="number" id="credit_ue" name="credit_ue" required min="1" max="30" placeholder="Nombre de crédits">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="volume_horaire">Volume horaire</label>
-                        <input type="number" id="volume_horaire" name="volume_horaire" required min="1" placeholder="Heures">
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="button secondary" onclick="closeModal()">Annuler</button>
-                    <button type="submit" class="button">Enregistrer</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal pour voir les détails d'une UE -->
-    <div id="viewModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Détails de l'UE</h2>
-                <button class="close" onclick="closeViewModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="detail-group">
-                    <label>Code UE</label>
-                    <span id="view_code_ue"></span>
-                </div>
-                <div class="detail-group">
-                    <label>Libellé UE</label>
-                    <span id="view_lib_ue"></span>
-                </div>
-                <div class="detail-group">
-                    <label>Chargé de cours</label>
-                    <span id="view_ens_ue"></span>
-                </div>
-                <div class="detail-group">
-                    <label>Crédit UE</label>
-                    <span id="view_credit_ue"></span>
-                </div>
-                <div class="detail-group">
-                    <label>Volume horaire</label>
-                    <span id="view_volume_horaire"></span>
-                </div>
-                <div class="detail-group">
-                    <label>Niveau</label>
-                    <span id="view_niveau"></span>
-                </div>
-                <div class="detail-group">
-                    <label>Semestre</label>
-                    <span id="view_semestre"></span>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="button secondary" onclick="closeViewModal()">Fermer</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal pour modifier une UE -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Modifier l'UE</h2>
-                <button class="close" onclick="closeEditModal()">&times;</button>
-            </div>
-            <form id="editForm" method="POST" action="../assets/traitements/modifier_ue.php">
-                <input type="hidden" id="edit_id_ue" name="id_ue">
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="edit_lib_ue">Libellé UE</label>
-                        <input type="text" id="edit_lib_ue" name="lib_ue" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit_id_ens">Nom de l'enseignant: </label>
-                        <select name="id_ens" id="edit_id_ens">
-                            <option value="">-- Sélectionnez un enseignant --</option>
-                            <?php
-                            $enseignants = $pdo->prepare("
-                                SELECT e.id_ens, e.nom_ens, e.prenoms_ens
-                                FROM enseignants e");
-                            $enseignants->execute();
-                            $enseignants_list = $enseignants->fetchAll();
-                            foreach ($enseignants_list as $ens) {
-                                echo "<option value=\"{$ens['id_ens']}\">{$ens['nom_ens']} {$ens['prenoms_ens']}</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="edit_niveau">Niveau</label>
-                        <select id="edit_niveau" name="niveau" required onchange="updateEditSemestres(this.value)">
-                            <option value="">Sélectionnez un niveau</option>
-                            <?php foreach ($niveaux_list as $niv): ?>
-                                <option value="<?php echo $niv['id_niv_etd']; ?>"><?php echo $niv['lib_niv_etd']; ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit_semestre">Semestre</label>
-                        <select id="edit_semestre" name="semestre" required>
-                            <option value="">Sélectionnez un semestre</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="edit_credit_ue">Crédit UE</label>
-                        <input type="number" id="edit_credit_ue" name="credit_ue" required min="1" max="30">
-                    </div>
-                    <div class="form-group">
-                        <label for="edit_volume_horaire">Volume horaire</label>
-                        <input type="number" id="edit_volume_horaire" name="volume_horaire" required min="1">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="button secondary" onclick="closeEditModal()">Annuler</button>
-                    <button type="submit" class="button">Enregistrer</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal de confirmation de suppression (simple) harmonisée -->
-    <div id="confirmation-modal-single" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Confirmation de suppression</h2>
-                <button class="close" onclick="closeDeleteModal()">&times;</button>
-            </div>
-            <div class="delete-confirmation">
-                <div class="warning-icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <h3>Êtes-vous sûr de vouloir supprimer cette UE ?</h3>
-                <p>Cette action est irréversible. Toutes les données associées à cette UE seront définitivement perdues.</p>
-                <div class="ue-info">
-                    <strong>UE à supprimer :</strong><br>
-                    <span id="delete_ue_info"></span>
-                </div>
-            </div>
-            <form method="POST">
-                <input type="hidden" name="action" value="delete">
-                <input type="hidden" id="delete_id_ue" name="id_ue">
-                <div class="modal-footer">
-                    <button type="button" class="button secondary" onclick="closeDeleteModal()">
-                        <i class="fas fa-times"></i> Annuler
-                    </button>
-                    <button type="submit" class="button danger">
-                        <i class="fas fa-trash"></i> Supprimer définitivement
+    <!-- Modal d'ajout/modification -->
+    <div id="ueModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white modal-transition">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900" id="modalTitle">Ajouter une UE</h3>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
-            </form>
+                <form id="ueForm" method="POST">
+                    <input type="hidden" name="page" value="parametres_generaux">
+                    <input type="hidden" name="liste" value="ue">
+                    <input type="hidden" id="id_ue" name="id_ue">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label for="lib_ue" class="block text-sm font-medium text-gray-700 mb-2">Libellé de l'UE :</label>
+                            <input type="text" 
+                                id="lib_ue" 
+                                name="lib_ue" 
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label for="credit_ue" class="block text-sm font-medium text-gray-700 mb-2">Crédits :</label>
+                            <input type="number" 
+                                id="credit_ue" 
+                                name="credit_ue" 
+                                min="1" 
+                                max="30" 
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label for="volume_horaire" class="block text-sm font-medium text-gray-700 mb-2">Volume horaire (heures) :</label>
+                            <input type="number" 
+                                id="volume_horaire" 
+                                name="volume_horaire" 
+                                min="1" 
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label for="niveau" class="block text-sm font-medium text-gray-700 mb-2">Niveau :</label>
+                            <select id="niveau" 
+                                name="niveau" 
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <option value="">Sélectionner un niveau</option>
+                                <?php
+                                $niveaux = $pdo->query("SELECT * FROM niveau_etude ORDER BY id_niv_etd")->fetchAll();
+                                foreach ($niveaux as $niveau) {
+                                    echo '<option value="' . $niveau['id_niv_etd'] . '">' . htmlspecialchars($niveau['lib_niv_etd']) . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="semestre" class="block text-sm font-medium text-gray-700 mb-2">Semestre :</label>
+                            <select id="semestre" 
+                                name="semestre" 
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <option value="">Sélectionner un semestre</option>
+                                <?php
+                                $semestres = $pdo->query("SELECT * FROM semestre ORDER BY id_semestre")->fetchAll();
+                                foreach ($semestres as $semestre) {
+                                    echo '<option value="' . $semestre['id_semestre'] . '">' . htmlspecialchars($semestre['lib_semestre']) . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label for="id_ens" class="block text-sm font-medium text-gray-700 mb-2">Enseignant (optionnel) :</label>
+                            <select id="id_ens" 
+                                name="id_ens"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <option value="">Aucun enseignant assigné</option>
+                                <?php
+                                $enseignants = $pdo->query("SELECT * FROM enseignant ORDER BY nom_ens")->fetchAll();
+                                foreach ($enseignants as $enseignant) {
+                                    echo '<option value="' . $enseignant['id_ens'] . '">' . htmlspecialchars($enseignant['nom_ens'] . ' ' . $enseignant['prenom_ens']) . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button type="button" 
+                            onclick="closeModal()"
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors duration-200">
+                            Annuler
+                        </button>
+                        <button type="submit"
+                            class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-light transition-colors duration-200">
+                            Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    <!-- Modal de confirmation de suppression multiple harmonisée -->
-    <div id="confirmation-modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeDeleteMultipleModal()">&times;</span>
-            <div class="modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
-            <h2>Confirmation de suppression</h2>
-            <p id="deleteMultipleMessage"></p>
-            <div class="modal-footer" id="deleteMultipleFooter"></div>
+    <!-- Modal de confirmation de suppression -->
+    <div id="confirmation-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Confirmer la suppression</h3>
+                <div class="mt-2 px-7 pt-6">
+                    <p class="text-sm text-gray-500" id="confirmation-text">
+                        Êtes-vous sûr de vouloir supprimer cette UE ?
+                    </p>
+                </div>
+                <div class="flex justify-center space-x-3 mt-6">
+                    <button id="cancel-delete"
+                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors duration-200">
+                        Annuler
+                    </button>
+                    <button id="confirm-delete"
+                        class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200">
+                        Supprimer
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // Fonction pour mettre à jour les semestres
-        function updateSemestres(niveauId) {
-            const semestreSelect = document.getElementById('semestre');
-            semestreSelect.innerHTML = '<option value="">Sélectionnez un semestre</option>';
+        // Variables globales
+        let idToDelete = null;
 
-            if (niveauId) {
-                fetch('../assets/traitements/get_semestres.php?niveau_id=' + niveauId)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Erreur réseau: ' + response.status);
-                        }
-                        return response.json();
-                    })
-                    .then(semestres => {
-                        if (semestres.error) {
-                            console.error('Erreur:', semestres.error);
-                            return;
-                        }
-                        semestres.forEach(semestre => {
-                            const option = document.createElement('option');
-                            option.value = semestre.id_semestre;
-                            option.textContent = semestre.lib_semestre;
-                            semestreSelect.appendChild(option);
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Erreur:', error);
-                        semestreSelect.innerHTML = '<option value="">Erreur lors du chargement des semestres</option>';
-                    });
-            }
-        }
-
-        // Fonctions pour la gestion des modals
+        // Fonctions pour les modales
         function showAddModal() {
             document.getElementById('modalTitle').textContent = 'Ajouter une UE';
-            document.getElementById('ueForm').reset();
             document.getElementById('id_ue').value = '';
-            document.getElementById('ueModal').style.display = 'block';
+            document.getElementById('lib_ue').value = '';
+            document.getElementById('credit_ue').value = '';
+            document.getElementById('volume_horaire').value = '';
+            document.getElementById('niveau').value = '';
+            document.getElementById('semestre').value = '';
+            document.getElementById('id_ens').value = '';
+            document.getElementById('ueModal').classList.remove('hidden');
         }
 
-        // Ouvrir la modale si le paramètre modal=open est présent dans l'URL
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('modal') === 'open') {
-                document.getElementById('ueModal').style.display = 'block';
-            }
-        }
-
-        function editUE(id, code, id_ens, libelle) {
-            document.getElementById('modalTitle').textContent = 'Modifier une UE';
+        function editUE(id, libelle, credits, volume, niveau, semestre, enseignant) {
+            document.getElementById('modalTitle').textContent = 'Modifier l\'UE';
             document.getElementById('id_ue').value = id;
-            document.getElementById('edit_id_ens').value = id_ens;
-            document.getElementById('code_ue').value = code;
             document.getElementById('lib_ue').value = libelle;
-            document.getElementById('ueModal').style.display = 'block';
-        }
-
-        function deleteUE(id) {
-            if (confirm('Êtes-vous sûr de vouloir supprimer cette UE ?')) {
-                // Ajouter ici la logique de suppression
-            }
+            document.getElementById('credit_ue').value = credits;
+            document.getElementById('volume_horaire').value = volume;
+            document.getElementById('niveau').value = niveau;
+            document.getElementById('semestre').value = semestre;
+            document.getElementById('id_ens').value = enseignant || '';
+            document.getElementById('ueModal').classList.remove('hidden');
         }
 
         function closeModal() {
-            document.getElementById('ueModal').style.display = 'none';
+            document.getElementById('ueModal').classList.add('hidden');
         }
 
-        // Fermer la modale si on clique en dehors
-        window.onclick = function(event) {
-            if (event.target == document.getElementById('ueModal')) {
-                closeModal();
-            }
+        function deleteUE(id, libelle) {
+            idToDelete = id;
+            document.getElementById('confirmation-text').textContent = `Êtes-vous sûr de vouloir supprimer l'UE "${libelle}" ?`;
+            document.getElementById('confirmation-modal').classList.remove('hidden');
         }
 
-        // Empêcher la fermeture de la modale lors du clic sur son contenu
-        document.querySelector('.modal-content').onclick = function(event) {
-            event.stopPropagation();
+        function confirmDeleteSingle() {
+            // Créer un formulaire temporaire pour la suppression
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '';
+            
+            const pageInput = document.createElement('input');
+            pageInput.type = 'hidden';
+            pageInput.name = 'page';
+            pageInput.value = 'parametres_generaux';
+            
+            const listeInput = document.createElement('input');
+            listeInput.type = 'hidden';
+            listeInput.name = 'liste';
+            listeInput.value = 'ue';
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'delete';
+            
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'id_ue';
+            idInput.value = idToDelete;
+            
+            form.appendChild(pageInput);
+            form.appendChild(listeInput);
+            form.appendChild(actionInput);
+            form.appendChild(idInput);
+            
+            document.body.appendChild(form);
+            form.submit();
         }
 
-        // Fonctions pour la gestion des modals
-        function showViewModal(id) {
-            fetch(`../assets/traitements/get_ue_details.php?id=${id}`)
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('view_code_ue').textContent = data.id_ue;
-                    document.getElementById('view_lib_ue').textContent = data.lib_ue;
-                    let enseignant = "Non renseigné";
-                    if (data.nom_ens && data.nom_ens.trim() !== "" && data.prenoms_ens && data.prenoms_ens.trim() !== "") {
-                        enseignant = data.nom_ens + " " + data.prenoms_ens;
-                    }
-                    document.getElementById('view_ens_ue').textContent = enseignant;
-                    document.getElementById('view_credit_ue').textContent = data.credit_ue;
-                    document.getElementById('view_volume_horaire').textContent = data.volume_horaire;
-                    document.getElementById('view_niveau').textContent = data.lib_niv_etd;
-                    document.getElementById('view_semestre').textContent = data.lib_semestre;
-                    document.getElementById('viewModal').style.display = 'block';
-                })
-                .catch(error => console.error('Erreur:', error));
-        }
-
-        function showEditModal(id) {
-            fetch(`../assets/traitements/get_ue_details.php?id=${id}`)
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('edit_id_ue').value = data.id_ue;
-                    document.getElementById('edit_lib_ue').value = data.lib_ue;
-                    document.getElementById('edit_id_ens').value = data.id_ens;
-                    document.getElementById('edit_credit_ue').value = data.credit_ue;
-                    document.getElementById('edit_volume_horaire').value = data.volume_horaire;
-                    document.getElementById('edit_niveau').value = data.id_niv_etd;
-                    updateEditSemestres(data.id_niv_etd, data.id_semestre);
-                    document.getElementById('editModal').style.display = 'block';
-                })
-                .catch(error => console.error('Erreur:', error));
-        }
-
-        function showDeleteModal(id) {
-            fetch(`../assets/traitements/get_ue_details.php?id=${id}`)
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('delete_id_ue').value = id;
-                    document.getElementById('delete_ue_info').textContent = data.id_ue + " - " + data.lib_ue;
-                    document.getElementById('confirmation-modal-single').style.display = 'flex';
-                })
-                .catch(error => console.error('Erreur:', error));
-        }
-
-        function closeViewModal() {
-            document.getElementById('viewModal').style.display = 'none';
-        }
-
-        function closeEditModal() {
-            document.getElementById('editModal').style.display = 'none';
-        }
-
-        function closeDeleteModal() {
-            document.getElementById('confirmation-modal-single').style.display = 'none';
-        }
-
-        // Fonction pour mettre à jour les semestres dans le modal d'édition
-        function updateEditSemestres(niveauId, selectedSemestreId = null) {
-            const semestreSelect = document.getElementById('edit_semestre');
-            semestreSelect.innerHTML = '<option value="">Sélectionnez un semestre</option>';
-
-            if (niveauId) {
-                fetch('../assets/traitements/get_semestres.php?niveau_id=' + niveauId)
-                    .then(response => response.json())
-                    .then(semestres => {
-                        semestres.forEach(semestre => {
-                            const option = document.createElement('option');
-                            option.value = semestre.id_semestre;
-                            option.textContent = semestre.lib_semestre;
-                            if (selectedSemestreId && semestre.id_semestre == selectedSemestreId) {
-                                option.selected = true;
-                            }
-                            semestreSelect.appendChild(option);
-                        });
-                    })
-                    .catch(error => console.error('Erreur:', error));
-            }
-        }
-
-        // Fermer les modals si on clique en dehors
-        window.onclick = function(event) {
-            if (event.target == document.getElementById('viewModal')) {
-                closeViewModal();
-            }
-            if (event.target == document.getElementById('editModal')) {
-                closeEditModal();
-            }
-            if (event.target == document.getElementById('confirmation-modal-single')) {
-                closeDeleteModal();
-            }
-        }
-
-        // Sélection groupée
-        const selectAll = document.getElementById('selectAll');
-        const checkboxes = document.querySelectorAll('.row-checkbox');
-        selectAll && selectAll.addEventListener('change', function() {
-            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        // Gestion de la sélection multiple
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateBulkDeleteButton();
         });
-        checkboxes.forEach(cb => cb.addEventListener('change', function() {
-            if (!this.checked) selectAll.checked = false;
-            else if ([...checkboxes].every(c => c.checked)) selectAll.checked = true;
-        }));
+
+        document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateBulkDeleteButton();
+                updateSelectAll();
+            });
+        });
+
+        function updateBulkDeleteButton() {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+            if (checkedBoxes.length > 0) {
+                bulkDeleteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                bulkDeleteBtn.classList.add('cursor-pointer');
+            } else {
+                bulkDeleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                bulkDeleteBtn.classList.remove('cursor-pointer');
+            }
+        }
+
+        function updateSelectAll() {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            const selectAll = document.getElementById('selectAll');
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            
+            if (checkedBoxes.length === 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            } else if (checkedBoxes.length === checkboxes.length) {
+                selectAll.checked = true;
+                selectAll.indeterminate = false;
+            } else {
+                selectAll.checked = false;
+                selectAll.indeterminate = true;
+            }
+        }
 
         // Suppression multiple
-        function openDeleteMultipleModal() {
+        document.getElementById('bulkDeleteBtn').addEventListener('click', function() {
             const checked = document.querySelectorAll('.row-checkbox:checked');
-            const msg = document.getElementById('deleteMultipleMessage');
-            const footer = document.getElementById('deleteMultipleFooter');
             if (checked.length === 0) {
-                msg.innerHTML = "Aucune sélection. Veuillez sélectionner au moins une UE à supprimer.";
-                footer.innerHTML = '<button type="button" class="button" onclick="closeDeleteMultipleModal()">OK</button>';
-            } else {
-                msg.innerHTML = `Êtes-vous sûr de vouloir supprimer <b>${checked.length}</b> UE sélectionnée(s) ?<br><span style='color:#c0392b;font-size:0.95em;'>Cette action est irréversible.</span>`;
-                footer.innerHTML = '<button type="button" class="button" onclick="confirmDeleteMultiple()">Oui, supprimer</button>' +
-                    '<button type="button" class="button secondary" onclick="closeDeleteMultipleModal()">Non</button>';
+                alert('Veuillez sélectionner au moins une UE à supprimer.');
+                return;
             }
-            document.getElementById('confirmation-modal').style.display = 'flex';
-        }
+            
+            document.getElementById('confirmation-text').textContent = `Êtes-vous sûr de vouloir supprimer ${checked.length} UE sélectionnée(s) ?`;
+            document.getElementById('confirmation-modal').classList.remove('hidden');
+            
+            document.getElementById('confirm-delete').onclick = function() {
+                const checked = Array.from(document.querySelectorAll('.row-checkbox:checked'));
+                const ids = checked.map(cb => cb.value);
+                document.getElementById('delete_selected_ids').value = ids.join(',');
+                document.getElementById('deleteMultipleForm').submit();
+            };
+        });
 
-        function closeDeleteMultipleModal() {
-            document.getElementById('confirmation-modal').style.display = 'none';
-        }
+        document.getElementById('cancel-delete').onclick = function() {
+            document.getElementById('confirmation-modal').classList.add('hidden');
+        };
 
-        function confirmDeleteMultiple() {
-            document.getElementById('multipleDeleteForm').submit();
-        }
+        // Fermer les modales si on clique en dehors
+        window.onclick = function(event) {
+            const ueModal = document.getElementById('ueModal');
+            const confirmationModal = document.getElementById('confirmation-modal');
+            
+            if (event.target === ueModal) {
+                closeModal();
+            }
+            if (event.target === confirmationModal) {
+                document.getElementById('confirmation-modal').classList.add('hidden');
+            }
+        };
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            updateBulkDeleteButton();
+        });
     </script>
 </body>
-
 </html>

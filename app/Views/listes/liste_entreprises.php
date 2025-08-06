@@ -8,8 +8,6 @@ if (!isset($_GET['liste']) || $_GET['liste'] !== 'entreprises') {
 // Inclure les fichiers nécessaires
 require_once __DIR__ . '/../../config/config.php';
 
-
-
 $fullname = $_SESSION['user_fullname'];
 $lib_user_type = $_SESSION['lib_user_type'];
 
@@ -101,729 +99,518 @@ if (isset($_GET['view']) && !empty($_GET['view'])) {
 ?>
 
 <!DOCTYPE html>
-<html lang="fr">
-
+<html lang="fr" class="h-full bg-gray-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liste des Entreprises</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/GSCV+/app/Views/listes/assets/css/listes.css?v=<?php echo time(); ?>">
+    <title>Liste des Entreprises - GSCV+</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1a5276',
+                        'primary-light': '#2980b9',
+                        'primary-lighter': '#3498db',
+                        secondary: '#ff8c00',
+                        accent: '#4caf50',
+                        success: '#4caf50',
+                        warning: '#f39c12',
+                        danger: '#e74c3c',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'bounce-in': 'bounceIn 0.6s ease-out',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* Styles pour les modales */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.3); }
+            50% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(26, 82, 118, 0.1), 0 10px 10px -5px rgba(26, 82, 118, 0.04);
+        }
+        .modal-transition {
+            transition: all 0.3s ease-in-out;
+        }
+        .fade-in {
             animation: fadeIn 0.3s ease-in-out;
         }
-
-        .modal-content {
-            position: relative;
-            background-color: #fff;
-            margin: 5% auto;
-            padding: 20px;
-            width: 25%;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            animation: slideIn 0.3s ease-in-out;
+        .btn-icon {
+            transition: all 0.2s ease-in-out;
         }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+        .btn-icon:hover {
+            transform: scale(1.1);
         }
-
-        .modal-header h2 {
-            margin: 0;
-            color: #333;
-            font-size: 1.5em;
+        .bg-gradient {
+            background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%);
         }
-
-        .close {
-            color: #aaa;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: color 0.3s;
-        }
-
-        .close:hover {
-            color: #333;
-        }
-
-        .details-rows {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .details-rows .detail-group {
-            flex: 1;
-            margin-bottom: 0;
-            min-height: 100px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .details-rows .detail-icon {
-            align-self: center;
-            margin-right: 0;
-            margin-bottom: 10px;
-        }
-
-        .details-rows .detail-content {
-            text-align: center;
-        }
-
-        .details-rows .detail-content label {
-            margin-bottom: 8px;
-        }
-
-        .details-rows .detail-content span {
-            font-weight: 500;
-        }
-
-        /* Style pour les cartes vides ou avec peu de contenu */
-        .details-rows .detail-group:empty {
-            visibility: hidden;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            border-color: #4a90e2;
-            outline: none;
-        }
-
-        .modal-footer {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-            text-align: right;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateY(-20px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        /* Styles pour les boutons dans la modale */
-        .modal-footer .button {
-            margin-left: 10px;
-        }
-
-        .modal-footer .button.secondary {
-            background-color: #f5f5f5;
-            color: #333;
-        }
-
-        .modal-footer .button.secondary:hover {
-            background-color: #e5e5e5;
-        }
-
-        /* Styles spécifiques pour la modale de détails */
-        #viewEntrepriseModal .modal-content {
-            width: 60%;
-            max-width: 800px;
-            margin: 3% auto;
-
-        }
-
-        .entreprise-details {
-            padding: 30px;
-            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        .detail-group {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-            border-left: 4px solid #4a90e2;
-        }
-
-        .detail-group:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .detail-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #4a90e2, #357abd);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            flex-shrink: 0;
-        }
-
-        .detail-icon i {
-            color: white;
-            font-size: 16px;
-            background-color: #1a5276;
-        }
-
-        .detail-content {
-            flex: 1;
-        }
-
-        .detail-content label {
-            display: block;
-            font-weight: 600;
-            color: #555;
-            margin-bottom: 5px;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .detail-content span {
-            display: block;
-            color: #333;
-            font-size: 16px;
-            line-height: 1.4;
-            word-break: break-word;
-        }
-
-
-
-        /* Animation d'entrée pour les détails */
         .detail-group {
             animation: slideInDetail 0.5s ease-out;
             animation-fill-mode: both;
         }
-
-        .detail-group:nth-child(1) {
-            animation-delay: 0.1s;
-        }
-
-        .detail-group:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .detail-group:nth-child(3) {
-            animation-delay: 0.3s;
-        }
-
-        .detail-group:nth-child(4) {
-            animation-delay: 0.4s;
-        }
-
-        .detail-group:nth-child(5) {
-            animation-delay: 0.5s;
-        }
-
-        .detail-group:nth-child(6) {
-            animation-delay: 0.6s;
-        }
-
+        .detail-group:nth-child(1) { animation-delay: 0.1s; }
+        .detail-group:nth-child(2) { animation-delay: 0.2s; }
+        .detail-group:nth-child(3) { animation-delay: 0.3s; }
+        .detail-group:nth-child(4) { animation-delay: 0.4s; }
+        .detail-group:nth-child(5) { animation-delay: 0.5s; }
+        .detail-group:nth-child(6) { animation-delay: 0.6s; }
         @keyframes slideInDetail {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        /* Responsive pour les détails en lignes */
-        @media (max-width: 768px) {
-            #viewEntrepriseModal .modal-content {
-                width: 95%;
-                margin: 10px;
-            }
-
-            .details-rows {
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .details-rows .detail-group {
-                min-height: auto;
-            }
-
-            .details-rows .detail-icon {
-                margin-bottom: 8px;
-            }
-
-            .detail-group {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .detail-icon {
-                margin-right: 0;
-                margin-bottom: 10px;
-            }
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
         }
     </style>
 </head>
 
-<body>
-    <!-- En-tête -->
-    <div class="header">
-        <div class="header-title">
-            <div class="img-container">
-                <img src="/GSCV+/public/assets/images/logo_mi_sbg.png" alt="">
+<body class="h-full bg-gray-50">
+    <div class="min-h-full">
+        <!-- Contenu principal -->
+        <main class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+            <!-- En-tête de page -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8 animate-slide-up">
+                <div class="border-l-4 border-primary bg-white rounded-r-lg shadow-sm p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="bg-primary/10 rounded-lg p-3 mr-4">
+                                <i class="fas fa-building text-2xl text-primary"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-3xl font-bold text-gray-900 mb-2">Liste des Entreprises</h1>
+                                <p class="text-gray-600">Gestion des entreprises partenaires</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">Connecté en tant que</div>
+                                <div class="font-semibold text-gray-900"><?php echo $fullname; ?></div>
+                                <div class="text-sm text-primary"><?php echo $lib_user_type; ?></div>
+                            </div>
+                            <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                <?php echo substr($fullname, 0, 1); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="text-container">
-                <h1>Liste des Entreprises</h1>
-                <p>Gestion des entreprises partenaires</p>
+
+            <!-- Statistiques -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-lg p-6 stat-card transition-all duration-300">
+                    <div class="flex items-center">
+                        <div class="bg-blue-100 rounded-lg p-3 mr-4">
+                            <i class="fas fa-building text-2xl text-blue-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Total Entreprises</p>
+                            <p class="text-2xl font-bold text-gray-900"><?php echo $total_entreprises; ?></p>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="header-actions">
 
-            <div class="user-avatar"><?php echo substr($fullname, 0, 1); ?></div>
-            <div>
-                <div class="user-name"><?php echo $fullname; ?></div>
-                <div class="user-role"><?php echo $lib_user_type; ?></div>
+            <!-- Barre d'outils -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <!-- Recherche -->
+                    <div class="flex-1 max-w-md">
+                        <form method="GET" class="flex">
+                            <div class="relative flex-1">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-search text-gray-400"></i>
+                                </div>
+                                <input type="text" 
+                                       name="search" 
+                                       value="<?php echo htmlspecialchars($search); ?>" 
+                                       placeholder="Rechercher une entreprise..."
+                                       class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
+                            </div>
+                            <button type="submit" class="ml-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200">
+                                <i class="fas fa-search mr-2"></i>Rechercher
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Boutons d'action -->
+                    <div class="flex space-x-3">
+                        <button onclick="openAddModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center">
+                            <i class="fas fa-plus mr-2"></i>Ajouter
+                        </button>
+                        <button onclick="deleteSelected()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 flex items-center">
+                            <i class="fas fa-trash mr-2"></i>Supprimer
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
 
-
-    <div class="content">
-        <!-- Barre d'actions -->
-        <div class="actions-bar">
-            <a href="?page=parametres_generaux" class="button">
-                <i class="fas fa-arrow-left"></i> Retour aux paramètres
-            </a>
-            <form method="GET" class="search-box" style="display:inline-flex;align-items:center;gap:5px;">
-                <i class="fas fa-search"></i>
-                <input type="text" name="search" placeholder="Rechercher une entreprise..." value="<?php echo htmlspecialchars($search); ?>">
-                <button type="submit" class="button" style="margin-left:5px;">Rechercher</button>
-            </form>
-            <button class="button" onclick="showAddModal()">
-                <i class="fas fa-plus"></i>
-                Ajouter une entreprise
-            </button>
-        </div>
-
-        <!-- Messages de notification -->
-        <?php if (isset($_SESSION['success'])): ?>
-            <div class="alert alert-success">
-                <?php
-                echo $_SESSION['success'];
-                unset($_SESSION['success']);
-                ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if (isset($_SESSION['error'])): ?>
-            <div class="alert alert-danger">
-                <?php
-                echo $_SESSION['error'];
-                unset($_SESSION['error']);
-                ?>
-            </div>
-        <?php endif; ?>
-
-        <!-- Bouton de suppression multiple -->
-        <form id="bulkDeleteForm" method="POST" style="margin-bottom:10px;">
-            <input type="hidden" name="bulk_delete" value="1">
-            <button type="button" class="button danger" id="bulkDeleteBtn"><i class="fas fa-trash"></i> Supprimer la sélection</button>
-            <input type="hidden" name="delete_selected_ids[]" id="delete_selected_ids">
-        </form>
-
-        <!-- Table de données -->
-        <div class="data-table-container">
-            <div class="data-table-header">
-                <div class="data-table-title">Liste des entreprises</div>
-            </div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th style="width: 50px;"><input type="checkbox" id="selectAll"></th>
-                        <th style="width: 50px;">ID</th>
-                        <th>Nom de l'entreprise</th>
-                        <th style="width: 120px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (count($entreprises) === 0): ?>
-                        <tr>
-                            <td colspan="4" style="text-align:center;">Aucune entreprise trouvée.</td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach ($entreprises as $entreprise): ?>
+            <!-- Tableau -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
                             <tr>
-                                <td><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($entreprise['id_entr']); ?>"></td>
-                                <td><?php echo $entreprise['id_entr']; ?></td>
-                                <td><?php echo $entreprise['lib_entr']; ?></td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="action-button view-button" title="Voir" onclick="viewEntreprise(<?= $entreprise['id_entr']; ?>)">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="action-button edit-button" title="Modifier" onclick="editEntreprise(<?= $entreprise['id_entr']; ?>, '<?= htmlspecialchars(addslashes($entreprise['lib_entr'])); ?>')">
-                                            <i class="fas fa-pen"></i>
-                                        </button>
-                                        <button class="action-button delete-button" title="Supprimer" onclick="showDeleteModal(<?= $entreprise['id_entr']; ?>, '<?= htmlspecialchars(addslashes($entreprise['lib_entr'])); ?>')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <input type="checkbox" id="select-all" class="rounded border-gray-300 text-primary focus:ring-primary">
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom de l'entreprise</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <?php if (count($entreprises) === 0): ?>
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                                    <div class="flex flex-col items-center py-8">
+                                        <i class="fas fa-search text-4xl text-gray-300 mb-4"></i>
+                                        <p class="text-lg font-medium">Aucune entreprise trouvée</p>
+                                        <p class="text-sm">Essayez de modifier vos critères de recherche</p>
                                     </div>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
+                            <?php else: ?>
+                                <?php foreach ($entreprises as $entreprise): ?>
+                                <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <input type="checkbox" name="delete_selected_ids[]" value="<?php echo $entreprise['id_entr']; ?>" class="rounded border-gray-300 text-primary focus:ring-primary">
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        <?php echo $entreprise['id_entr']; ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <div class="flex items-center">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-3">
+                                                <i class="fas fa-building mr-1"></i>
+                                            </span>
+                                            <?php echo htmlspecialchars($entreprise['lib_entr']); ?>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <div class="flex space-x-2">
+                                            <button onclick="viewEntreprise(<?php echo $entreprise['id_entr']; ?>)" 
+                                                    class="text-blue-600 hover:text-blue-900 btn-icon" title="Voir">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button onclick="openEditModal(<?php echo $entreprise['id_entr']; ?>, '<?php echo htmlspecialchars($entreprise['lib_entr']); ?>')" 
+                                                    class="text-indigo-600 hover:text-indigo-900 btn-icon" title="Modifier">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button onclick="deleteEntreprise(<?php echo $entreprise['id_entr']; ?>, '<?php echo htmlspecialchars($entreprise['lib_entr']); ?>')" 
+                                                    class="text-red-600 hover:text-red-900 btn-icon" title="Supprimer">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
 
-        <!-- Pagination -->
-        <div class="pagination">
-            <?php if ($page > 1): ?>
-                <a class="page-item" href="?search=<?php echo urlencode($search); ?>&page=1">«</a>
-                <a class="page-item" href="?search=<?php echo urlencode($search); ?>&page=<?php echo $page - 1; ?>">‹</a>
-            <?php endif; ?>
-            <?php
-            // Affichage de 5 pages max autour de la page courante
-            $start = max(1, $page - 2);
-            $end = min($total_pages, $page + 2);
-            for ($i = $start; $i <= $end; $i++):
-            ?>
-                <a class="page-item<?php if ($i == $page) echo ' active'; ?>" href="?search=<?php echo urlencode($search); ?>&page=<?php echo $i; ?>"><?php echo $i; ?></a>
-            <?php endfor; ?>
-            <?php if ($page < $total_pages): ?>
-                <a class="page-item" href="?search=<?php echo urlencode($search); ?>&page=<?php echo $page + 1; ?>">›</a>
-                <a class="page-item" href="?search=<?php echo urlencode($search); ?>&page=<?php echo $total_pages; ?>">»</a>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- Modal pour ajouter/modifier une entreprise -->
-    <div id="entrepriseModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">Ajouter une entreprise</h2>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="entrepriseForm" method="POST">
-                    <input type="hidden" id="id_entr" name="id_entr">
-                    <div class="form-group">
-                        <label for="lib_entr">Nom de l'entreprise</label>
-                        <input type="text" id="lib_entr" name="lib_entr" required>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="button secondary" onclick="closeModal()">Annuler</button>
-                        <button type="submit" class="button">Enregistrer</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de confirmation de suppression (simple) harmonisée -->
-    <div id="confirmation-modal-single" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeDeleteModal()">&times;</span>
-            <div class="modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
-            <h2>Confirmer la suppression</h2>
-            <p id="deleteSingleMessage">Êtes-vous sûr de vouloir supprimer cette entreprise ?<br><span style='color:#c0392b;font-size:0.95em;'>Cette action est irréversible.</span></p>
-            <div class="modal-footer">
-                <button type="button" class="button secondary" onclick="closeDeleteModal()">Annuler</button>
-                <form id="deleteForm" method="POST" style="display:inline;">
-                    <input type="hidden" id="delete_entreprise_id" name="delete_entreprise_id">
-                    <button type="submit" class="button delete">Supprimer</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de confirmation de suppression multiple harmonisée -->
-    <div id="confirmation-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeDeleteMultipleModal()">&times;</span>
-            <div class="modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
-            <h2>Confirmation de suppression</h2>
-            <p id="deleteMultipleMessage"></p>
-            <div class="modal-footer" id="deleteMultipleFooter"></div>
-        </div>
-    </div>
-
-    <!-- Modal pour voir les détails d'une entreprise -->
-    <div id="viewEntrepriseModal" class="modal" <?php echo (isset($_GET['view']) && $selected_entreprise) ? 'style="display: block;"' : ''; ?>>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2><i class="fas fa-building"></i> Détails de l'entreprise</h2>
-                <span class="close" onclick="closeViewModal()">&times;</span>
-            </div>
-            <?php if ($selected_entreprise): ?>
-                <div class="entreprise-details">
-
-                    <div class="details-rows">
-                        <div class="detail-group info-nom">
-                            <div class="detail-icon">
-                                <i class="fas fa-id-card"></i>
-                            </div>
-                            <div class="detail-content">
-                                <label>ID de l'entreprise</label>
-                                <span><?php echo htmlspecialchars($selected_entreprise['id_entr']); ?></span>
-                            </div>
+                <!-- Pagination -->
+                <?php if ($total_pages > 1): ?>
+                <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <?php if ($page > 1): ?>
+                            <a href="?search=<?php echo urlencode($search); ?>&page=<?php echo $page - 1; ?>" 
+                               class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Précédent
+                            </a>
+                            <?php endif; ?>
+                            <?php if ($page < $total_pages): ?>
+                            <a href="?search=<?php echo urlencode($search); ?>&page=<?php echo $page + 1; ?>" 
+                               class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Suivant
+                            </a>
+                            <?php endif; ?>
                         </div>
-
-                        <div class="detail-group info-nom">
-                            <div class="detail-icon">
-                                <i class="fas fa-building"></i>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">
+                                    Affichage de <span class="font-medium"><?php echo ($offset + 1); ?></span> à <span class="font-medium"><?php echo min($offset + $per_page, $total_entreprises); ?></span> sur <span class="font-medium"><?php echo $total_entreprises; ?></span> résultats
+                                </p>
                             </div>
-                            <div class="detail-content">
-                                <label>Nom de l'entreprise</label>
-                                <span><?php echo htmlspecialchars($selected_entreprise['lib_entr']); ?></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="details-rows">
-                        <div class="detail-group info-location">
-                            <div class="detail-icon">
-                                <i class="fas fa-globe"></i>
-                            </div>
-                            <div class="detail-content">
-                                <label>Pays</label>
-                                <span><?php echo !empty($selected_entreprise['pays']) ? htmlspecialchars($selected_entreprise['pays']) : 'Non renseigné'; ?></span>
-                            </div>
-                        </div>
-
-                        <div class="detail-group info-location">
-                            <div class="detail-icon">
-                                <i class="fas fa-map-marker-alt"></i>
-                            </div>
-                            <div class="detail-content">
-                                <label>Ville</label>
-                                <span><?php echo !empty($selected_entreprise['ville']) ? htmlspecialchars($selected_entreprise['ville']) : 'Non renseigné'; ?></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="details-rows">
-                        <div class="detail-group info-adresse">
-                            <div class="detail-icon">
-                                <i class="fas fa-map"></i>
-                            </div>
-                            <div class="detail-content">
-                                <label>Adresse géographique</label>
-                                <span><?php echo !empty($selected_entreprise['adresse']) ? htmlspecialchars($selected_entreprise['adresse']) : 'Non renseigné'; ?></span>
-                            </div>
-                        </div>
-
-                        <div class="detail-group info-contact">
-                            <div class="detail-icon">
-                                <i class="fas fa-envelope"></i>
-                            </div>
-                            <div class="detail-content">
-                                <label>Adresse mail</label>
-                                <span><?php echo !empty($selected_entreprise['email']) ? htmlspecialchars($selected_entreprise['email']) : 'Non renseigné'; ?></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="details-rows">
-                        <div class="detail-group info-contact">
-                            <div class="detail-icon">
-                                <i class="fas fa-phone"></i>
-                            </div>
-                            <div class="detail-content">
-                                <label>Téléphone</label>
-                                <span><?php echo !empty($selected_entreprise['telephone']) ? htmlspecialchars($selected_entreprise['telephone']) : 'Non renseigné'; ?></span>
-                            </div>
-                        </div>
-
-                        <div class="detail-group info-nom">
-                            <div class="detail-icon">
-                                <i class="fas fa-calendar-alt"></i>
-                            </div>
-                            <div class="detail-content">
-                                <label>Date d'ajout</label>
-                                <span><?php echo !empty($selected_entreprise['date_creation']) ? htmlspecialchars($selected_entreprise['date_creation']) : 'Non renseigné'; ?></span>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                                    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                                    <a href="?search=<?php echo urlencode($search); ?>&page=<?php echo $i; ?>" 
+                                       class="relative inline-flex items-center px-4 py-2 border text-sm font-medium <?php echo $i == $page ? 'z-10 bg-primary border-primary text-white' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'; ?>">
+                                        <?php echo $i; ?>
+                                    </a>
+                                    <?php endfor; ?>
+                                </nav>
                             </div>
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
+            </div>
+        </main>
+    </div>
 
-            <?php else: ?>
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    Entreprise non trouvée
+    <!-- Modal Ajout/Modification -->
+    <div id="entrepriseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900" id="modalTitle">Ajouter une entreprise</h2>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form method="POST" class="p-6">
+                <input type="hidden" name="id_entr" id="edit_id">
+                <div class="mb-4">
+                    <label for="lib_entr" class="block text-sm font-medium text-gray-700 mb-2">Nom de l'entreprise</label>
+                    <input type="text" 
+                           name="lib_entr" 
+                           id="edit_lib_entr" 
+                           required 
+                           class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="button secondary" onclick="closeViewModal()">
-                        <i class="fas fa-times"></i> Fermer
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                        Annuler
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200">
+                        Enregistrer
                     </button>
                 </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Détails Entreprise -->
+    <div id="viewEntrepriseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50" <?php echo (isset($_GET['view']) && $selected_entreprise) ? 'style="display: flex;"' : ''; ?>>
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">
+                    <i class="fas fa-building mr-2"></i> Détails de l'entreprise
+                </h2>
+                <button onclick="closeViewModal()" class="text-gray-400 hover:text-gray-600 text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <?php if ($selected_entreprise): ?>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="detail-group bg-white rounded-lg p-4 border-l-4 border-blue-500 shadow-sm">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-id-card text-blue-600"></i>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">ID de l'entreprise</label>
+                                <span class="text-lg font-semibold text-gray-900"><?php echo htmlspecialchars($selected_entreprise['id_entr']); ?></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-group bg-white rounded-lg p-4 border-l-4 border-green-500 shadow-sm">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-building text-green-600"></i>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Nom de l'entreprise</label>
+                                <span class="text-lg font-semibold text-gray-900"><?php echo htmlspecialchars($selected_entreprise['lib_entr']); ?></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-group bg-white rounded-lg p-4 border-l-4 border-purple-500 shadow-sm">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-globe text-purple-600"></i>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Pays</label>
+                                <span class="text-lg font-semibold text-gray-900"><?php echo !empty($selected_entreprise['pays']) ? htmlspecialchars($selected_entreprise['pays']) : 'Non renseigné'; ?></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-group bg-white rounded-lg p-4 border-l-4 border-orange-500 shadow-sm">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-map-marker-alt text-orange-600"></i>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Ville</label>
+                                <span class="text-lg font-semibold text-gray-900"><?php echo !empty($selected_entreprise['ville']) ? htmlspecialchars($selected_entreprise['ville']) : 'Non renseigné'; ?></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-group bg-white rounded-lg p-4 border-l-4 border-red-500 shadow-sm">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-map text-red-600"></i>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Adresse géographique</label>
+                                <span class="text-lg font-semibold text-gray-900"><?php echo !empty($selected_entreprise['adresse']) ? htmlspecialchars($selected_entreprise['adresse']) : 'Non renseigné'; ?></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-group bg-white rounded-lg p-4 border-l-4 border-indigo-500 shadow-sm">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-envelope text-indigo-600"></i>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Adresse mail</label>
+                                <span class="text-lg font-semibold text-gray-900"><?php echo !empty($selected_entreprise['email']) ? htmlspecialchars($selected_entreprise['email']) : 'Non renseigné'; ?></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-group bg-white rounded-lg p-4 border-l-4 border-teal-500 shadow-sm">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-phone text-teal-600"></i>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Téléphone</label>
+                                <span class="text-lg font-semibold text-gray-900"><?php echo !empty($selected_entreprise['telephone']) ? htmlspecialchars($selected_entreprise['telephone']) : 'Non renseigné'; ?></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-group bg-white rounded-lg p-4 border-l-4 border-yellow-500 shadow-sm">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-calendar-alt text-yellow-600"></i>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Date d'ajout</label>
+                                <span class="text-lg font-semibold text-gray-900"><?php echo !empty($selected_entreprise['date_creation']) ? htmlspecialchars($selected_entreprise['date_creation']) : 'Non renseigné'; ?></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php else: ?>
+            <div class="p-6">
+                <div class="text-center py-8">
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-300 mb-4"></i>
+                    <p class="text-lg font-medium text-gray-900">Entreprise non trouvée</p>
+                    <p class="text-sm text-gray-500">L'entreprise demandée n'existe pas ou a été supprimée</p>
+                </div>
+            </div>
             <?php endif; ?>
+            
+            <div class="flex justify-end p-6 border-t border-gray-200">
+                <button onclick="closeViewModal()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                    <i class="fas fa-times mr-2"></i>Fermer
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
-        // Fonctions pour la gestion des modals
-        function showAddModal() {
+        // Gestion des modales
+        function openAddModal() {
             document.getElementById('modalTitle').textContent = 'Ajouter une entreprise';
-            document.getElementById('entrepriseForm').reset();
-            document.getElementById('id_entr').value = '';
-            document.getElementById('entrepriseModal').style.display = 'block';
+            document.getElementById('edit_id').value = '';
+            document.getElementById('edit_lib_entr').value = '';
+            document.getElementById('entrepriseModal').classList.remove('hidden');
+            document.getElementById('entrepriseModal').classList.add('flex');
         }
 
-        function editEntreprise(id, libelle) {
+        function openEditModal(id, libelle) {
             document.getElementById('modalTitle').textContent = 'Modifier une entreprise';
-            document.getElementById('id_entr').value = id;
-            document.getElementById('lib_entr').value = libelle;
-            document.getElementById('entrepriseModal').style.display = 'block';
+            document.getElementById('edit_id').value = id;
+            document.getElementById('edit_lib_entr').value = libelle;
+            document.getElementById('entrepriseModal').classList.remove('hidden');
+            document.getElementById('entrepriseModal').classList.add('flex');
+        }
+
+        function closeModal() {
+            document.getElementById('entrepriseModal').classList.add('hidden');
+            document.getElementById('entrepriseModal').classList.remove('flex');
         }
 
         function viewEntreprise(id) {
             window.location.href = '?view=' + id;
         }
 
-        function showDeleteModal(id, libelle) {
-            document.getElementById('delete_entreprise_id').value = id;
-            document.getElementById('deleteSingleMessage').innerHTML = "Êtes-vous sûr de vouloir supprimer l'entreprise : '<b>" + libelle + "</b>' ?<br><span style='color:#c0392b;font-size:0.95em;'>Cette action est irréversible.</span>";
-            document.getElementById('confirmation-modal-single').style.display = 'flex';
-        }
-
-        function closeModal() {
-            document.getElementById('entrepriseModal').style.display = 'none';
-        }
-
-        function closeDeleteModal() {
-            document.getElementById('confirmation-modal-single').style.display = 'none';
-        }
-
         function closeViewModal() {
-            document.getElementById('viewEntrepriseModal').style.display = 'none';
+            document.getElementById('viewEntrepriseModal').classList.add('hidden');
+            document.getElementById('viewEntrepriseModal').classList.remove('flex');
             window.location.href = window.location.pathname;
         }
 
-        // Gestionnaire d'événements pour le bouton de fermeture
-        if (document.querySelector('.close')) {
-            document.querySelectorAll('.close').forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    closeModal();
-                    closeDeleteModal();
-                    closeViewModal();
-                });
+        // Gestion de la sélection multiple
+        document.getElementById('select-all').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('input[name="delete_selected_ids[]"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
             });
+        });
+
+        // Suppression d'une entreprise
+        function deleteEntreprise(id, libelle) {
+            if (confirm(`Êtes-vous sûr de vouloir supprimer l'entreprise : '${libelle}' ?`)) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.innerHTML = `<input type="hidden" name="delete_entreprise_id" value="${id}">`;
+                document.body.appendChild(form);
+                form.submit();
+            }
         }
 
-        // Fermer la modale si on clique en dehors
-        window.addEventListener('click', function(event) {
-            if (event.target == document.getElementById('entrepriseModal')) {
+        // Suppression multiple
+        function deleteSelected() {
+            const selected = document.querySelectorAll('input[name="delete_selected_ids[]"]:checked');
+            if (selected.length === 0) {
+                alert('Veuillez sélectionner au moins une entreprise à supprimer.');
+                return;
+            }
+            
+            if (confirm(`Êtes-vous sûr de vouloir supprimer ${selected.length} entreprise(s) ?`)) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.innerHTML = `<input type="hidden" name="delete_selected_ids" value="${Array.from(selected).map(cb => cb.value).join(',')}">`;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        // Fermer les modales en cliquant à l'extérieur
+        document.getElementById('entrepriseModal').addEventListener('click', function(e) {
+            if (e.target === this) {
                 closeModal();
             }
-            if (event.target == document.getElementById('confirmation-modal-single')) {
-                closeDeleteModal();
-            }
-            if (event.target == document.getElementById('viewEntrepriseModal')) {
+        });
+
+        document.getElementById('viewEntrepriseModal').addEventListener('click', function(e) {
+            if (e.target === this) {
                 closeViewModal();
             }
         });
-
-        // Empêcher la fermeture de la modale lors du clic sur son contenu
-        if (document.querySelector('.modal-content')) {
-            document.querySelectorAll('.modal-content').forEach(function(modalContent) {
-                modalContent.addEventListener('click', function(event) {
-                    event.stopPropagation();
-                });
-            });
-        }
-
-        // Sélection/désélection tout
-        const selectAll = document.getElementById('selectAll');
-        const checkboxes = document.querySelectorAll('.row-checkbox');
-        selectAll.addEventListener('change', function() {
-            checkboxes.forEach(cb => cb.checked = this.checked);
-        });
-
-        // Bouton suppression multiple
-        const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
-        bulkDeleteBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            openDeleteMultipleModal();
-        });
-
-        function openDeleteMultipleModal() {
-            const checked = document.querySelectorAll('.row-checkbox:checked');
-            const msg = document.getElementById('deleteMultipleMessage');
-            const footer = document.getElementById('deleteMultipleFooter');
-            if (checked.length === 0) {
-                msg.innerHTML = "Aucune sélection. Veuillez sélectionner au moins une entreprise à supprimer.";
-                footer.innerHTML = '<button type="button" class="button" onclick="closeDeleteMultipleModal()">OK</button>';
-            } else {
-                msg.innerHTML = `Êtes-vous sûr de vouloir supprimer <b>${checked.length}</b> entreprise(s) sélectionnée(s) ?<br><span style='color:#c0392b;font-size:0.95em;'>Cette action est irréversible.</span>`;
-                footer.innerHTML = '<button type="button" class="button" onclick="confirmDeleteMultiple()">Oui, supprimer</button>' +
-                    '<button type="button" class="button secondary" onclick="closeDeleteMultipleModal()">Non</button>';
-            }
-            document.getElementById('confirmation-modal').style.display = 'flex';
-        }
-
-        function closeDeleteMultipleModal() {
-            document.getElementById('confirmation-modal').style.display = 'none';
-        }
-
-        function confirmDeleteMultiple() {
-            document.getElementById('bulkDeleteForm').submit();
-        }
     </script>
 </body>
-
 </html>

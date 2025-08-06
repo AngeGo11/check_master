@@ -30531,3 +30531,45 @@ Stack trace:
 
 [06-Aug-2025 00:39:45 UTC] PHP Warning:  Undefined array key "statut_etudiant" in /var/www/html/app/Views/etudiants.php on line 610
 [06-Aug-2025 00:39:45 UTC] PHP Warning:  foreach() argument must be of type array|object, null given in /var/www/html/app/Views/etudiants.php on line 610
+[06-Aug-2025 00:41:32 UTC] Vue etudiants.php - rapports_data: Array
+(
+    [rapports] => Array
+        (
+        )
+
+    [total_records] => 0
+    [total_pages] => 1
+    [current_page] => 1
+    [limit] => 10
+)
+
+[06-Aug-2025 00:41:33 UTC] PHP Warning:  Undefined array key "statut_etudiant" in /var/www/html/app/Views/etudiants.php on line 610
+[06-Aug-2025 00:41:33 UTC] PHP Warning:  foreach() argument must be of type array|object, null given in /var/www/html/app/Views/etudiants.php on line 610
+[06-Aug-2025 00:44:55 UTC] Vue etudiants.php - rapports_data: Array
+(
+    [rapports] => Array
+        (
+        )
+
+    [total_records] => 0
+    [total_pages] => 1
+    [current_page] => 1
+    [limit] => 10
+)
+
+[06-Aug-2025 00:44:55 UTC] PHP Warning:  Undefined array key "statut_etudiant" in /var/www/html/app/Views/etudiants.php on line 610
+[06-Aug-2025 00:44:55 UTC] PHP Warning:  foreach() argument must be of type array|object, null given in /var/www/html/app/Views/etudiants.php on line 610
+[06-Aug-2025 00:45:00 UTC] Vue etudiants.php - rapports_data: Array
+(
+    [rapports] => Array
+        (
+        )
+
+    [total_records] => 0
+    [total_pages] => 1
+    [current_page] => 1
+    [limit] => 10
+)
+
+[06-Aug-2025 00:45:00 UTC] PHP Warning:  Undefined array key "statut_etudiant" in /var/www/html/app/Views/etudiants.php on line 610
+[06-Aug-2025 00:45:00 UTC] PHP Warning:  foreach() argument must be of type array|object, null given in /var/www/html/app/Views/etudiants.php on line 610

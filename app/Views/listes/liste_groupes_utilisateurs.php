@@ -12,41 +12,80 @@ $lib_user_type = $_SESSION['lib_user_type'];
 // Gestion des actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['lib_gu'])) {
-        $lib_groupe = $_POST['lib_gu'];
+        $lib_groupe = trim($_POST['lib_gu']);
 
-        if (isset($_POST['id_gu']) && !empty($_POST['id_gu'])) {
-            // Modification d'un groupe existant
-            $id_groupe = $_POST['id_gu'];
-            $sql = "UPDATE groupe_utilisateur SET lib_gu = ? WHERE id_gu = ?";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$lib_groupe, $id_groupe]);
+        if (!empty($lib_groupe)) {
+            if (isset($_POST['id_gu']) && !empty($_POST['id_gu'])) {
+                // Modification d'un groupe existant
+                $id_groupe = intval($_POST['id_gu']);
+                try {
+                    $sql = "UPDATE groupe_utilisateur SET lib_gu = ? WHERE id_gu = ?";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute([$lib_groupe, $id_groupe]);
 
-            // Mise à jour des traitements
-            if (isset($_POST['traitements'])) {
-                // Supprimer les anciennes associations
+                    // Mise à jour des traitements
+                    if (isset($_POST['traitements'])) {
+                        // Supprimer les anciennes associations
+                        $sql = "DELETE FROM rattacher WHERE id_gu = ?";
+                        $stmt = $pdo->prepare($sql);
+                        $stmt->execute([$id_groupe]);
+
+                        // Ajouter les nouvelles associations
+                        $sql = "INSERT INTO rattacher (id_gu, id_traitement) VALUES (?, ?)";
+                        $stmt = $pdo->prepare($sql);
+                        foreach ($_POST['traitements'] as $id_traitement) {
+                            $stmt->execute([$id_groupe, intval($id_traitement)]);
+                        }
+                    }
+
+                    $_SESSION['success'] = "Groupe modifié avec succès.";
+                } catch (PDOException $e) {
+                    $_SESSION['error'] = "Erreur lors de la modification du groupe.";
+                }
+            } else {
+                // Ajout d'un nouveau groupe
+                try {
+                    $sql = "INSERT INTO groupe_utilisateur (lib_gu) VALUES (?)";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute([$lib_groupe]);
+                    $_SESSION['success'] = "Groupe ajouté avec succès.";
+                } catch (PDOException $e) {
+                    $_SESSION['error'] = "Erreur lors de l'ajout du groupe.";
+                }
+            }
+
+            // Mise à jour des permissions
+            updateUserPermissions();
+        } else {
+            $_SESSION['error'] = "Le libellé ne peut pas être vide.";
+        }
+
+        header('Location: ?page=parametres_generaux&liste=groupes_utilisateurs');
+        exit;
+    }
+
+    // Suppression d'un groupe
+    if (isset($_POST['delete_groupe_id'])) {
+        $id_groupe = intval($_POST['delete_groupe_id']);
+
+        if ($id_groupe > 0) {
+            try {
+                // Supprimer d'abord les associations dans la table rattacher
                 $sql = "DELETE FROM rattacher WHERE id_gu = ?";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([$id_groupe]);
 
-                // Ajouter les nouvelles associations
-                $sql = "INSERT INTO rattacher (id_gu, id_traitement) VALUES (?, ?)";
+                // Puis supprimer le groupe
+                $sql = "DELETE FROM groupe_utilisateur WHERE id_gu = ?";
                 $stmt = $pdo->prepare($sql);
-                foreach ($_POST['traitements'] as $id_traitement) {
-                    $stmt->execute([$id_groupe, $id_traitement]);
-                }
+                $stmt->execute([$id_groupe]);
+
+                $_SESSION['success'] = "Groupe supprimé avec succès.";
+                updateUserPermissions();
+            } catch (PDOException $e) {
+                $_SESSION['error'] = "Erreur lors de la suppression du groupe.";
             }
-
-            $_SESSION['success'] = "Groupe modifié avec succès.";
-        } else {
-            // Ajout d'un nouveau groupe
-            $sql = "INSERT INTO groupe_utilisateur (lib_gu) VALUES (?)";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$lib_groupe]);
-            $_SESSION['success'] = "Groupe ajouté avec succès.";
         }
-
-        // Mise à jour des permissions
-        updateUserPermissions();
 
         header('Location: ?page=parametres_generaux&liste=groupes_utilisateurs');
         exit;
@@ -55,10 +94,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['delete_selected_ids']) && is_array($_POST['delete_selected_ids'])) {
         $ids = array_filter($_POST['delete_selected_ids'], 'strlen');
         if (!empty($ids)) {
-            $placeholders = implode(',', array_fill(0, count($ids), '?'));
-            $stmt = $pdo->prepare("DELETE FROM groupe_utilisateur WHERE id_gu IN ($placeholders)");
-            $stmt->execute($ids);
-            $_SESSION['success'] = count($ids) . " groupe(s) supprimé(s) avec succès.";
+            try {
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $stmt = $pdo->prepare("DELETE FROM groupe_utilisateur WHERE id_gu IN ($placeholders)");
+                $stmt->execute($ids);
+                $_SESSION['success'] = count($ids) . " groupe(s) supprimé(s) avec succès.";
+            } catch (PDOException $e) {
+                $_SESSION['error'] = "Erreur lors de la suppression multiple.";
+            }
         } else {
             $_SESSION['error'] = "Aucun groupe sélectionné.";
         }
@@ -133,11 +176,11 @@ $total_groupes = $stmt_count->rowCount();
 $total_pages = max(1, ceil($total_groupes / $per_page));
 
 // Récupération des groupes d'utilisateurs avec leurs traitements et type d'utilisateur
-$sql = "SELECT g.*, 
+        $sql = "SELECT g.*,
                GROUP_CONCAT(DISTINCT t.nom_traitement) as traitements,
                GROUP_CONCAT(DISTINCT t.id_traitement) as id_traitements,
                COUNT(DISTINCT t.id_traitement) as nombre_traitements,
-               tu.lib_tu
+               GROUP_CONCAT(DISTINCT tu.lib_tu) as lib_tu
         FROM groupe_utilisateur g
         LEFT JOIN rattacher r ON g.id_gu = r.id_gu
         LEFT JOIN traitement t ON r.id_traitement = t.id_traitement
@@ -156,7 +199,7 @@ $sql_all = "SELECT g.*,
                    GROUP_CONCAT(DISTINCT t.nom_traitement) as traitements,
                    GROUP_CONCAT(DISTINCT t.id_traitement) as id_traitements,
                    COUNT(DISTINCT t.id_traitement) as nombre_traitements,
-                   tu.lib_tu
+                   GROUP_CONCAT(DISTINCT tu.lib_tu) as lib_tu
             FROM groupe_utilisateur g
             LEFT JOIN rattacher r ON g.id_gu = r.id_gu
             LEFT JOIN traitement t ON r.id_traitement = t.id_traitement
@@ -192,514 +235,678 @@ if ($id_groupe > 0) {
 
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liste des Groupes d'Utilisateurs - Tableau de Bord Commission</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="/GSCV+/app/Views/listes/assets/css/listes.css?v=<?php echo time(); ?>">
+    <title>Liste des Groupes d'Utilisateurs - GSCV+</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1a5276',
+                        'primary-light': '#2980b9',
+                        accent: '#27ae60',
+                        warning: '#f39c12',
+                        danger: '#e74c3c',
+                        success: '#27ae60'
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'bounce-in': 'bounceIn 0.6s ease-out',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* Styles pour les modales */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(26, 82, 118, 0.1), 0 10px 10px -5px rgba(26, 82, 118, 0.04);
+        }
+
+        .modal-transition {
+            transition: all 0.3s ease-in-out;
+        }
+
+        .fade-in {
             animation: fadeIn 0.3s ease-in-out;
         }
 
-        .modal-content {
-            position: relative;
-            background-color: #fff;
-            margin: 5% auto;
-            padding: 20px;
-            width: 40%;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            animation: slideIn 0.3s ease-in-out;
+        .btn-icon {
+            transition: all 0.2s ease-in-out;
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+        .btn-icon:hover {
+            transform: scale(1.1);
         }
 
-        .modal-header h2 {
-            margin: 0;
-            color: #333;
-            font-size: 1.5em;
-        }
-
-        .close {
-            color: #aaa;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: color 0.3s;
-        }
-
-        .close:hover {
-            color: #333;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            border-color: #1a5276;
-            outline: none;
-        }
-
-        .modal-footer {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-            text-align: right;
-        }
-
-        /* Styles pour les détails du groupe */
-        .groupe-details {
-            padding: 20px;
-        }
-
-        .detail-group {
-            margin-bottom: 15px;
-        }
-
-        .detail-group label {
-            font-weight: bold;
-            color: #666;
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        .detail-group span {
-            color: #333;
-        }
-
-        .traitements-list {
-            margin-top: 10px;
-        }
-
-        .traitements-list .traitement-item {
-            background: #f8f9fa;
-            padding: 8px 12px;
-            border-radius: 4px;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .traitements-list .traitement-item i {
-            color: #28a745;
-        }
-
-        /* Styles pour les checkboxes des traitements */
-        .traitements-checkboxes {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 10px;
-        }
-
-        .checkbox-item {
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .checkbox-item input[type="checkbox"] {
-            width: auto;
-        }
-
-        .checkbox-item label {
-            margin: 0;
-            font-weight: normal;
-        }
-
-        /* Styles pour la pagination */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 5px;
-            margin-top: 20px;
-        }
-
-        .pagination .page-item {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .pagination .page-item:hover {
-            background-color: #f5f5f5;
-        }
-
-        .pagination .page-item.active {
-            background-color: #1a5276;
-            color: white;
-            border-color: #1a5276;
-        }
-
-        .pagination .page-item.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .bg-gradient {
+            background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%);
         }
     </style>
 </head>
 
-<body>
-    <div class="header">
-        <div class="header-title">
-            <div class="img-container">
-                <img src="/GSCV+/public/assets/images/logo_mi_sbg.png" alt="">
-            </div>
-            <div class="text-container">
-                <h1>Liste des Groupes d'Utilisateurs</h1>
-                <p>Gestion des groupes d'utilisateurs du système</p>
-            </div>
-        </div>
+<body class="h-full bg-gray-50">
+    <div class="min-h-full">
+        <!-- Contenu principal -->
+        <main class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        <div class="header-actions">
-
-            <div class="user-avatar"><?php echo substr($fullname, 0, 1); ?></div>
-            <div>
-                <div class="user-name"><?php echo $fullname; ?></div>
-                <div class="user-role"><?php echo $lib_user_type; ?></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Barre d'actions -->
-    <div class="actions-bar">
-        <a href="?page=parametres_generaux" class="button back-to-params"><i class="fas fa-arrow-left"></i> Retour aux paramètres généraux</a>
-        <form method="GET" class="search-box" style="display:inline-flex;align-items:center;gap:5px;">
-            <input type="hidden" name="page" value="parametres_generaux">
-            <input type="hidden" name="liste" value="groupes_utilisateurs">
-            <i class="fas fa-search"></i>
-            <input type="text" name="search" placeholder="Rechercher un groupe d'utilisateurs..." value="<?php echo htmlspecialchars($search); ?>">
-            <button type="submit" class="button" style="margin-left:5px;">Rechercher</button>
-        </form>
-        <a href="?page=parametres_generaux&liste=groupes_utilisateurs&action=add" class="button">
-            <i class="fas fa-plus"></i> Ajouter un groupe d'utilisateur
-        </a>
-    </div>
-
-    <!-- Messages de notification -->
-    <?php if (isset($_SESSION['success'])): ?>
-        <div class="alert alert-success">
-            <?php
-            echo $_SESSION['success'];
-            unset($_SESSION['success']);
-            ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if (isset($_SESSION['error'])): ?>
-        <div class="alert alert-danger">
-            <?php
-            echo $_SESSION['error'];
-            unset($_SESSION['error']);
-            ?>
-        </div>
-    <?php endif; ?>
-
-    <div class="data-table-container">
-        <div class="data-table-header">
-            <div class="data-table-title">Liste des groupes d'utilisateurs (<?php echo $total_groupes; ?> éléments)</div>
-        </div>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th style="width: 50px;"><input type="checkbox" id="selectAll"></th>
-                    <th style="width: 50px;">ID</th>
-                    <th>Libellé</th>
-                    <th style="width: 120px;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (count($groupes_page) === 0): ?>
-                    <tr>
-                        <td colspan="4" style="text-align:center;">Aucun groupe trouvé.</td>
-                    </tr>
-                <?php else: ?>
-                    <?php foreach ($groupes_page as $groupe): ?>
-                        <tr>
-                            <td><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($groupe['id_gu']); ?>"></td>
-                            <td><?php echo htmlspecialchars($groupe['id_gu']); ?></td>
-                            <td><?php echo htmlspecialchars($groupe['lib_gu']); ?></td>
-                            <td>
-                                <div class="action-buttons">
-                                    <a href="?page=parametres_generaux&liste=groupes_utilisateurs&action=view&id=<?php echo $groupe['id_gu']; ?>&search=<?php echo urlencode($search); ?>&page=<?php echo $page; ?>" class="action-button view-button" title="Voir">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="?page=parametres_generaux&liste=groupes_utilisateurs&action=edit&id=<?php echo $groupe['id_gu']; ?>&search=<?php echo urlencode($search); ?>&page=<?php echo $page; ?>" class="action-button edit-button" title="Modifier">
-                                        <i class="fas fa-pen"></i>
-                                    </a>
-                                    <a href="?page=parametres_generaux&liste=groupes_utilisateurs&action=delete&id=<?php echo $groupe['id_gu']; ?>&search=<?php echo urlencode($search); ?>&page=<?php echo $page; ?>" class="action-button delete-button" title="Supprimer" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce groupe ?')">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Pagination -->
-    <div class="pagination">
-        <?php if ($page > 1): ?>
-            <a class="page-item" href="?page=parametres_generaux&liste=groupes_utilisateurs&search=<?php echo urlencode($search); ?>&page=1">«</a>
-            <a class="page-item" href="?page=parametres_generaux&liste=groupes_utilisateurs&search=<?php echo urlencode($search); ?>&page=<?php echo $page - 1; ?>">‹</a>
-        <?php endif; ?>
-        <?php
-        // Affichage de 5 pages max autour de la page courante
-        $start = max(1, $page - 2);
-        $end = min($total_pages, $page + 2);
-        for ($i = $start; $i <= $end; $i++):
-        ?>
-            <a class="page-item<?php if ($i == $page) echo ' active'; ?>" href="?page=parametres_generaux&liste=groupes_utilisateurs&search=<?php echo urlencode($search); ?>&page=<?php echo $i; ?>"><?php echo $i; ?></a>
-        <?php endfor; ?>
-        <?php if ($page < $total_pages): ?>
-            <a class="page-item" href="?page=parametres_generaux&liste=groupes_utilisateurs&search=<?php echo urlencode($search); ?>&page=<?php echo $page + 1; ?>">›</a>
-            <a class="page-item" href="?page=parametres_generaux&liste=groupes_utilisateurs&search=<?php echo urlencode($search); ?>&page=<?php echo $total_pages; ?>">»</a>
-        <?php endif; ?>
-    </div>
-
-    <!-- Bouton de suppression multiple -->
-    <form id="bulkDeleteForm" method="POST" style="margin-bottom:10px;">
-        <input type="hidden" name="page" value="parametres_generaux">
-        <input type="hidden" name="liste" value="groupes_utilisateurs">
-        <input type="hidden" name="bulk_delete" value="1">
-        <button type="button" class="button danger" id="bulkDeleteBtn"><i class="fas fa-trash"></i> Supprimer la sélection</button>
-        <input type="hidden" name="delete_selected_ids[]" id="delete_selected_ids">
-    </form>
-
-    <?php if ($action === 'view' && $groupe_selectionne): ?>
-        <!-- Modal pour afficher les détails d'un groupe -->
-        <div class="modal" style="display: block;">
-            <div class="modal-content">
-                <span class="close" onclick="window.location.href='?page=parametres_generaux&liste=groupes_utilisateurs&search=<?php echo urlencode($search); ?>&page=<?php echo $page; ?>'">&times;</span>
-                <h2>Détails du groupe : <?php echo htmlspecialchars($groupe_selectionne['lib_gu']); ?></h2>
-                <div class="groupe-details">
-                    <div class="detail-group">
-                        <label>Nom du groupe :</label>
-                        <span><?php echo htmlspecialchars($groupe_selectionne['lib_gu']); ?></span>
+            <!-- En-tête de page -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8 animate-slide-up">
+                <div class="border-l-4 border-primary bg-white rounded-r-lg shadow-sm p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="bg-primary/10 rounded-lg p-3 mr-4">
+                                <i class="fas fa-users text-2xl text-primary"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-3xl font-bold text-gray-900 mb-2">Liste des Groupes d'Utilisateurs</h1>
+                                <p class="text-gray-600">Gestion des groupes d'utilisateurs du système</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">Connecté en tant que</div>
+                                <div class="font-semibold text-gray-900"><?php echo $fullname; ?></div>
+                                <div class="text-sm text-primary"><?php echo $lib_user_type; ?></div>
+                            </div>
+                            <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                <?php echo substr($fullname, 0, 1); ?>
+                            </div>
+                        </div>
                     </div>
-                    <div class="detail-group">
-                        <label>Type d'utilisateur :</label>
-                        <span><?php echo htmlspecialchars($groupe_selectionne['lib_tu'] ?? 'Non défini'); ?></span>
+                </div>
+            </div>
+
+            <!-- KPI Card -->
+            <div class="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8 animate-slide-up">
+                <div class="stat-card bg-white rounded-xl shadow-lg border-l-4 border-primary-light overflow-hidden transition-all duration-300">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 mb-1">Total des groupes d'utilisateurs</p>
+                                <p class="text-3xl font-bold text-gray-900"><?php echo number_format($total_groupes); ?></p>
+                            </div>
+                            <div class="bg-primary-light/10 rounded-full p-4">
+                                <i class="fas fa-users text-2xl text-primary-light"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="detail-group">
-                        <label>Nombre de traitements :</label>
-                        <span><?php echo $groupe_selectionne['nombre_traitements']; ?></span>
-                    </div>
-                    <div class="detail-group">
-                        <label>Traitements associés :</label>
-                        <div class="traitements-list">
-                            <?php if ($groupe_selectionne['traitements']): ?>
-                                <?php foreach (explode(',', $groupe_selectionne['traitements']) as $traitement): ?>
-                                    <div class="traitement-item">
-                                        <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($traitement); ?>
+                </div>
+            </div>
+
+            <!-- Section Liste des groupes -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8 animate-slide-up">
+                <!-- Barre d'actions -->
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                        <!-- Bouton de retour -->
+                        <a href="?page=parametres_generaux"
+                            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            Retour aux paramètres
+                        </a>
+
+                        <!-- Recherche -->
+                        <div class="flex-1 w-full lg:w-auto">
+                            <form method="GET" class="flex gap-3">
+                                <input type="hidden" name="page" value="parametres_generaux">
+                                <input type="hidden" name="liste" value="groupes_utilisateurs">
+                                <div class="relative flex-1">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="fas fa-search text-gray-400"></i>
                                     </div>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <p>Aucun traitement associé</p>
+                                    <input type="text"
+                                        name="search"
+                                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        placeholder="Rechercher un groupe d'utilisateurs..."
+                                        value="<?php echo htmlspecialchars($search); ?>">
+                                </div>
+                                <button type="submit"
+                                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200 flex items-center">
+                                    <i class="fas fa-search mr-2"></i>
+                                    Rechercher
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Boutons d'action -->
+                        <div class="flex gap-2">
+                            <button onclick="openDeleteMultipleModal()"
+                                class="px-4 py-2 bg-danger text-white rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center">
+                                <i class="fas fa-trash mr-2"></i>
+                                Supprimer la sélection
+                            </button>
+                            <a href="?page=parametres_generaux&liste=groupes_utilisateurs&action=add"
+                                class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-green-600 transition-colors duration-200 flex items-center">
+                                <i class="fas fa-plus mr-2"></i>
+                                Ajouter un groupe
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages d'alerte -->
+                <?php if (isset($_SESSION['success'])): ?>
+                    <div class="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-lg fade-in">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                            <span class="text-green-800"><?php echo $_SESSION['success']; unset($_SESSION['success']); ?></span>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (isset($_SESSION['error'])): ?>
+                    <div class="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg fade-in">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
+                            <span class="text-red-800"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></span>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Tableau des données -->
+                <form id="multipleDeleteForm" method="POST">
+                    <input type="hidden" name="page" value="parametres_generaux">
+                    <input type="hidden" name="liste" value="groupes_utilisateurs">
+                    
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left">
+                                        <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-primary focus:ring-primary">
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Libellé</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <?php if (count($groupes_page) === 0): ?>
+                                    <tr>
+                                        <td colspan="4" class="px-6 py-12 text-center text-gray-500">
+                                            <i class="fas fa-inbox text-4xl mb-4 block"></i>
+                                            <?php echo empty($search) ? 'Aucun groupe trouvé.' : 'Aucun résultat pour "' . htmlspecialchars($search) . '".'; ?>
+                                        </td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($groupes_page as $groupe): ?>
+                                        <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <input type="checkbox" class="row-checkbox rounded border-gray-300 text-primary focus:ring-primary" 
+                                                       name="delete_selected_ids[]" value="<?php echo htmlspecialchars($groupe['id_gu']); ?>">
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <?php echo htmlspecialchars($groupe['id_gu']); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <?php echo htmlspecialchars($groupe['lib_gu']); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <div class="flex items-center space-x-2">
+                                                    <a href="?page=parametres_generaux&liste=groupes_utilisateurs&action=view&id=<?php echo $groupe['id_gu']; ?>" 
+                                                       class="btn-icon text-info hover:text-info/80 transition-colors" title="Voir">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="?page=parametres_generaux&liste=groupes_utilisateurs&action=edit&id=<?php echo $groupe['id_gu']; ?>" 
+                                                       class="btn-icon text-warning hover:text-warning/80 transition-colors" title="Modifier">
+                                                        <i class="fas fa-pen"></i>
+                                                    </a>
+                                                    <button type="button" onclick="confirmDeleteSingle(<?php echo $groupe['id_gu']; ?>, '<?php echo htmlspecialchars($groupe['lib_gu'], ENT_QUOTES); ?>')" 
+                                                            class="btn-icon text-danger hover:text-danger/80 transition-colors" title="Supprimer">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Pagination -->
+            <?php if ($total_pages > 1): ?>
+                <div class="bg-white rounded-xl shadow-lg px-6 py-4 animate-slide-up">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-700">
+                            Page <?php echo $page; ?> sur <?php echo $total_pages; ?>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <?php if ($page > 1): ?>
+                                <a href="?page=1&liste=groupes_utilisateurs<?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" 
+                                   class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                    «
+                                </a>
+                                <a href="?page=<?php echo $page - 1; ?>&liste=groupes_utilisateurs<?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" 
+                                   class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                    ‹
+                                </a>
+                            <?php endif; ?>
+
+                            <?php
+                            $start = max(1, $page - 2);
+                            $end = min($total_pages, $page + 2);
+                            for ($i = $start; $i <= $end; $i++):
+                            ?>
+                                <a href="?page=<?php echo $i; ?>&liste=groupes_utilisateurs<?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" 
+                                   class="px-3 py-2 text-sm font-medium <?php echo $i == $page ? 'text-white bg-primary border-primary' : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50'; ?> border rounded-lg transition-colors">
+                                    <?php echo $i; ?>
+                                </a>
+                            <?php endfor; ?>
+
+                            <?php if ($page < $total_pages): ?>
+                                <a href="?page=<?php echo $page + 1; ?>&liste=groupes_utilisateurs<?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" 
+                                   class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                    ›
+                                </a>
+                                <a href="?page=<?php echo $total_pages; ?>&liste=groupes_utilisateurs<?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" 
+                                   class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                    »
+                                </a>
                             <?php endif; ?>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <a href="?page=parametres_generaux&liste=groupes_utilisateurs&search=<?php echo urlencode($search); ?>&page=<?php echo $page; ?>" class="button">Fermer</a>
+            <?php endif; ?>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Modal pour afficher les détails d'un groupe -->
+    <?php if ($action === 'view' && $groupe_selectionne): ?>
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+                <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-900">
+                        Détails du groupe : <?php echo htmlspecialchars($groupe_selectionne['lib_gu']); ?>
+                    </h2>
+                    <button onclick="window.location.href='?page=parametres_generaux&liste=groupes_utilisateurs'" 
+                            class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Nom du groupe :</label>
+                            <span class="mt-1 block text-sm text-gray-900"><?php echo htmlspecialchars($groupe_selectionne['lib_gu']); ?></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Type d'utilisateur :</label>
+                            <span class="mt-1 block text-sm text-gray-900"><?php echo htmlspecialchars($groupe_selectionne['lib_tu'] ?? 'Non défini'); ?></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Nombre de traitements :</label>
+                            <span class="mt-1 block text-sm text-gray-900"><?php echo $groupe_selectionne['nombre_traitements']; ?></span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Traitements associés :</label>
+                            <div class="mt-2 space-y-2">
+                                <?php if ($groupe_selectionne['traitements']): ?>
+                                    <?php foreach (explode(',', $groupe_selectionne['traitements']) as $traitement): ?>
+                                        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                                            <i class="fas fa-check-circle text-success mr-3"></i>
+                                            <span class="text-sm text-gray-900"><?php echo htmlspecialchars($traitement); ?></span>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <p class="text-sm text-gray-500">Aucun traitement associé</p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+                    <a href="?page=parametres_generaux&liste=groupes_utilisateurs" 
+                       class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                        Fermer
+                    </a>
                 </div>
             </div>
         </div>
     <?php endif; ?>
 
+    <!-- Modal pour modifier un groupe -->
     <?php if ($action === 'edit' && $groupe_selectionne): ?>
-        <!-- Modal pour modifier un groupe -->
-        <div class="modal" style="display: block;">
-            <div class="modal-content">
-                <span class="close" onclick="window.location.href='?page=parametres_generaux&liste=groupes_utilisateurs&search=<?php echo urlencode($search); ?>&page=<?php echo $page; ?>'">&times;</span>
-                <h2>Modifier le groupe : <?php echo htmlspecialchars($groupe_selectionne['lib_gu']); ?></h2>
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-900">
+                        Modifier le groupe : <?php echo htmlspecialchars($groupe_selectionne['lib_gu']); ?>
+                    </h2>
+                    <button onclick="window.location.href='?page=parametres_generaux&liste=groupes_utilisateurs'" 
+                            class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
                 <form method="POST">
                     <input type="hidden" name="page" value="parametres_generaux">
                     <input type="hidden" name="liste" value="groupes_utilisateurs">
                     <input type="hidden" name="id_gu" value="<?php echo $groupe_selectionne['id_gu']; ?>">
-                    <div class="form-group">
-                        <label for="lib_gu">Libellé :</label>
-                        <input type="text" id="lib_gu" name="lib_gu" value="<?php echo htmlspecialchars($groupe_selectionne['lib_gu']); ?>" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Traitements :</label>
-                        <div class="traitements-checkboxes">
-                            <?php
-                            $id_traitements = explode(',', $groupe_selectionne['id_traitements'] ?? '');
-                            foreach ($traitements as $traitement):
-                            ?>
-                                <div class="checkbox-item">
-                                    <input type="checkbox"
-                                        id="traitement_<?php echo $traitement['id_traitement']; ?>"
-                                        name="traitements[]"
-                                        value="<?php echo $traitement['id_traitement']; ?>"
-                                        <?php echo in_array($traitement['id_traitement'], $id_traitements) ? 'checked' : ''; ?>>
-                                    <label for="traitement_<?php echo $traitement['id_traitement']; ?>">
-                                        <?php echo htmlspecialchars($traitement['nom_traitement']); ?>
-                                    </label>
-                                </div>
-                            <?php endforeach; ?>
+                    
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label for="lib_gu" class="block text-sm font-medium text-gray-700">Libellé :</label>
+                            <input type="text" id="lib_gu" name="lib_gu" 
+                                   value="<?php echo htmlspecialchars($groupe_selectionne['lib_gu']); ?>" 
+                                   required
+                                   class="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Traitements :</label>
+                            <div class="mt-2 max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                                <?php
+                                $id_traitements = explode(',', $groupe_selectionne['id_traitements'] ?? '');
+                                foreach ($traitements as $traitement):
+                                ?>
+                                    <div class="flex items-center mb-2">
+                                        <input type="checkbox"
+                                            id="traitement_<?php echo $traitement['id_traitement']; ?>"
+                                            name="traitements[]"
+                                            value="<?php echo $traitement['id_traitement']; ?>"
+                                            <?php echo in_array($traitement['id_traitement'], $id_traitements) ? 'checked' : ''; ?>
+                                            class="rounded border-gray-300 text-primary focus:ring-primary">
+                                        <label for="traitement_<?php echo $traitement['id_traitement']; ?>" class="ml-2 text-sm text-gray-900">
+                                            <?php echo htmlspecialchars($traitement['nom_traitement']); ?>
+                                        </label>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-actions">
-                        <button type="submit" class="button">Enregistrer</button>
-                        <a href="?page=parametres_generaux&liste=groupes_utilisateurs&search=<?php echo urlencode($search); ?>&page=<?php echo $page; ?>" class="button">Annuler</a>
+                    <div class="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+                        <a href="?page=parametres_generaux&liste=groupes_utilisateurs" 
+                           class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                            Annuler
+                        </a>
+                        <button type="submit" 
+                                class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            Enregistrer
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     <?php endif; ?>
 
+    <!-- Modal pour ajouter un groupe -->
     <?php if ($action === 'add'): ?>
-        <!-- Modal pour ajouter un groupe -->
-        <div class="modal" style="display: block;">
-            <div class="modal-content">
-                <span class="close" onclick="window.location.href='?page=parametres_generaux&liste=groupes_utilisateurs&search=<?php echo urlencode($search); ?>&page=<?php echo $page; ?>'">&times;</span>
-                <h2>Ajouter un groupe d'utilisateur</h2>
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-900">Ajouter un groupe d'utilisateur</h2>
+                    <button onclick="window.location.href='?page=parametres_generaux&liste=groupes_utilisateurs'" 
+                            class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
                 <form method="POST">
                     <input type="hidden" name="page" value="parametres_generaux">
                     <input type="hidden" name="liste" value="groupes_utilisateurs">
-                    <div class="form-group">
-                        <label for="lib_gu">Libellé :</label>
-                        <input type="text" id="lib_gu" name="lib_gu" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Traitements :</label>
-                        <div class="traitements-checkboxes">
-                            <?php foreach ($traitements as $traitement): ?>
-                                <div class="checkbox-item">
-                                    <input type="checkbox"
-                                        id="traitement_<?php echo $traitement['id_traitement']; ?>"
-                                        name="traitements[]"
-                                        value="<?php echo $traitement['id_traitement']; ?>">
-                                    <label for="traitement_<?php echo $traitement['id_traitement']; ?>">
-                                        <?php echo htmlspecialchars($traitement['nom_traitement']); ?>
-                                    </label>
-                                </div>
-                            <?php endforeach; ?>
+                    
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label for="lib_gu" class="block text-sm font-medium text-gray-700">Libellé :</label>
+                            <input type="text" id="lib_gu" name="lib_gu" required
+                                   class="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Traitements :</label>
+                            <div class="mt-2 max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                                <?php foreach ($traitements as $traitement): ?>
+                                    <div class="flex items-center mb-2">
+                                        <input type="checkbox"
+                                            id="traitement_<?php echo $traitement['id_traitement']; ?>"
+                                            name="traitements[]"
+                                            value="<?php echo $traitement['id_traitement']; ?>"
+                                            class="rounded border-gray-300 text-primary focus:ring-primary">
+                                        <label for="traitement_<?php echo $traitement['id_traitement']; ?>" class="ml-2 text-sm text-gray-900">
+                                            <?php echo htmlspecialchars($traitement['nom_traitement']); ?>
+                                        </label>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-actions">
-                        <button type="submit" class="button">Enregistrer</button>
-                        <a href="?page=parametres_generaux&liste=groupes_utilisateurs&search=<?php echo urlencode($search); ?>&page=<?php echo $page; ?>" class="button">Annuler</a>
+                    <div class="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+                        <a href="?page=parametres_generaux&liste=groupes_utilisateurs" 
+                           class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                            Annuler
+                        </a>
+                        <button type="submit" 
+                                class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            Enregistrer
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     <?php endif; ?>
 
-    <!-- Modal de confirmation de suppression multiple harmonisée -->
-    <div id="confirmation-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeDeleteMultipleModal()">&times;</span>
-            <div class="modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
-            <h2>Confirmation de suppression</h2>
-            <p id="deleteMultipleMessage"></p>
-            <div class="modal-footer" id="deleteMultipleFooter"></div>
+    <!-- Modal de confirmation de suppression (simple) -->
+    <div id="confirmation-modal-single" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="flex items-center justify-center p-6 border-b border-gray-200">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Confirmer la suppression</h3>
+                <p id="deleteSingleMessage" class="text-sm text-gray-600">
+                    Êtes-vous sûr de vouloir supprimer ce groupe ?<br>
+                    <span class="text-red-600 text-xs">Cette action est irréversible.</span>
+                </p>
+            </div>
+            <div class="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+                <button type="button" onclick="closeDeleteModal()" 
+                        class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                    Annuler
+                </button>
+                <a href="#" id="confirmDeleteBtn" 
+                   class="px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 transition-colors">
+                    Supprimer
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmation de suppression (simple) -->
+    <div id="confirmation-modal-single" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 modal-transition">
+            <div class="flex items-center justify-center p-6 border-b border-gray-200">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Confirmer la suppression</h3>
+                <p id="deleteSingleMessage" class="text-sm text-gray-600">
+                    Êtes-vous sûr de vouloir supprimer ce groupe ?<br>
+                    <span class="text-red-600 text-xs">Cette action est irréversible.</span>
+                </p>
+            </div>
+            <div class="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+                <button type="button" onclick="closeDeleteModal()" 
+                        class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                    Annuler
+                </button>
+                <a href="#" id="confirmDeleteBtn" 
+                   class="px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 transition-colors">
+                    Supprimer
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmation de suppression multiple -->
+    <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 modal-transition">
+            <div class="flex items-center justify-center p-6 border-b border-gray-200">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Confirmation de suppression</h3>
+                <p id="deleteMultipleMessage" class="text-sm text-gray-600"></p>
+            </div>
+            <div id="deleteMultipleFooter" class="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+            </div>
         </div>
     </div>
 
     <script>
         // Fonction pour recharger la sidebar
         function reloadSidebar() {
-            // Récupérer la sidebar depuis le parent
             const sidebar = window.parent.document.querySelector('.sidebar');
             if (sidebar) {
-                // Recharger la page parent pour mettre à jour la sidebar
                 window.parent.location.reload();
             }
         }
 
         // Vérifier si une action a été effectuée
         <?php if (isset($_SESSION['success']) || isset($_SESSION['error'])): ?>
-            // Recharger la sidebar après une action réussie ou échouée
             reloadSidebar();
         <?php endif; ?>
 
-        // Sélection/désélection tout
-        const selectAll = document.getElementById('selectAll');
-        const checkboxes = document.querySelectorAll('.row-checkbox');
-        selectAll.addEventListener('change', function() {
-            checkboxes.forEach(cb => cb.checked = this.checked);
+        // Fonction pour supprimer un groupe
+        function confirmDeleteSingle(id_groupe, nom_groupe) {
+            document.getElementById('deleteSingleMessage').innerHTML = 
+                `Êtes-vous sûr de vouloir supprimer le groupe <b>"${nom_groupe}"</b> ?<br><span class="text-red-600 text-xs">Cette action est irréversible.</span>`;
+            document.getElementById('confirmDeleteBtn').href = 
+                '?page=parametres_generaux&liste=groupes_utilisateurs&action=delete&id=' + id_groupe;
+            document.getElementById('confirmation-modal-single').classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('confirmation-modal-single').classList.add('hidden');
+        }
+
+        // Fermer les modales si on clique en dehors
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.fixed.inset-0');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.classList.add('hidden');
+                }
+            });
+        }
+
+        // Empêcher la fermeture des modales lors du clic sur leur contenu
+        document.querySelectorAll('.bg-white.rounded-lg').forEach(function(content) {
+            content.onclick = function(event) {
+                event.stopPropagation();
+            }
         });
 
-        // Bouton suppression multiple
-        const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
-        bulkDeleteBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            openDeleteMultipleModal();
+        // Fermer les modales avec la touche Échap
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeDeleteModal();
+                document.getElementById('confirmation-modal').classList.add('hidden');
+            }
         });
+
+        // Sélection groupée
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.row-checkbox');
+        
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(cb => cb.checked = selectAll.checked);
+                updateBulkDeleteButton();
+            });
+        }
+        
+        checkboxes.forEach(cb => cb.addEventListener('change', function() {
+            if (!this.checked) {
+                if (selectAll) selectAll.checked = false;
+            } else if ([...checkboxes].every(c => c.checked)) {
+                if (selectAll) selectAll.checked = true;
+            }
+            updateBulkDeleteButton();
+        }));
+
+        function updateBulkDeleteButton() {
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            const bulkDeleteBtn = document.querySelector('button[onclick="openDeleteMultipleModal()"]');
+            if (bulkDeleteBtn) {
+                bulkDeleteBtn.disabled = checked.length === 0;
+                bulkDeleteBtn.classList.toggle('opacity-50', checked.length === 0);
+            }
+        }
 
         // Suppression multiple
         function openDeleteMultipleModal() {
             const checked = document.querySelectorAll('.row-checkbox:checked');
             const msg = document.getElementById('deleteMultipleMessage');
             const footer = document.getElementById('deleteMultipleFooter');
+            
             if (checked.length === 0) {
                 msg.innerHTML = "Aucune sélection. Veuillez sélectionner au moins un groupe à supprimer.";
-                footer.innerHTML = '<button type="button" class="button" onclick="closeDeleteMultipleModal()">OK</button>';
+                footer.innerHTML = '<button type="button" onclick="closeDeleteMultipleModal()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">OK</button>';
             } else {
-                msg.innerHTML = `Êtes-vous sûr de vouloir supprimer <b>${checked.length}</b> groupe(s) sélectionné(s) ?<br><span style='color:#c0392b;font-size:0.95em;'>Cette action est irréversible.</span>`;
-                footer.innerHTML = '<button type="button" class="button" onclick="confirmDeleteMultiple()">Oui, supprimer</button>' +
-                    '<button type="button" class="button secondary" onclick="closeDeleteMultipleModal()">Non</button>';
+                msg.innerHTML = `Êtes-vous sûr de vouloir supprimer <b>${checked.length}</b> groupe(s) sélectionné(s) ?<br><span class="text-red-600 text-xs">Cette action est irréversible.</span>`;
+                footer.innerHTML = 
+                    '<button type="button" onclick="confirmDeleteMultiple()" class="px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 transition-colors">Oui, supprimer</button>' +
+                    '<button type="button" onclick="closeDeleteMultipleModal()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">Non</button>';
             }
-            document.getElementById('confirmation-modal').style.display = 'flex';
+            document.getElementById('confirmation-modal').classList.remove('hidden');
         }
 
         function closeDeleteMultipleModal() {
-            document.getElementById('confirmation-modal').style.display = 'none';
+            document.getElementById('confirmation-modal').classList.add('hidden');
         }
 
         function confirmDeleteMultiple() {
-            document.getElementById('bulkDeleteForm').submit();
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            const ids = Array.from(checked).map(cb => cb.value);
+            document.getElementById('delete_selected_ids').value = ids.join(',');
+            document.getElementById('multipleDeleteForm').submit();
         }
+
+        // Initialiser l'état du bouton de suppression multiple
+        updateBulkDeleteButton();
     </script>
 </body>
-
 </html>

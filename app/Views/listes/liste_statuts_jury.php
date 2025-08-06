@@ -1,6 +1,10 @@
 <?php
-require_once __DIR__ . '/../../config/config.php';
+// Vérifier si on est dans le bon contexte
+if (!isset($_GET['liste']) || $_GET['liste'] !== 'statuts_jury') {
+    return;
+}
 
+require_once __DIR__ . '/../../config/config.php';
 
 $fullname = $_SESSION['user_fullname'];
 $lib_user_type = $_SESSION['lib_user_type'];
@@ -83,21 +87,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (isset($_POST['delete_selected_ids']) && is_array($_POST['delete_selected_ids'])) {
             $ids = array_filter($_POST['delete_selected_ids'], 'strlen');
             if (!empty($ids)) {
-                $placeholders = implode(',', array_fill(0, count($ids), '?'));
-                $stmt = $pdo->prepare("DELETE FROM statut_jury WHERE id_jury IN ($placeholders)");
-                $stmt->execute($ids);
-                $_SESSION['success'] = count($ids) . " statut(s) supprimé(s) avec succès.";
+                try {
+                    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                    $stmt = $pdo->prepare("DELETE FROM statut_jury WHERE id_jury IN ($placeholders)");
+                    $stmt->execute($ids);
+                    $_SESSION['success'] = count($ids) . " statut(s) supprimé(s) avec succès.";
+                } catch (PDOException $e) {
+                    $_SESSION['error'] = "Erreur lors de la suppression multiple.";
+                }
             } else {
                 $_SESSION['error'] = "Aucun statut sélectionné.";
             }
-            header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
+            header('Location: ?page=parametres_generaux&liste=statuts_jury');
             exit;
         }
 
         // Redirection avec conservation des paramètres
-        $redirect_url = $_SERVER['PHP_SELF'];
-        if (!empty($search)) $redirect_url .= "?search=" . urlencode($search);
-        if ($page > 1) $redirect_url .= (strpos($redirect_url, '?') !== false ? '&' : '?') . "page=$page";
+        $redirect_url = '?page=parametres_generaux&liste=statuts_jury';
+        if (!empty($search)) $redirect_url .= "&search=" . urlencode($search);
+        if ($page > 1) $redirect_url .= "&page=$page";
 
         header('Location: ' . $redirect_url);
         exit;
@@ -117,453 +125,541 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
 
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liste des Statuts de Jury - Tableau de Bord Commission</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="/GSCV+/app/Views/listes/assets/css/listes.css?v=<?php echo time(); ?>">
+    <title>Liste des Statuts de Jury - GSCV+</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1a5276',
+                        'primary-light': '#2980b9',
+                        accent: '#27ae60',
+                        warning: '#f39c12',
+                        danger: '#e74c3c',
+                        success: '#27ae60'
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'bounce-in': 'bounceIn 0.6s ease-out',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* Styles pour les modales */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(26, 82, 118, 0.1), 0 10px 10px -5px rgba(26, 82, 118, 0.04);
+        }
+
+        .modal-transition {
+            transition: all 0.3s ease-in-out;
+        }
+
+        .fade-in {
             animation: fadeIn 0.3s ease-in-out;
         }
 
-        .modal-content {
-            position: relative;
-            background-color: #fff;
-            margin: 5% auto;
-            padding: 20px;
-            width: 25%;
-            max-width: 500px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            animation: slideIn 0.3s ease-in-out;
+        .btn-icon {
+            transition: all 0.2s ease-in-out;
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+        .btn-icon:hover {
+            transform: scale(1.1);
         }
 
-        .modal-header h2 {
-            margin: 0;
-            color: #333;
-            font-size: 1.5em;
-        }
-
-        .close {
-            color: #aaa;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: color 0.3s;
-        }
-
-        .close:hover {
-            color: #333;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            border-color: #4a90e2;
-            outline: none;
-        }
-
-        .modal-footer {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-            text-align: right;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateY(-20px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        /* Styles pour les boutons dans la modale */
-        .modal-footer .button {
-            margin-left: 10px;
-        }
-
-        .modal-footer .button.secondary {
-            background-color: #f5f5f5;
-            color: #333;
-        }
-
-        .modal-footer .button.secondary:hover {
-            background-color: #e5e5e5;
-        }
-
-        /* Messages d'alerte */
-        .alert {
-            padding: 12px 20px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            font-weight: 500;
-        }
-
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+        .bg-gradient {
+            background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%);
         }
     </style>
 </head>
 
-<body>
-    <div class="header">
-        <div class="header-title">
-            <div class="img-container">
-                <img src="/GSCV+/public/assets/images/logo_mi_sbg.png" alt="">
+<body class="h-full bg-gray-50">
+    <div class="min-h-full">
+        <!-- Contenu principal -->
+        <main class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+            <!-- En-tête de page -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8 animate-slide-up">
+                <div class="border-l-4 border-primary bg-white rounded-r-lg shadow-sm p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="bg-primary/10 rounded-lg p-3 mr-4">
+                                <i class="fas fa-gavel text-2xl text-primary"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-3xl font-bold text-gray-900 mb-2">Liste des Statuts de Jury</h1>
+                                <p class="text-gray-600">Gestion des statuts de jury du système</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">Connecté en tant que</div>
+                                <div class="font-semibold text-gray-900"><?php echo $fullname; ?></div>
+                                <div class="text-sm text-primary"><?php echo $lib_user_type; ?></div>
+                            </div>
+                            <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                <?php echo substr($fullname, 0, 1); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="text-container">
-                <h1>Liste des Statuts de Jury</h1>
-                <p>Gestion des statuts de jury du système</p>
+
+            <!-- KPI Card -->
+            <div class="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8 animate-slide-up">
+                <div class="stat-card bg-white rounded-xl shadow-lg border-l-4 border-primary-light overflow-hidden transition-all duration-300">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 mb-1">Total des statuts de jury</p>
+                                <p class="text-3xl font-bold text-gray-900"><?php echo number_format($total_statuts); ?></p>
+                            </div>
+                            <div class="bg-primary-light/10 rounded-full p-4">
+                                <i class="fas fa-gavel text-2xl text-primary-light"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div class="header-actions">
+            <!-- Section Liste des statuts -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8 animate-slide-up">
+                <!-- Barre d'actions -->
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                        <!-- Bouton de retour -->
+                        <a href="?page=parametres_generaux"
+                            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            Retour aux paramètres
+                        </a>
 
-            <div class="user-avatar"><?php echo substr($fullname, 0, 1); ?></div>
-            <div>
-                <div class="user-name"><?php echo $fullname; ?></div>
-                <div class="user-role"><?php echo $lib_user_type; ?></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="content">
-        <div class="actions-bar">
-            <a href="?page=parametres_generaux" class="button back-to-params">
-                <i class="fas fa-arrow-left"></i> Retour aux paramètres généraux
-            </a>
-            <form method="GET" class="search-box" style="display: flex; align-items: center;">
-                <i class="fas fa-search"></i>
-                <input type="text" name="search" placeholder="Rechercher un statut de jury..." value="<?php echo htmlspecialchars($search); ?>">
-                <button type="submit" style="background: none; border: none; color: #666; cursor: pointer; padding: 0 10px;">
-                    <i class="fas fa-search"></i>
-                </button>
-            </form>
-            <button class="button" onclick="showAddModal()">
-                <i class="fas fa-plus"></i> Ajouter un statut de jury
-            </button>
-        </div>
-
-        <!-- Messages de notification -->
-        <?php if (isset($_SESSION['success'])): ?>
-            <div class="alert alert-success">
-                <?php
-                echo $_SESSION['success'];
-                unset($_SESSION['success']);
-                ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if (isset($_SESSION['error'])): ?>
-            <div class="alert alert-danger">
-                <?php
-                echo $_SESSION['error'];
-                unset($_SESSION['error']);
-                ?>
-            </div>
-        <?php endif; ?>
-
-        <!-- Bouton de suppression multiple -->
-        <form id="bulkDeleteForm" method="POST" style="margin-bottom:10px;">
-            <input type="hidden" name="bulk_delete" value="1">
-            <button type="button" class="button danger" id="bulkDeleteBtn"><i class="fas fa-trash"></i> Supprimer la sélection</button>
-            <input type="hidden" name="delete_selected_ids[]" id="delete_selected_ids">
-        </form>
-
-        <div class="data-table-container">
-            <div class="data-table-header">
-                <div class="data-table-title">Liste des statuts jury (<?php echo $total_statuts; ?> résultat<?php echo $total_statuts > 1 ? 's' : ''; ?>)</div>
-            </div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th style="width: 50px;"><input type="checkbox" id="selectAll"></th>
-                        <th style="width: 50px;">ID</th>
-                        <th>Libellé</th>
-                        <th style="width: 120px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($statuts)): ?>
-                        <tr>
-                            <td colspan="4" style="text-align: center; padding: 20px; color: #666;">
-                                <?php echo empty($search) ? 'Aucun statut de jury trouvé.' : 'Aucun résultat pour "' . htmlspecialchars($search) . '".'; ?>
-                            </td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach ($statuts as $statut): ?>
-                            <tr>
-                                <td><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($statut['id_jury']); ?>"></td>
-                                <td><?php echo htmlspecialchars($statut['id_jury']); ?></td>
-                                <td><?php echo htmlspecialchars($statut['lib_jury']); ?></td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="action-button edit-button" title="Modifier" onclick="editStatut(<?php echo $statut['id_jury']; ?>, '<?php echo htmlspecialchars($statut['lib_jury'], ENT_QUOTES); ?>')">
-                                            <i class="fas fa-pen"></i>
-                                        </button>
-                                        <button class="action-button delete-button" title="Supprimer" onclick="deleteStatut(<?php echo $statut['id_jury']; ?>, '<?php echo htmlspecialchars($statut['lib_jury'], ENT_QUOTES); ?>')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                        <!-- Recherche -->
+                        <div class="flex-1 w-full lg:w-auto">
+                            <form method="GET" class="flex gap-3">
+                                <input type="hidden" name="page" value="parametres_generaux">
+                                <input type="hidden" name="liste" value="statuts_jury">
+                                <div class="relative flex-1">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="fas fa-search text-gray-400"></i>
                                     </div>
-                                </td>
+                                    <input type="text"
+                                        name="search"
+                                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        placeholder="Rechercher un statut de jury..."
+                                        value="<?php echo htmlspecialchars($search); ?>">
+                                </div>
+                                <button type="submit"
+                                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200 flex items-center">
+                                    <i class="fas fa-search mr-2"></i>
+                                    Rechercher
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Bouton d'ajout -->
+                        <button onclick="showAddModal()"
+                            class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-green-600 transition-colors duration-200 flex items-center">
+                            <i class="fas fa-plus mr-2"></i>
+                            Ajouter un statut
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages d'alerte -->
+                <?php if (isset($_SESSION['success'])): ?>
+                    <div class="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-lg fade-in">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                            <span class="text-green-800"><?php echo $_SESSION['success']; unset($_SESSION['success']); ?></span>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (isset($_SESSION['error'])): ?>
+                    <div class="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg fade-in">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
+                            <span class="text-red-800"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></span>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Bouton de suppression multiple -->
+                <div class="px-6 pt-4">
+                    <form id="bulkDeleteForm" method="POST">
+                        <input type="hidden" name="page" value="parametres_generaux">
+                        <input type="hidden" name="liste" value="statuts_jury">
+                        <input type="hidden" name="bulk_delete" value="1">
+                        <input type="hidden" name="delete_selected_ids[]" id="delete_selected_ids">
+                        <button type="button" 
+                            class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center"
+                            id="bulkDeleteBtn">
+                            <i class="fas fa-trash mr-2"></i>
+                            Supprimer la sélection
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Tableau des données -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-primary focus:ring-primary">
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    ID
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Libellé
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions
+                                </th>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <?php if (empty($statuts)): ?>
+                                <tr>
+                                    <td colspan="4" class="px-6 py-12 text-center">
+                                        <div class="flex flex-col items-center">
+                                            <i class="fas fa-inbox text-4xl text-gray-300 mb-4"></i>
+                                            <p class="text-gray-500 text-lg">
+                                                <?php echo empty($search) ? 'Aucun statut de jury trouvé.' : 'Aucun résultat pour "' . htmlspecialchars($search) . '".'; ?>
+                                            </p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($statuts as $statut): ?>
+                                    <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <input type="checkbox" 
+                                                class="row-checkbox rounded border-gray-300 text-primary focus:ring-primary" 
+                                                value="<?php echo htmlspecialchars($statut['id_jury']); ?>">
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            <?php echo htmlspecialchars($statut['id_jury']); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?php echo htmlspecialchars($statut['lib_jury']); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div class="flex space-x-2">
+                                                <button class="btn-icon text-blue-600 hover:text-blue-900" 
+                                                    title="Modifier"
+                                                    onclick="editStatut(<?php echo $statut['id_jury']; ?>, '<?php echo htmlspecialchars($statut['lib_jury'], ENT_QUOTES); ?>')">
+                                                    <i class="fas fa-pen"></i>
+                                                </button>
+                                                <button class="btn-icon text-red-600 hover:text-red-900" 
+                                                    title="Supprimer"
+                                                    onclick="deleteStatut(<?php echo $statut['id_jury']; ?>, '<?php echo htmlspecialchars($statut['lib_jury'], ENT_QUOTES); ?>')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
 
-        <!-- Pagination -->
-        <?php if ($total_pages > 1): ?>
-            <div class="pagination">
-                <?php if ($page > 1): ?>
-                    <a href="?page=<?php echo $page - 1; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" class="page-item">«</a>
-                <?php endif; ?>
-
-                <?php
-                $start_page = max(1, $page - 2);
-                $end_page = min($total_pages, $page + 2);
-
-                if ($start_page > 1): ?>
-                    <a href="?page=1<?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" class="page-item">1</a>
-                    <?php if ($start_page > 2): ?>
-                        <span class="page-item">...</span>
-                    <?php endif; ?>
-                <?php endif; ?>
-
-                <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <a href="?page=<?php echo $i; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" class="page-item <?php echo $page == $i ? 'active' : ''; ?>"><?php echo $i; ?></a>
-                <?php endfor; ?>
-
-                <?php if ($end_page < $total_pages): ?>
-                    <?php if ($end_page < $total_pages - 1): ?>
-                        <span class="page-item">...</span>
-                    <?php endif; ?>
-                    <a href="?page=<?php echo $total_pages; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" class="page-item"><?php echo $total_pages; ?></a>
-                <?php endif; ?>
-
-                <?php if ($page < $total_pages): ?>
-                    <a href="?page=<?php echo $page + 1; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" class="page-item">»</a>
+                <!-- Pagination -->
+                <?php if ($total_pages > 1): ?>
+                    <div class="px-6 py-4 border-t border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm text-gray-700">
+                                Page <?php echo $page; ?> sur <?php echo $total_pages; ?>
+                            </div>
+                            <div class="flex space-x-2">
+                                <?php if ($page > 1): ?>
+                                    <a href="?page=parametres_generaux&liste=statuts_jury&search=<?php echo urlencode($search); ?>&page=<?php echo $page - 1; ?>" 
+                                        class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                        Précédent
+                                    </a>
+                                <?php endif; ?>
+                                
+                                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                                    <a href="?page=parametres_generaux&liste=statuts_jury&search=<?php echo urlencode($search); ?>&page=<?php echo $i; ?>" 
+                                        class="px-3 py-2 text-sm font-medium <?php echo $page == $i ? 'text-white bg-primary' : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'; ?> rounded-md">
+                                        <?php echo $i; ?>
+                                    </a>
+                                <?php endfor; ?>
+                                
+                                <?php if ($page < $total_pages): ?>
+                                    <a href="?page=parametres_generaux&liste=statuts_jury&search=<?php echo urlencode($search); ?>&page=<?php echo $page + 1; ?>" 
+                                        class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                        Suivant
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
                 <?php endif; ?>
             </div>
-        <?php endif; ?>
+        </main>
     </div>
 
-    <!-- Modal pour ajouter/modifier un statut de jury -->
-    <div id="statutModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2 id="modalTitle">Ajouter un statut de jury</h2>
-            <form id="statutForm" method="POST">
-                <input type="hidden" id="action" name="action" value="add">
-                <input type="hidden" id="id_jury" name="id_jury">
-                <div class="form-group">
-                    <label for="lib_jury">Libellé :</label>
-                    <input type="text" id="lib_jury" name="lib_jury" required>
+    <!-- Modal d'ajout/modification -->
+    <div id="statutModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white modal-transition">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900" id="modalTitle">Ajouter un statut de jury</h3>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-                <div class="modal-footer">
-                    <button type="submit" class="button">Enregistrer</button>
-                    <button type="button" class="button secondary" onclick="closeModal()">Annuler</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal de confirmation de suppression (simple) harmonisée -->
-    <div id="confirmation-modal-single" style="display:none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeDeleteModal()">&times;</span>
-            <div class="modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
-            <h2>Confirmer la suppression</h2>
-            <p id="deleteSingleMessage">Êtes-vous sûr de vouloir supprimer ce statut de jury ?<br><span style='color:#c0392b;font-size:0.95em;'>Cette action est irréversible.</span></p>
-            <div class="modal-footer">
-                <button type="button" class="button secondary" onclick="closeDeleteModal()">Annuler</button>
-                <button type="button" class="button" onclick="confirmDeleteSingle()">Supprimer</button>
+                <form id="statutForm" method="POST">
+                    <input type="hidden" name="page" value="parametres_generaux">
+                    <input type="hidden" name="liste" value="statuts_jury">
+                    <input type="hidden" id="action" name="action" value="add">
+                    <input type="hidden" id="id_jury" name="id_jury">
+                    
+                    <div class="mb-4">
+                        <label for="lib_jury" class="block text-sm font-medium text-gray-700 mb-2">Libellé :</label>
+                        <input type="text" 
+                            id="lib_jury" 
+                            name="lib_jury" 
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" 
+                            onclick="closeModal()"
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors duration-200">
+                            Annuler
+                        </button>
+                        <button type="submit"
+                            class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-light transition-colors duration-200">
+                            Enregistrer
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- Modale de confirmation harmonisée -->
-    <div class="modal" id="confirmation-modal" style="display:none;">
-        <div class="modal-content confirmation-content enhanced-modal">
-            <div class="top-text">
-                <h2 class="modal-title">Confirmation</h2>
-                <button class="close-modal-btn" id="close-confirmation-modal-btn">×</button>
-            </div>
-            <div class="modal-action">
-                <div class="confirmation-message">
-                    <i class="fas fa-question-circle enhanced-modal-icon"></i>
-                    <p id="confirmation-text">Voulez-vous vraiment supprimer les statuts sélectionnés ?</p>
+    <!-- Modal de confirmation de suppression -->
+    <div id="confirmation-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
                 </div>
-                <div class="confirmation-buttons" id="confirmation-buttons">
-                    <button class="button" id="confirm-delete">Oui</button>
-                    <button class="button secondary" id="cancel-delete">Non</button>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Confirmer la suppression</h3>
+                <div class="mt-2 px-7 pt-6">
+                    <p class="text-sm text-gray-500" id="confirmation-text">
+                        Êtes-vous sûr de vouloir supprimer ce statut de jury ?
+                    </p>
+                </div>
+                <div class="flex justify-center space-x-3 mt-6">
+                    <button id="cancel-delete"
+                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors duration-200">
+                        Annuler
+                    </button>
+                    <button id="confirm-delete"
+                        class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200">
+                        Supprimer
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Fonctions pour la gestion des modals
+        // Variables globales
+        let idToDelete = null;
+
+        // Fonctions pour les modales
         function showAddModal() {
             document.getElementById('modalTitle').textContent = 'Ajouter un statut de jury';
             document.getElementById('action').value = 'add';
-            document.getElementById('statutForm').reset();
             document.getElementById('id_jury').value = '';
-            document.getElementById('statutModal').style.display = 'block';
+            document.getElementById('lib_jury').value = '';
+            document.getElementById('statutModal').classList.remove('hidden');
         }
 
         function editStatut(id, libelle) {
-            document.getElementById('modalTitle').textContent = 'Modifier un statut de jury';
+            document.getElementById('modalTitle').textContent = 'Modifier le statut de jury';
             document.getElementById('action').value = 'edit';
             document.getElementById('id_jury').value = id;
             document.getElementById('lib_jury').value = libelle;
-            document.getElementById('statutModal').style.display = 'block';
-        }
-
-        function deleteStatut(id, libelle) {
-            document.getElementById('deleteSingleMessage').innerHTML = `Êtes-vous sûr de vouloir supprimer le statut de jury <b>"${libelle}"</b> ?<br><span style='color:#c0392b;font-size:0.95em;'>Cette action est irréversible.</span>`;
-            window.idToDelete = id;
-            document.getElementById('confirmation-modal-single').style.display = 'flex';
+            document.getElementById('statutModal').classList.remove('hidden');
         }
 
         function closeModal() {
-            document.getElementById('statutModal').style.display = 'none';
+            document.getElementById('statutModal').classList.add('hidden');
         }
 
-        function closeDeleteModal() {
-            document.getElementById('confirmation-modal-single').style.display = 'none';
+        function deleteStatut(id, libelle) {
+            idToDelete = id;
+            document.getElementById('confirmation-text').textContent = `Êtes-vous sûr de vouloir supprimer le statut "${libelle}" ?`;
+            document.getElementById('confirmation-modal').classList.remove('hidden');
         }
 
         function confirmDeleteSingle() {
-            document.getElementById('deleteIdJury').value = window.idToDelete;
-            document.querySelector('form[action][method="POST"]').submit();
+            // Créer un formulaire temporaire pour la suppression
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '';
+            
+            const pageInput = document.createElement('input');
+            pageInput.type = 'hidden';
+            pageInput.name = 'page';
+            pageInput.value = 'parametres_generaux';
+            
+            const listeInput = document.createElement('input');
+            listeInput.type = 'hidden';
+            listeInput.name = 'liste';
+            listeInput.value = 'statuts_jury';
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'delete';
+            
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'id_jury';
+            idInput.value = idToDelete;
+            
+            form.appendChild(pageInput);
+            form.appendChild(listeInput);
+            form.appendChild(actionInput);
+            form.appendChild(idInput);
+            
+            document.body.appendChild(form);
+            form.submit();
         }
+
+        // Gestion de la sélection multiple
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateBulkDeleteButton();
+        });
+
+        document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateBulkDeleteButton();
+                updateSelectAll();
+            });
+        });
+
+        function updateBulkDeleteButton() {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+            if (checkedBoxes.length > 0) {
+                bulkDeleteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                bulkDeleteBtn.classList.add('cursor-pointer');
+            } else {
+                bulkDeleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                bulkDeleteBtn.classList.remove('cursor-pointer');
+            }
+        }
+
+        function updateSelectAll() {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            const selectAll = document.getElementById('selectAll');
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            
+            if (checkedBoxes.length === 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            } else if (checkedBoxes.length === checkboxes.length) {
+                selectAll.checked = true;
+                selectAll.indeterminate = false;
+            } else {
+                selectAll.checked = false;
+                selectAll.indeterminate = true;
+            }
+        }
+
+        // Suppression multiple
+        document.getElementById('bulkDeleteBtn').addEventListener('click', function() {
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            if (checked.length === 0) {
+                alert('Veuillez sélectionner au moins un statut à supprimer.');
+                return;
+            }
+            
+            document.getElementById('confirmation-text').textContent = `Êtes-vous sûr de vouloir supprimer ${checked.length} statut(s) sélectionné(s) ?`;
+            document.getElementById('confirmation-modal').classList.remove('hidden');
+            
+            document.getElementById('confirm-delete').onclick = function() {
+                const checked = Array.from(document.querySelectorAll('.row-checkbox:checked'));
+                const ids = checked.map(cb => cb.value);
+                document.getElementById('delete_selected_ids').value = ids.join(',');
+                document.getElementById('bulkDeleteForm').submit();
+            };
+        });
+
+        document.getElementById('cancel-delete').onclick = function() {
+            document.getElementById('confirmation-modal').classList.add('hidden');
+        };
 
         // Fermer les modales si on clique en dehors
         window.onclick = function(event) {
-            if (event.target == document.getElementById('statutModal')) {
+            const statutModal = document.getElementById('statutModal');
+            const confirmationModal = document.getElementById('confirmation-modal');
+            
+            if (event.target === statutModal) {
                 closeModal();
             }
-            if (event.target == document.getElementById('confirmation-modal-single')) {
-                closeDeleteModal();
+            if (event.target === confirmationModal) {
+                document.getElementById('confirmation-modal').classList.add('hidden');
             }
-        }
+        };
 
-        // Empêcher la fermeture des modales lors du clic sur leur contenu
-        document.querySelectorAll('.modal-content').forEach(function(content) {
-            content.onclick = function(event) {
-                event.stopPropagation();
-            }
-        });
-
-        // Fermer les modales avec la touche Échap
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                closeModal();
-                closeDeleteModal();
-            }
-        });
-
-        // Sélection/désélection tout
-        const selectAll = document.getElementById('selectAll');
-        const checkboxes = document.querySelectorAll('.row-checkbox');
-        selectAll.addEventListener('change', function() {
-            checkboxes.forEach(cb => cb.checked = this.checked);
-        });
-
-        // Bouton suppression multiple
-        const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
-        bulkDeleteBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const checked = Array.from(document.querySelectorAll('.row-checkbox:checked'));
-            if (checked.length === 0) {
-                document.getElementById('confirmation-text').textContent = "Veuillez sélectionner au moins un statut.";
-                document.getElementById('confirmation-buttons').innerHTML = '<button class="button" id="ok-btn">OK</button>';
-                document.getElementById('confirmation-modal').style.display = 'flex';
-                document.getElementById('ok-btn').onclick = function() {
-                    document.getElementById('confirmation-modal').style.display = 'none';
-                };
-                return;
-            }
-            document.getElementById('confirmation-text').textContent = "Voulez-vous vraiment supprimer les statuts sélectionnés ?";
-            document.getElementById('confirmation-buttons').innerHTML = '<button class="button" id="confirm-delete">Oui</button><button class="button secondary" id="cancel-delete">Non</button>';
-            document.getElementById('confirmation-modal').style.display = 'flex';
-            document.getElementById('confirm-delete').onclick = function() {
-                document.getElementById('delete_selected_ids').value = checked.map(cb => cb.value).join(',');
-                document.getElementById('bulkDeleteForm').submit();
-            };
-            document.getElementById('cancel-delete').onclick = function() {
-                document.getElementById('confirmation-modal').style.display = 'none';
-            };
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            updateBulkDeleteButton();
         });
     </script>
 </body>
-
 </html>

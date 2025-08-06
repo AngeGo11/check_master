@@ -6,7 +6,6 @@ if (!isset($_GET['liste']) || $_GET['liste'] !== 'frais_inscriptions') {
 
 require_once __DIR__ . '/../../config/config.php';
 
-
 $fullname = $_SESSION['user_fullname'];
 $lib_user_type = $_SESSION['lib_user_type'];
 
@@ -128,320 +127,327 @@ if (isset($_POST['delete_selected_ids']) && is_array($_POST['delete_selected_ids
 }
 ?>
 
-
 <!DOCTYPE html>
-<html lang="fr">
-
+<html lang="fr" class="h-full bg-gray-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liste des Niveaux d'Études - Tableau de Bord Commission</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="/GSCV+/app/Views/listes/assets/css/listes.css?v=<?php echo time(); ?>">
+    <title>Liste des Frais d'Inscription - GSCV+</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1a5276',
+                        'primary-light': '#2980b9',
+                        'primary-lighter': '#3498db',
+                        secondary: '#ff8c00',
+                        accent: '#4caf50',
+                        success: '#4caf50',
+                        warning: '#f39c12',
+                        danger: '#e74c3c',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'bounce-in': 'bounceIn 0.6s ease-out',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* Styles pour les modales */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.3); }
+            50% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(26, 82, 118, 0.1), 0 10px 10px -5px rgba(26, 82, 118, 0.04);
+        }
+        .modal-transition {
+            transition: all 0.3s ease-in-out;
+        }
+        .fade-in {
             animation: fadeIn 0.3s ease-in-out;
         }
-
-        .modal-content {
-            position: relative;
-            background-color: #fff;
-            margin: 5% auto;
-            padding: 20px;
-            width: 30%;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            animation: slideIn 0.3s ease-in-out;
+        .btn-icon {
+            transition: all 0.2s ease-in-out;
         }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+        .btn-icon:hover {
+            transform: scale(1.1);
         }
-
-        .modal-header h2 {
-            margin: 0;
-            color: #333;
-            font-size: 1.5em;
-        }
-
-        .close {
-            color: #aaa;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: color 0.3s;
-        }
-
-        .close:hover {
-            color: #333;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            border-color: #4a90e2;
-            outline: none;
-        }
-
-        .modal-footer {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-            text-align: right;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateY(-20px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        /* Styles pour les boutons dans la modale */
-        .modal-footer .button {
-            margin-left: 10px;
-        }
-
-        .modal-footer .button.secondary {
-            background-color: #f5f5f5;
-            color: #333;
-        }
-
-        .modal-footer .button.secondary:hover {
-            background-color: #e5e5e5;
-        }
-
-        .delete-button {
-            color: var(--danger-color);
-            background-color: rgba(231, 76, 60, 0.1);
-        }
-
-        .edit-button {
-            color: var(--text-color);
-            background-color: rgba(26, 82, 118, 0.1);
-        }
-
-
-        .edit-button:hover {
-            background-color: var(--text-color);
-            color: var(--text-light);
-        }
-
-        .action-button {
-            text-decoration: none;
+        .bg-gradient {
+            background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%);
         }
     </style>
 </head>
 
-<body>
-    <div class="header">
-        <div class="header-title">
-            <div class="img-container">
-                <img src="/GSCV+/public/assets/images/logo_mi_sbg.png" alt="">
+<body class="h-full bg-gray-50">
+    <div class="min-h-full">
+        <!-- Contenu principal -->
+        <main class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+            <!-- En-tête de page -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8 animate-slide-up">
+                <div class="border-l-4 border-primary bg-white rounded-r-lg shadow-sm p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="bg-primary/10 rounded-lg p-3 mr-4">
+                                <i class="fas fa-money-bill-wave text-2xl text-primary"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-3xl font-bold text-gray-900 mb-2">Liste des Frais d'Inscription</h1>
+                                <p class="text-gray-600">Gestion des frais d'inscription par niveau</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">Connecté en tant que</div>
+                                <div class="font-semibold text-gray-900"><?php echo $fullname; ?></div>
+                                <div class="text-sm text-primary"><?php echo $lib_user_type; ?></div>
+                            </div>
+                            <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                <?php echo substr($fullname, 0, 1); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="text-container">
-                <h1>Liste des frais d'inscription</h1>
-                <p>Gestion des frais d'inscription par niveau</p>
+
+            <!-- Statistiques -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-lg p-6 stat-card transition-all duration-300">
+                    <div class="flex items-center">
+                        <div class="bg-green-100 rounded-lg p-3 mr-4">
+                            <i class="fas fa-money-bill-wave text-2xl text-green-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Total Tarifs</p>
+                            <p class="text-2xl font-bold text-gray-900"><?php echo $total_tarifs; ?></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 stat-card transition-all duration-300">
+                    <div class="flex items-center">
+                        <div class="bg-blue-100 rounded-lg p-3 mr-4">
+                            <i class="fas fa-calendar-alt text-2xl text-blue-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Année en Cours</p>
+                            <p class="text-2xl font-bold text-gray-900"><?php echo $date; ?></p>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="header-actions">
 
-            <div class="user-avatar"><?php echo substr($fullname, 0, 1); ?></div>
-            <div>
-                <div class="user-name"><?php echo $fullname; ?></div>
-                <div class="user-role"><?php echo $lib_user_type; ?></div>
-            </div>
-        </div>
-    </div>
+            <!-- Barre d'outils -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0 lg:space-x-4">
+                    <!-- Recherche -->
+                    <div class="flex-1 max-w-md">
+                        <form method="GET" class="flex">
+                            <input type="hidden" name="page" value="parametres_generaux">
+                            <input type="hidden" name="liste" value="frais_inscriptions">
+                            <div class="relative flex-1">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-search text-gray-400"></i>
+                                </div>
+                                <input type="text" 
+                                       name="search" 
+                                       value="<?php echo htmlspecialchars($search); ?>" 
+                                       placeholder="Rechercher par niveau ou année..."
+                                       class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
+                            </div>
+                            <button type="submit" class="ml-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200">
+                                <i class="fas fa-search mr-2"></i>Rechercher
+                            </button>
+                        </form>
+                    </div>
 
-    <!-- Barre d'actions -->
-    <div class="actions-bar">
-        <a href="?page=parametres_generaux" class="button back-to-params"><i class="fas fa-arrow-left"></i> Retour aux paramètres généraux</a>
-        <form method="GET" class="search-box" style="display:inline-flex;align-items:center;gap:5px;">
-            <input type="hidden" name="page" value="parametres_generaux">
-            <input type="hidden" name="liste" value="frais_inscriptions">
-            <i class="fas fa-search"></i>
-            <input type="text" name="search" placeholder="Rechercher par niveau ou année..." value="<?php echo htmlspecialchars($search); ?>">
-            <button type="submit" class="button" style="margin-left:5px;">Rechercher</button>
-        </form>
-        <button class="button" onclick="showAddModal()">
-            <i class="fas fa-plus"></i> Ajouter un tarif
-        </button>
-    </div>
-
-    <!-- Filtres -->
-    <div class="filters">
-        <form method="GET" style="display:inline;">
-            <input type="hidden" name="page" value="parametres_generaux">
-            <input type="hidden" name="liste" value="frais_inscriptions">
-            <!-- Garder la recherche si présente -->
-            <?php if ($search !== ''): ?><input type="hidden" name="search" value="<?php echo htmlspecialchars($search); ?>"><?php endif; ?>
-            <select class="filter-select" name="niveau" onchange="this.form.submit()">
-                <option value="">Tous les niveaux</option>
-                <?php
-                $niveaux = $pdo->prepare("SELECT * FROM niveau_etude ORDER BY lib_niv_etd");
-                $niveaux->execute();
-                $niveaux_list = $niveaux->fetchAll();
-                foreach ($niveaux_list as $niv) {
-                    $selected = ($niveau_filter == $niv['id_niv_etd']) ? 'selected' : '';
-                    echo "<option value=\"{$niv['id_niv_etd']}\" $selected>{$niv['lib_niv_etd']}</option>";
-                }
-                ?>
-            </select>
-        </form>
-    </div>
-
-    <!-- Messages de succès/erreur -->
-    <?php if (isset($_SESSION['success'])): ?>
-        <div class="alert alert-success">
-            <?php echo $_SESSION['success'];
-            unset($_SESSION['success']); ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if (isset($_SESSION['error'])): ?>
-        <div class="alert alert-danger">
-            <?php echo $_SESSION['error'];
-            unset($_SESSION['error']); ?>
-        </div>
-    <?php endif; ?>
-
-    <!-- Bouton de suppression multiple -->
-    <form id="bulkDeleteForm" method="POST" style="margin-bottom:10px;">
-        <input type="hidden" name="page" value="parametres_generaux">
-        <input type="hidden" name="liste" value="frais_inscriptions">
-        <input type="hidden" name="bulk_delete" value="1">
-        <button type="button" class="button danger" id="bulkDeleteBtn"><i class="fas fa-trash"></i> Supprimer la sélection</button>
-        <input type="hidden" name="delete_selected_ids[]" id="delete_selected_ids">
-    </form>
-
-    <div class="data-table-container">
-        <div class="data-table-header">
-            <div class="data-table-title">Liste des tarifs inscriptions (<?php echo $total_tarifs; ?> éléments)</div>
-        </div>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <td><input type="checkbox" id="selectAll"></td>
-                    <th>N°</th>
-                    <th>Niveau d'étude</th>
-                    <th>Année académique</th>
-                    <th>Montant</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (count($tarifs) === 0): ?>
-                    <tr>
-                        <td colspan="6" style="text-align:center;">Aucun tarif trouvé.</td>
-                    </tr>
-                <?php else: ?>
-                    <?php foreach ($tarifs as $index => $tarif): ?>
-                        <tr>
-                            <td><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($tarif['id_frais']); ?>"></td>
-                            <td><?php echo $offset + $index + 1; ?></td>
-                            <td><?php echo htmlspecialchars($tarif['lib_niv_etd']); ?></td>
-                            <td>
+                    <!-- Filtres -->
+                    <div class="flex-1 max-w-md">
+                        <form method="GET" class="flex">
+                            <input type="hidden" name="page" value="parametres_generaux">
+                            <input type="hidden" name="liste" value="frais_inscriptions">
+                            <?php if ($search !== ''): ?><input type="hidden" name="search" value="<?php echo htmlspecialchars($search); ?>"><?php endif; ?>
+                            <select name="niveau" onchange="this.form.submit()" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
+                                <option value="">Tous les niveaux</option>
                                 <?php
-                                $dateDebut = new DateTime($tarif['date_debut']);
-                                $dateFin = new DateTime($tarif['date_fin']);
-                                echo $dateDebut->format('Y') . ' - ' . $dateFin->format('Y');
+                                $niveaux = $pdo->prepare("SELECT * FROM niveau_etude ORDER BY lib_niv_etd");
+                                $niveaux->execute();
+                                $niveaux_list = $niveaux->fetchAll();
+                                foreach ($niveaux_list as $niv) {
+                                    $selected = ($niveau_filter == $niv['id_niv_etd']) ? 'selected' : '';
+                                    echo "<option value=\"{$niv['id_niv_etd']}\" $selected>{$niv['lib_niv_etd']}</option>";
+                                }
                                 ?>
-                            </td>
-                            <td><?php echo number_format($tarif['montant'], 0, ',', ' '); ?> FCFA</td>
-                            <td style="display: flex; gap: 10px;">
-                                <a href="javascript:void(0)" onclick="showEditModal(<?php echo $tarif['id_frais']; ?>, <?php echo $tarif['id_niv_etd']; ?>, <?php echo $tarif['montant']; ?>)" class="action-button edit-button" title="Modifier"><i class="fas fa-edit"></i></a>
-                                <a href="javascript:void(0)" onclick="showDeleteModal(<?php echo $tarif['id_frais']; ?>)" class="action-button delete-button" title="Supprimer"><i class="fas fa-trash"></i></a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
+                            </select>
+                        </form>
+                    </div>
+
+                    <!-- Boutons d'action -->
+                    <div class="flex space-x-3">
+                        <button onclick="openAddModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center">
+                            <i class="fas fa-plus mr-2"></i>Ajouter
+                        </button>
+                        <button onclick="deleteSelected()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 flex items-center">
+                            <i class="fas fa-trash mr-2"></i>Supprimer
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tableau -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <input type="checkbox" id="select-all" class="rounded border-gray-300 text-primary focus:ring-primary">
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N°</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Niveau d'étude</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Année académique</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <?php if (count($tarifs) === 0): ?>
+                            <tr>
+                                <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                                    <div class="flex flex-col items-center py-8">
+                                        <i class="fas fa-search text-4xl text-gray-300 mb-4"></i>
+                                        <p class="text-lg font-medium">Aucun tarif trouvé</p>
+                                        <p class="text-sm">Essayez de modifier vos critères de recherche</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php else: ?>
+                                <?php foreach ($tarifs as $index => $tarif): ?>
+                                <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <input type="checkbox" name="delete_selected_ids[]" value="<?php echo $tarif['id_frais']; ?>" class="rounded border-gray-300 text-primary focus:ring-primary">
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        <?php echo $offset + $index + 1; ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <div class="flex items-center">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-3">
+                                                <i class="fas fa-graduation-cap mr-1"></i>
+                                            </span>
+                                            <?php echo htmlspecialchars($tarif['lib_niv_etd']); ?>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <div class="flex items-center">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-3">
+                                                <i class="fas fa-calendar mr-1"></i>
+                                            </span>
+                                            <?php
+                                            $dateDebut = new DateTime($tarif['date_debut']);
+                                            $dateFin = new DateTime($tarif['date_fin']);
+                                            echo $dateDebut->format('Y') . ' - ' . $dateFin->format('Y');
+                                            ?>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                            <i class="fas fa-money-bill mr-1"></i>
+                                            <?php echo number_format($tarif['montant'], 0, ',', ' '); ?> FCFA
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <div class="flex space-x-2">
+                                            <button onclick="openEditModal(<?php echo $tarif['id_frais']; ?>, <?php echo $tarif['id_niv_etd']; ?>, <?php echo $tarif['montant']; ?>)" 
+                                                    class="text-indigo-600 hover:text-indigo-900 btn-icon">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button onclick="deleteFrais(<?php echo $tarif['id_frais']; ?>)" 
+                                                    class="text-red-600 hover:text-red-900 btn-icon">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <?php if ($total_pages > 1): ?>
+                <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <?php if ($page > 1): ?>
+                            <a href="?page=parametres_generaux&liste=frais_inscriptions&search=<?php echo urlencode($search); ?>&niveau=<?php echo urlencode($niveau_filter); ?>&page=<?php echo $page - 1; ?>" 
+                               class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Précédent
+                            </a>
+                            <?php endif; ?>
+                            <?php if ($page < $total_pages): ?>
+                            <a href="?page=parametres_generaux&liste=frais_inscriptions&search=<?php echo urlencode($search); ?>&niveau=<?php echo urlencode($niveau_filter); ?>&page=<?php echo $page + 1; ?>" 
+                               class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Suivant
+                            </a>
+                            <?php endif; ?>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">
+                                    Affichage de <span class="font-medium"><?php echo ($offset + 1); ?></span> à <span class="font-medium"><?php echo min($offset + $per_page, $total_tarifs); ?></span> sur <span class="font-medium"><?php echo $total_tarifs; ?></span> résultats
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                                    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                                    <a href="?page=parametres_generaux&liste=frais_inscriptions&search=<?php echo urlencode($search); ?>&niveau=<?php echo urlencode($niveau_filter); ?>&page=<?php echo $i; ?>" 
+                                       class="relative inline-flex items-center px-4 py-2 border text-sm font-medium <?php echo $i == $page ? 'z-10 bg-primary border-primary text-white' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'; ?>">
+                                        <?php echo $i; ?>
+                                    </a>
+                                    <?php endfor; ?>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <?php endif; ?>
-            </tbody>
-        </table>
+            </div>
+        </main>
     </div>
 
-    <!-- Pagination -->
-    <div class="pagination">
-        <?php if ($page > 1): ?>
-            <a class="page-item" href="?page=parametres_generaux&liste=frais_inscriptions&search=<?php echo urlencode($search); ?>&niveau=<?php echo urlencode($niveau_filter); ?>&page=1">«</a>
-            <a class="page-item" href="?page=parametres_generaux&liste=frais_inscriptions&search=<?php echo urlencode($search); ?>&niveau=<?php echo urlencode($niveau_filter); ?>&page=<?php echo $page - 1; ?>">‹</a>
-        <?php endif; ?>
-        <?php
-        // Affichage de 5 pages max autour de la page courante
-        $start = max(1, $page - 2);
-        $end = min($total_pages, $page + 2);
-        for ($i = $start; $i <= $end; $i++):
-        ?>
-            <a class="page-item<?php if ($i == $page) echo ' active'; ?>" href="?page=parametres_generaux&liste=frais_inscriptions&search=<?php echo urlencode($search); ?>&niveau=<?php echo urlencode($niveau_filter); ?>&page=<?php echo $i; ?>"><?php echo $i; ?></a>
-        <?php endfor; ?>
-        <?php if ($page < $total_pages): ?>
-            <a class="page-item" href="?page=parametres_generaux&liste=frais_inscriptions&search=<?php echo urlencode($search); ?>&niveau=<?php echo urlencode($niveau_filter); ?>&page=<?php echo $page + 1; ?>">›</a>
-            <a class="page-item" href="?page=parametres_generaux&liste=frais_inscriptions&search=<?php echo urlencode($search); ?>&niveau=<?php echo urlencode($niveau_filter); ?>&page=<?php echo $total_pages; ?>">»</a>
-        <?php endif; ?>
-    </div>
-
-    <!-- Modal pour ajouter des frais d'inscription -->
-    <div id="fraisModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2 id="modalTitle">Ajouter des frais d'inscription</h2>
-            <form id="fraisForm" method="POST">
+    <!-- Modal Ajout -->
+    <div id="fraisModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">Ajouter des frais d'inscription</h2>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form method="POST" class="p-6">
                 <input type="hidden" name="page" value="parametres_generaux">
                 <input type="hidden" name="liste" value="frais_inscriptions">
-                <div class="form-group">
-                    <label for="id_niv_etd">Niveau d'étude: </label>
-                    <select name="id_niv_etd" id="id_niv_etd" required>
+                <div class="mb-4">
+                    <label for="id_niv_etd" class="block text-sm font-medium text-gray-700 mb-2">Niveau d'étude</label>
+                    <select name="id_niv_etd" id="id_niv_etd" required class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
                         <option value="">-- Sélectionnez un niveau d'étude--</option>
                         <?php
                         $niveaux = $pdo->prepare("SELECT * FROM niveau_etude");
@@ -453,43 +459,44 @@ if (isset($_POST['delete_selected_ids']) && is_array($_POST['delete_selected_ids
                         ?>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="tarifs">Montant (FCFA): </label>
-                    <input type="number" name="tarifs" id="tarifs" required>
+                <div class="mb-4">
+                    <label for="tarifs" class="block text-sm font-medium text-gray-700 mb-2">Montant (FCFA)</label>
+                    <input type="number" 
+                           name="tarifs" 
+                           id="tarifs" 
+                           required 
+                           class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="button secondary" onclick="closeModal()">Annuler</button>
-                    <button type="submit" class="button">Enregistrer</button>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                        Annuler
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200">
+                        Enregistrer
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Modal de confirmation de suppression -->
-    <div id="deleteModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Confirmation de suppression</h2>
-            <p>Êtes-vous sûr de vouloir supprimer ces frais d'inscription ?</p>
-            <div class="modal-footer">
-                <button type="button" class="button secondary" onclick="closeDeleteModal()">Annuler</button>
-                <button type="button" class="button" id="confirmDelete">Supprimer</button>
+    <!-- Modal Modification -->
+    <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">Modifier les frais d'inscription</h2>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-        </div>
-    </div>
-
-    <!-- Modal pour modifier des frais d'inscription -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Modifier les frais d'inscription</h2>
-            <form id="editForm" method="POST" action="./traitements/modifier_frais_inscription.php">
+            
+            <form method="POST" action="./traitements/modifier_frais_inscription.php" class="p-6">
                 <input type="hidden" name="page" value="parametres_generaux">
                 <input type="hidden" name="liste" value="frais_inscriptions">
                 <input type="hidden" id="edit_id_frais" name="id_frais">
-                <div class="form-group">
-                    <label for="edit_id_niv_etd">Niveau d'étude: </label>
-                    <select name="id_niv_etd" id="edit_id_niv_etd" required>
+                <div class="mb-4">
+                    <label for="edit_id_niv_etd" class="block text-sm font-medium text-gray-700 mb-2">Niveau d'étude</label>
+                    <select name="id_niv_etd" id="edit_id_niv_etd" required class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
                         <option value="">-- Sélectionnez un niveau d'étude--</option>
                         <?php
                         $niveaux = $pdo->prepare("SELECT * FROM niveau_etude");
@@ -501,130 +508,96 @@ if (isset($_POST['delete_selected_ids']) && is_array($_POST['delete_selected_ids
                         ?>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="edit_tarifs">Montant (FCFA): </label>
-                    <input type="number" name="tarifs" id="edit_tarifs" required>
+                <div class="mb-4">
+                    <label for="edit_tarifs" class="block text-sm font-medium text-gray-700 mb-2">Montant (FCFA)</label>
+                    <input type="number" 
+                           name="tarifs" 
+                           id="edit_tarifs" 
+                           required 
+                           class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="button secondary" onclick="closeEditModal()">Annuler</button>
-                    <button type="submit" class="button">Enregistrer</button>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                        Annuler
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors duration-200">
+                        Enregistrer
+                    </button>
                 </div>
             </form>
-        </div>
-    </div>
-
-    <!-- Modal de confirmation de suppression multiple harmonisée -->
-    <div id="confirmation-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeDeleteMultipleModal()">&times;</span>
-            <div class="modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
-            <h2>Confirmation de suppression</h2>
-            <p id="deleteMultipleMessage"></p>
-            <div class="modal-footer" id="deleteMultipleFooter"></div>
         </div>
     </div>
 
     <script>
-        // Fonctions pour la gestion des modals
-        function showAddModal() {
-            document.getElementById('modalTitle').textContent = 'Ajouter des frais d\'inscription';
-            document.getElementById('fraisForm').reset();
-            document.getElementById('fraisModal').style.display = 'block';
-        }
-
-        function showDeleteModal(id) {
-            document.getElementById('deleteModal').style.display = 'block';
-            document.getElementById('confirmDelete').onclick = function() {
-                window.location.href = 'supprimer_frais_inscription.php?id=' + id;
-            };
+        // Gestion des modales
+        function openAddModal() {
+            document.getElementById('fraisModal').classList.remove('hidden');
+            document.getElementById('fraisModal').classList.add('flex');
         }
 
         function closeModal() {
-            document.getElementById('fraisModal').style.display = 'none';
+            document.getElementById('fraisModal').classList.add('hidden');
+            document.getElementById('fraisModal').classList.remove('flex');
         }
 
-        function closeDeleteModal() {
-            document.getElementById('deleteModal').style.display = 'none';
-        }
-
-        function showEditModal(id, niveauId, montant) {
+        function openEditModal(id, niveauId, montant) {
             document.getElementById('edit_id_frais').value = id;
             document.getElementById('edit_id_niv_etd').value = niveauId;
             document.getElementById('edit_tarifs').value = montant;
-            document.getElementById('editModal').style.display = 'block';
+            document.getElementById('editModal').classList.remove('hidden');
+            document.getElementById('editModal').classList.add('flex');
         }
 
         function closeEditModal() {
-            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('editModal').classList.add('hidden');
+            document.getElementById('editModal').classList.remove('flex');
         }
-
-        // Fermer les modales si on clique en dehors
-        window.onclick = function(event) {
-            if (event.target == document.getElementById('fraisModal')) {
-                closeModal();
-            }
-            if (event.target == document.getElementById('deleteModal')) {
-                closeDeleteModal();
-            }
-            if (event.target == document.getElementById('editModal')) {
-                closeEditModal();
-            }
-        }
-
-        // Empêcher la fermeture des modales lors du clic sur leur contenu
-        document.querySelectorAll('.modal-content').forEach(function(content) {
-            content.onclick = function(event) {
-                event.stopPropagation();
-            }
-        });
-
-        // Gestion des boutons de fermeture
-        document.querySelectorAll('.close').forEach(function(closeBtn) {
-            closeBtn.onclick = function() {
-                closeModal();
-                closeDeleteModal();
-                closeEditModal();
-            }
-        });
 
         // Gestion de la sélection multiple
-        const selectAll = document.getElementById('selectAll');
-        const checkboxes = document.querySelectorAll('.row-checkbox');
-        selectAll.addEventListener('change', function() {
-            checkboxes.forEach(cb => cb.checked = this.checked);
+        document.getElementById('select-all').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('input[name="delete_selected_ids[]"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
         });
 
-        // Bouton suppression multiple
-        const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
-        bulkDeleteBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            openDeleteMultipleModal();
-        });
+        // Suppression d'un frais
+        function deleteFrais(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ces frais d\'inscription ?')) {
+                window.location.href = 'supprimer_frais_inscription.php?id=' + id;
+            }
+        }
 
         // Suppression multiple
-        function openDeleteMultipleModal() {
-            const checked = document.querySelectorAll('.row-checkbox:checked');
-            const msg = document.getElementById('deleteMultipleMessage');
-            const footer = document.getElementById('deleteMultipleFooter');
-            if (checked.length === 0) {
-                msg.innerHTML = "Aucune sélection. Veuillez sélectionner au moins un frais à supprimer.";
-                footer.innerHTML = '<button type="button" class="button" onclick="closeDeleteMultipleModal()">OK</button>';
-            } else {
-                msg.innerHTML = `Êtes-vous sûr de vouloir supprimer <b>${checked.length}</b> frais sélectionné(s) ?<br><span style='color:#c0392b;font-size:0.95em;'>Cette action est irréversible.</span>`;
-                footer.innerHTML = '<button type="button" class="button" onclick="confirmDeleteMultiple()">Oui, supprimer</button>' +
-                    '<button type="button" class="button secondary" onclick="closeDeleteMultipleModal()">Non</button>';
+        function deleteSelected() {
+            const selected = document.querySelectorAll('input[name="delete_selected_ids[]"]:checked');
+            if (selected.length === 0) {
+                alert('Veuillez sélectionner au moins un frais à supprimer.');
+                return;
             }
-            document.getElementById('confirmation-modal').style.display = 'flex';
+            
+            if (confirm(`Êtes-vous sûr de vouloir supprimer ${selected.length} frais ?`)) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.innerHTML = `<input type="hidden" name="delete_selected_ids" value="${Array.from(selected).map(cb => cb.value).join(',')}">`;
+                document.body.appendChild(form);
+                form.submit();
+            }
         }
 
-        function closeDeleteMultipleModal() {
-            document.getElementById('confirmation-modal').style.display = 'none';
-        }
+        // Fermer les modales en cliquant à l'extérieur
+        document.getElementById('fraisModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
 
-        function confirmDeleteMultiple() {
-            document.getElementById('bulkDeleteForm').submit();
-        }
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
     </script>
 </body>
-
 </html>
