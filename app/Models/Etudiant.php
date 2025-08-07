@@ -370,7 +370,7 @@ class Etudiant
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-     /**
+    /**
      * Vérifier si un étudiant est à cheval
      */
     public function isEtudiantCheval($num_etd, $id_ac)
@@ -558,7 +558,7 @@ class Etudiant
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$id_niv_etd, $id_ac]);
             $frais_base = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             $montant_base = $frais_base ? $frais_base['montant'] : 0;
 
             // Calculer le total des prix des matières sélectionnées
@@ -606,7 +606,7 @@ class Etudiant
                     FROM ecue 
                     WHERE id_ecue IN ($placeholders)
                     ORDER BY lib_ecue";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute($matieres_ids);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -907,7 +907,7 @@ class Etudiant
             $etudiants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Filtrer seulement les étudiants autorisés pour l'inscription à cheval
-            return array_filter($etudiants, function($etudiant) {
+            return array_filter($etudiants, function ($etudiant) {
                 return $etudiant['statut_inscription_cheval'] === 'Autorisé';
             });
         } catch (PDOException $e) {
@@ -931,7 +931,7 @@ class Etudiant
                     WHERE mg.num_etd = ? AND mg.id_ac = ?
                     ORDER BY mg.date_calcul DESC
                     LIMIT 1";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$num_etd, $id_ac]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -948,7 +948,7 @@ class Etudiant
     {
         try {
             $statut_academique = $this->getStatutAcademiqueEtudiant($num_etd, $id_ac);
-            
+
             if (!$statut_academique) {
                 return false; // Pas de moyenne générale trouvée
             }
@@ -1032,13 +1032,13 @@ class Etudiant
             ");
             $stmt->execute([$num_etd]);
             $niveau_etudiant = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if (!$niveau_etudiant) {
                 throw new Exception("Niveau de l'étudiant non trouvé");
             }
-            
+
             $is_master2 = (stripos($niveau_etudiant['lib_niv_etd'], 'Master 2') !== false);
-            
+
             // Récupérer toutes les évaluations de l'étudiant pour l'année
             $sql = "SELECT 
                         ev.id_semestre,
@@ -1083,7 +1083,7 @@ class Etudiant
                     LEFT JOIN ue ON (ev.id_ue = ue.id_ue OR ec.id_ue = ue.id_ue)
                     WHERE ev.note IS NOT NULL AND ev.note >= 0
                     ORDER BY ev.id_semestre, ev.credit DESC";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$num_etd, $id_ac, $num_etd, $id_ac]);
             $evaluations = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -1202,7 +1202,7 @@ class Etudiant
                     // Formule spécifique pour Master 2: (Moyenne M1 Sem2 × 2 + moyenne M2 Sem1 × 3)/5
                     // Récupérer la moyenne M1 Sem2 de l'année précédente
                     $moyenne_m1_sem2 = $this->getMoyenneM1Sem2($num_etd, $id_ac);
-                    
+
                     if ($moyenne_m1_sem2 > 0) {
                         $mga = (($moyenne_m1_sem2 * 2) + ($m1 * 3)) / 5;
                     } else {
@@ -1228,7 +1228,6 @@ class Etudiant
                 'statut_academique' => $statut_academique,
                 'details' => $details
             ];
-
         } catch (PDOException $e) {
             error_log("Erreur calcul moyenne générale: " . $e->getMessage());
             return [
@@ -1258,11 +1257,11 @@ class Etudiant
             ");
             $stmt->execute([$id_ac]);
             $id_ac_precedente = $stmt->fetchColumn();
-            
+
             if (!$id_ac_precedente) {
                 return 0; // Pas d'année précédente
             }
-            
+
             // Récupérer la moyenne du semestre 2 de l'année précédente
             $stmt = $this->db->prepare("
                 SELECT moyenne_generale 
@@ -1271,9 +1270,8 @@ class Etudiant
             ");
             $stmt->execute([$num_etd, $id_ac_precedente]);
             $moyenne = $stmt->fetchColumn();
-            
+
             return $moyenne ? floatval($moyenne) : 0;
-            
         } catch (PDOException $e) {
             error_log("Erreur récupération moyenne M1 Sem2: " . $e->getMessage());
             return 0;
@@ -1387,7 +1385,7 @@ class Etudiant
                         UNION
                         SELECT CAST(num_etd AS UNSIGNED) as num_etd FROM evaluer_ue WHERE id_ac = ?
                     ) as all_evaluations";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$id_ac, $id_ac]);
             $etudiants = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -1399,7 +1397,7 @@ class Etudiant
                 try {
                     // Calculer la moyenne générale pour cet étudiant
                     $resultat = $this->calculerMoyenneGenerale($num_etd, $id_ac);
-                    
+
                     if ($resultat['mga'] > 0) {
                         // Récupérer le semestre le plus récent
                         $sql_semestre = "SELECT id_semestre FROM semestre 
@@ -1438,7 +1436,6 @@ class Etudiant
                 'error_count' => $error_count,
                 'total_etudiants' => count($etudiants)
             ];
-
         } catch (Exception $e) {
             error_log("Erreur calcul moyennes générales: " . $e->getMessage());
             return [
@@ -1446,5 +1443,26 @@ class Etudiant
                 'message' => $e->getMessage()
             ];
         }
+    }
+
+
+    public function getEtudiantCheval($id_ac)
+    {
+        $sql = "SELECT e.num_etd, e.nom, e.prenom, e.email, e.telephone, e.date_naissance, e.sexe, e.id_niv_etd, e.id_promotion, mg.moyenne_generale, mg.statut_academique
+                FROM etudiants e
+                JOIN moyenne_generale mg ON e.num_etd = mg.num_etd
+                WHERE mg.id_ac = ? AND mg.statut_academique = 'Autorisé'
+                ORDER BY e.nom_etd ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$id_ac]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getStatutEtudiant()
+    {
+        $sql = "SELECT statut_academique FROM moyenne_generale";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 }

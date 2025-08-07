@@ -122,7 +122,7 @@
                             <!-- Promotion principale -->
                             <div>
                                 <label for="promotion_principale" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Promotion principale <span class="text-red-500">*</span>
+                                    Promotion d'origine <span class="text-red-500">*</span> 
                                 </label>
                                 <select name="promotion_principale" id="promotion_principale" required 
                                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-warning focus:border-transparent">
@@ -258,58 +258,87 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateSubmitButton() {
         const selectedCount = document.querySelectorAll('.etudiant-checkbox:checked').length;
-        const anneeSelected = document.getElementById('id_ac').value;
-        const promotionSelected = document.getElementById('promotion_principale').value;
         
-        submitBtn.disabled = selectedCount === 0 || !anneeSelected || !promotionSelected;
+        submitBtn.disabled = selectedCount === 0;
     }
 
-    // Chargement dynamique des matières
-    document.getElementById('id_ac').addEventListener('change', loadMatieres);
-    document.getElementById('promotion_principale').addEventListener('change', loadMatieres);
+    // Chargement automatique des matières au chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        loadMatieres();
+    });
+
+    // Chargement dynamique des matières (se déclenche quand des étudiants sont sélectionnés)
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('etudiant-checkbox')) {
+            loadMatieres();
+        }
+    });
 
     function loadMatieres() {
-        const anneeId = document.getElementById('id_ac').value;
-        const promotionId = document.getElementById('promotion_principale').value;
         const selectedEtudiants = Array.from(document.querySelectorAll('.etudiant-checkbox:checked')).map(cb => cb.value);
 
-        if (!anneeId || !promotionId || selectedEtudiants.length === 0) {
+        // Afficher toutes les UE de l'année courante, même sans étudiants sélectionnés
+        if (selectedEtudiants.length === 0) {
             matieresSection.innerHTML = `
                 <div class="text-center text-gray-500 py-8">
                     <i class="fas fa-info-circle text-2xl mb-2"></i>
-                    <p>Sélectionnez d'abord des étudiants et une année académique pour voir les matières disponibles</p>
+                    <p>Chargement de toutes les matières de l'année courante...</p>
                 </div>
             `;
-            return;
         }
 
-        // Charger les matières via AJAX
-        fetch(`?page=etudiants&action=get-matieres-rattrapage&ajax=1`, {
-            method: 'POST',
+        // Récupérer d'abord l'ID de l'année courante
+        fetch('/assets/traitements/get_current_year_id.php', {
+            method: 'GET',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `annee_id=${anneeId}&promotion_id=${promotionId}&etudiants=${JSON.stringify(selectedEtudiants)}`
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         })
         .then(response => response.json())
+        .then(yearData => {
+            if (!yearData.success) {
+                throw new Error('Impossible de récupérer l\'année courante: ' + yearData.message);
+            }
+            
+            // Charger les matières via AJAX avec l'ID de l'année
+            console.log('=== DEBUG AJAX ===');
+            const ajaxUrl = '/assets/traitements/get_matieres_rattrapage.php?annee_id=' + encodeURIComponent(yearData.id_ac) + '&etudiants=' + encodeURIComponent(JSON.stringify(selectedEtudiants));
+            console.log('URL:', ajaxUrl);
+            console.log('Annee ID:', yearData.id_ac);
+            console.log('Etudiants:', selectedEtudiants);
+            
+            return fetch(ajaxUrl, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            return response.json();
+        })
         .then(data => {
+            console.log('Response data:', data);
             if (data.success) {
                 displayMatieres(data.matieres);
             } else {
+                console.error('Server error:', data.message);
                 matieresSection.innerHTML = `
                     <div class="text-center text-red-500 py-8">
                         <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                        <p>Erreur lors du chargement des matières</p>
+                        <p>Erreur lors du chargement des matières: ${data.message}</p>
                     </div>
                 `;
             }
         })
         .catch(error => {
-            console.error('Erreur:', error);
+            console.error('Fetch error:', error);
             matieresSection.innerHTML = `
                 <div class="text-center text-red-500 py-8">
                     <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                    <p>Erreur lors du chargement des matières</p>
+                    <p>Erreur lors du chargement des matières: ${error.message}</p>
                 </div>
             `;
         });
@@ -327,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         let html = `
-            <div class="bg-white rounded-lg border border-gray-200 max-h-64 overflow-y-auto">
+            <div class="bg-white rounded-lg border border-gray-200 max-h-96 overflow-y-auto">
                 <div class="p-3 border-b border-gray-200 bg-gray-50">
                     <div class="flex items-center">
                         <input type="checkbox" id="select-all-matieres" class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 focus:ring-2">
@@ -336,18 +365,42 @@ document.addEventListener('DOMContentLoaded', function() {
                         </label>
                     </div>
                 </div>
-                <div class="p-3 space-y-2">
+                <div class="p-3 space-y-4">
         `;
 
-        matieres.forEach(matiere => {
+        // Parcourir chaque UE et ses ECUE
+        matieres.forEach(ue => {
+            // En-tête de l'UE
             html += `
-                <div class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                    <input type="checkbox" name="selected_matieres[]" 
-                           value="${matiere.id_ecue}" 
-                           class="matiere-checkbox w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 focus:ring-2">
-                    <div class="ml-3 flex-1">
-                        <div class="font-medium text-gray-900">${matiere.lib_ecue}</div>
-                        <div class="text-sm text-gray-500">Crédits: ${matiere.credit_ecue} | Niveau: ${matiere.lib_niv_etd}</div>
+                <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-book text-blue-600 mr-2"></i>
+                        <h4 class="font-semibold text-blue-900">${ue.lib_ue}</h4>
+                        <span class="ml-auto text-sm text-blue-700 bg-blue-100 px-2 py-1 rounded">${ue.niveau}</span>
+                    </div>
+                    <div class="space-y-2">
+            `;
+
+            // Parcourir les ECUE de cette UE
+            ue.ecues.forEach(ecue => {
+                html += `
+                    <div class="flex items-center p-2 bg-white rounded border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <input type="checkbox" name="selected_matieres[]" 
+                               value="${ecue.id_ecue}" 
+                               class="matiere-checkbox w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 focus:ring-2">
+                        <div class="ml-3 flex-1">
+                            <div class="font-medium text-gray-900">${ecue.lib_ecue}</div>
+                            <div class="text-sm text-gray-500">
+                                Crédits: ${ecue.credit_ecue || 0} | Prix: ${ecue.prix_matiere_cheval || 25000} FCFA
+                                ${ecue.credit_ecue === 0 ? '<span class="text-red-500 text-xs">(Crédit non défini)</span>' : ''}
+                                ${!ecue.prix_matiere_cheval ? '<span class="text-orange-500 text-xs">(Prix par défaut)</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
                     </div>
                 </div>
             `;

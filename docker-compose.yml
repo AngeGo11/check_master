@@ -3,7 +3,7 @@ services:
     build:
       context: .
     ports:
-      - "8083:80"
+      - "0.0.0.0:8083:80"
     volumes:
       - .:/var/www/html
     depends_on:

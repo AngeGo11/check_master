@@ -3,6 +3,12 @@
 require_once __DIR__ . '/../../config/mail.php';
 require_once __DIR__ . '/../Controllers/EtudiantsController.php';
 require_once __DIR__ . '/../Controllers/EnseignantController.php';
+require_once __DIR__ . '/../Controllers/AnneeAcademiqueController.php';
+
+//Récupérer l'id_ac
+$anneeController = new AnneeAcademiqueController($pdo);
+$id_ac = $anneeController->getIdCurrentYear();
+
 
 // Désactiver l'affichage des erreurs pour éviter de polluer les réponses JSON
 ini_set('display_errors', 0);
@@ -80,19 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             header("Location: index_personnel_administratif.php?page=etudiants");
             exit;
-
-        case 'get-matieres-rattrapage':
-            if (isset($_POST['ajax']) && $_POST['ajax'] == '1') {
-                $annee_id = $_POST['annee_id'] ?? '';
-                $promotion_id = $_POST['promotion_id'] ?? '';
-                $etudiants = json_decode($_POST['etudiants'] ?? '[]', true);
-                
-                $result = $controller->getMatieresRattrapage($annee_id, $promotion_id, $etudiants);
-                header('Content-Type: application/json');
-                echo json_encode($result);
-                exit;
-            }
-            break;
     }
 }
 
@@ -607,12 +600,14 @@ if ($action === 'modify' && isset($_GET['id'])) {
                                         class="form-select"
                                         onchange="this.form.submit()">
                                     <option value="">Tous les statuts</option>
-                                    <?php foreach ($lists['statut_etudiant'] as $statut): ?>
-                                        <?php $selected = ($filters['statut_etudiant'] == $statut['id_statut']) ? 'selected' : ''; ?>
-                                        <option value="<?php echo $statut['id_statut']; ?>" <?php echo $selected; ?>>
-                                            <?php echo htmlspecialchars($statut['lib_statut']); ?>
-                                        </option>
-                                    <?php endforeach; ?>
+                                    <?php if (isset($lists['statut_etudiant']) && is_array($lists['statut_etudiant'])): ?>
+                                        <?php foreach ($lists['statut_etudiant'] as $statut): ?>
+                                            <?php $selected = ($filters['statut_etudiant'] == $statut['id_statut']) ? 'selected' : ''; ?>
+                                            <option value="<?php echo $statut['id_statut']; ?>" <?php echo $selected; ?>>
+                                                <?php echo htmlspecialchars($statut['lib_statut']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </select>
 
                                
@@ -992,6 +987,7 @@ if ($action === 'modify' && isset($_GET['id'])) {
     </div>
 
     <?php
+
     // Fenêtre modale pour ajouter un étudiant
     if ($action === 'add') {
         include __DIR__ . '/modals/add_student_modal.php';
@@ -1006,6 +1002,7 @@ if ($action === 'modify' && isset($_GET['id'])) {
     if ($action === 'inscrire-etudiant-cheval') {
         // Récupérer les données pour l'inscription à cheval
         $inscription_data = $controller->getInscriptionChevalData();
+      //  $inscription_data = $inscription_data['etudiants']; // Extraire seulement les étudiants
         include __DIR__ . '/modals/inscription_etudiant_cheval_modal.php';
     }
 

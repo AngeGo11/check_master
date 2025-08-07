@@ -1,12 +1,12 @@
 <?php
 session_start();
-require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV+/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV+/app/Models/AnneeAcademique.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/GSCV+/app/Models/Etudiant.php';
+require_once  __DIR__ . '/../../../config/config.php';
+require_once  __DIR__ . '/../../../app/Models/AnneeAcademique.php';
+require_once  __DIR__ . '/../../../app/Models/Etudiant.php';
 
 // Vérifier si l'utilisateur est connecté et est un personnel administratif
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['id_personnel_adm'])) {
-    header('Location: ../../authentication.php');
+    header('Location: ../../pageConnexion.php');
     exit;
 }
 
@@ -24,6 +24,14 @@ try {
     $credits_json = $_POST['credits'] ?? '[]';
     $edit_mode = isset($_POST['edit_mode']);
 
+    // Debug des données reçues
+    error_log("=== DEBUG ENREGISTRER EVALUATION ===");
+    error_log("Numero: " . $numero);
+    error_log("Semestre: " . $semestre);
+    error_log("Notes JSON: " . $notes_json);
+    error_log("Credits JSON: " . $credits_json);
+    error_log("POST data: " . print_r($_POST, true));
+
     if (empty($numero) || empty($semestre)) {
         throw new Exception('Numéro d\'étudiant et semestre requis');
     }
@@ -32,8 +40,22 @@ try {
     $notes = json_decode($notes_json, true);
     $credits = json_decode($credits_json, true);
 
-    if (!$notes || !$credits) {
-        throw new Exception('Données de notes invalides');
+    // Debug du décodage JSON
+    error_log("Notes décodées: " . print_r($notes, true));
+    error_log("Credits décodés: " . print_r($credits, true));
+    error_log("JSON last error: " . json_last_error_msg());
+
+    // Validation plus détaillée
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new Exception('Erreur JSON: ' . json_last_error_msg() . ' - Notes raw: ' . $notes_json . ' - Credits raw: ' . $credits_json);
+    }
+
+    if (!$notes || !is_array($notes) || empty($notes)) {
+        throw new Exception('Données de notes invalides ou vides - Notes: ' . print_r($notes, true));
+    }
+    
+    if (!$credits || !is_array($credits) || empty($credits)) {
+        throw new Exception('Données de crédits invalides ou vides - Credits: ' . print_r($credits, true));
     }
 
     // Récupérer l'ID de l'étudiant

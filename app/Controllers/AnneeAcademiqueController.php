@@ -43,4 +43,8 @@ class AnneeAcademiqueController {
     public function getCurrentYear() {  
         return $this->model->getCurrentAcademicYear();
     }
+
+    public function getIdCurrentYear() {
+        return $this->model->getIdCurrentYear();
+    }
 } 

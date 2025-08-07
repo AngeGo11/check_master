@@ -79,3 +79,6 @@ class DataBase
         ];
     }
 }
+
+// Créer la variable $pdo globale pour la compatibilité avec le code existant
+$pdo = DataBase::getConnection();

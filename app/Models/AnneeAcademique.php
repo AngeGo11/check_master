@@ -122,4 +122,13 @@ class AnneeAcademique
         $_SESSION['current_year'] = $newYear;
         return $newYear;
     }
+
+
+    public function getIdCurrentYear()
+    {
+        $sql = "SELECT id_ac FROM annee_academique WHERE statut_annee = 'En cours' LIMIT 1";
+        $stmt = $this->db->query($sql);
+        $annee = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $annee['id_ac'];
+    }
 }

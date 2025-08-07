@@ -22,6 +22,7 @@ class EtudiantsController {
         $search = $_GET['search'] ?? '';
         $promotion = $_GET['promotion'] ?? '';
         $niveau = $_GET['niveau'] ?? '';
+        $statut_etudiant = $_GET['statut_etudiant'] ?? '';
         $page_num = max(1, intval($_GET['page_num'] ?? 1));
         $limit = 50;
 
@@ -30,6 +31,7 @@ class EtudiantsController {
         $total_records = $this->model->getTotalEtudiants($search, $promotion, $niveau);
         $total_pages = max(1, ceil($total_records / $limit));
         $statistics = $this->model->getStatistiques();
+        $statut_etudiant = $this->model->getStatutEtudiant();
 
         // Récupération des listes pour les filtres
         $promotions = $this->getPromotions();
@@ -49,6 +51,7 @@ class EtudiantsController {
             'lists' => [
                 'promotions' => $promotions,
                 'niveaux' => $niveaux
+
             ]
         ];
     }
@@ -536,15 +539,11 @@ class EtudiantsController {
         try {
             // Récupérer les étudiants autorisés seulement
             $sql = "SELECT e.num_etd, e.nom_etd, e.prenom_etd, e.email_etd, e.id_niv_etd, e.id_promotion,
-                           ne.lib_niv_etd
+                           ne.lib_niv_etd, mg.statut_academique
                     FROM etudiants e
                     JOIN niveau_etude ne ON e.id_niv_etd = ne.id_niv_etd
-                    WHERE e.id_statut = 1
-                    AND EXISTS (
-                        SELECT 1 FROM evaluer_ecue ee 
-                        WHERE ee.num_etd = e.num_etd 
-                        AND ee.id_ac = (SELECT id_ac FROM annee_academique WHERE statut_annee = 'En cours' LIMIT 1)
-                    )
+                    JOIN moyenne_generale mg ON e.num_etd = mg.num_etd
+                    WHERE e.id_statut = 2 AND mg.statut_academique = 'Autorisé'
                     ORDER BY e.nom_etd, e.prenom_etd";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute();
@@ -590,11 +589,15 @@ class EtudiantsController {
     /**
      * Récupère les matières disponibles pour le rattrapage
      */
-    public function getMatieresRattrapage($annee_id, $promotion_id, $etudiants_ids) {
+    public function getMatieresRattrapage($annee_id,  $etudiants_ids) {
         try {
             if (empty($etudiants_ids)) {
                 return ['success' => false, 'message' => 'Aucun étudiant sélectionné'];
             }
+
+            error_log("=== DEBUG MATIERES RATTRAPAGE ===");
+            error_log("Annee ID: " . $annee_id);
+            error_log("Etudiants IDs: " . print_r($etudiants_ids, true));
 
             // Récupérer les niveaux des étudiants sélectionnés
             $placeholders = str_repeat('?,', count($etudiants_ids) - 1) . '?';
@@ -602,9 +605,15 @@ class EtudiantsController {
                     FROM etudiants e
                     JOIN niveau_etude ne ON e.id_niv_etd = ne.id_niv_etd
                     WHERE e.num_etd IN ($placeholders)";
+            
+            error_log("SQL Niveaux: " . $sql);
+            error_log("Params Niveaux: " . print_r($etudiants_ids, true));
+            
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($etudiants_ids);
             $niveaux = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            error_log("Niveaux trouvés: " . print_r($niveaux, true));
 
             if (empty($niveaux)) {
                 return ['success' => false, 'message' => 'Aucun niveau trouvé pour les étudiants sélectionnés'];
@@ -615,7 +624,7 @@ class EtudiantsController {
             $placeholders = str_repeat('?,', count($niveaux_ids) - 1) . '?';
             
             $sql = "SELECT DISTINCT ec.id_ecue, ec.lib_ecue, ec.credit_ecue, ne.lib_niv_etd,
-                           COALESCE(ec.prix_matiere_cheval, 25000.00) as prix_matiere_cheval
+                           COALESCE(ec.prix_matiere_cheval_ecue, 25000.00) as prix_matiere_cheval
                     FROM ecue ec
                     JOIN ue u ON ec.id_ue = u.id_ue
                     JOIN niveau_etude ne ON u.id_niv_etd = ne.id_niv_etd
@@ -623,16 +632,22 @@ class EtudiantsController {
             
             $params = $niveaux_ids;
             
-            if ($annee_id) {
+            // Ajouter le filtre par année académique si spécifiée
+            if ($annee_id && $annee_id != '') {
                 $sql .= " AND u.id_annee_academique = ?";
                 $params[] = $annee_id;
             }
             
             $sql .= " ORDER BY ne.lib_niv_etd, ec.lib_ecue";
             
+            error_log("SQL Matières: " . $sql);
+            error_log("Params Matières: " . print_r($params, true));
+            
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
             $matieres = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            error_log("Matières trouvées: " . print_r($matieres, true));
 
             return [
                 'success' => true,
@@ -641,7 +656,8 @@ class EtudiantsController {
             ];
         } catch (PDOException $e) {
             error_log("Erreur récupération matières rattrapage: " . $e->getMessage());
-            return ['success' => false, 'message' => 'Erreur lors de la récupération des matières'];
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return ['success' => false, 'message' => 'Erreur lors de la récupération des matières: ' . $e->getMessage()];
         }
     }
 
@@ -769,5 +785,11 @@ class EtudiantsController {
                 'message' => 'Erreur lors du calcul des frais'
             ];
         }
+    }
+
+
+    public function getEtudiantsCheval($id_ac)
+    {
+        return $this->model->getEtudiantCheval($id_ac);
     }
 } 

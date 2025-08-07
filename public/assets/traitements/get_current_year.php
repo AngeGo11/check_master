@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once __DIR__ . '/../../../config/config.php';
 
 // Fonction pour récupérer l'année académique en cours
 function getCurrentAcademicYear($pdo) {

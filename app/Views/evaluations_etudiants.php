@@ -1104,7 +1104,14 @@ $total_pages = max(1, ceil($total_records / $limit));
 
                             if (ecueData.success && ecueData.data.length > 0) {
                                 for (const ecue of ecueData.data) {
-                                    console.log('Traitement ECUE:', ecue.lib_ecue);
+                                    console.log('Traitement ECUE:', ecue.lib_ecue, 'ID:', ecue.id_ecue, 'Type:', typeof ecue.id_ecue);
+                                    
+                                    // Vérifier que les IDs sont bien définis
+                                    if (!ecue.id_ecue || !ue.id_ue) {
+                                        console.error('IDs manquants:', { ueId: ue.id_ue, ecueId: ecue.id_ecue });
+                                        continue;
+                                    }
+                                    
                                     const note = notesMap.get(ecue.id_ecue);
                                     const row = document.createElement('tr');
                                     row.className = 'note-item hover:bg-gray-50 transition-colors duration-200';
@@ -1115,6 +1122,8 @@ $total_pages = max(1, ceil($total_records / $limit));
                                     const statusClass = noteValue ? 'text-green-600' : 'text-gray-400';
                                     const statusText = noteValue ? 'Saisie' : 'En attente';
                                     const statusIcon = noteValue ? 'fa-check-circle' : 'fa-clock';
+                                    
+                                    console.log('Création ligne avec IDs:', { ueId: ue.id_ue, ecueId: ecue.id_ecue });
                                     
                                     row.innerHTML = `
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -1527,22 +1536,27 @@ $total_pages = max(1, ceil($total_records / $limit));
                     let hasNotes = false;
 
                     noteItems.forEach(item => {
-                        const ueInput = item.querySelector('input[readonly]'); // UE
-                        const ecueInput = item.querySelectorAll('input[readonly]')[1]; // ECUE
                         const noteInput = item.querySelector('input[name="moyenne[]"]');
-                        const creditInput = item.querySelectorAll('input[readonly]')[2]; // Crédit
-
-                        if (ueInput && ecueInput && noteInput && creditInput) {
-                            const ueName = ueInput.value;
-                            const ecueName = ecueInput.value;
+                        
+                        if (noteInput) {
                             const note = parseFloat(noteInput.value);
-                            const credit = parseInt(creditInput.value);
+                            const ueId = noteInput.dataset.ueId;
+                            const ecueId = noteInput.dataset.ecueId;
+                            
+                            // Récupérer le crédit depuis le span dans la 3ème colonne
+                            const creditSpan = item.querySelector('td:nth-child(3) span');
+                            let credit = 0;
+                            if (creditSpan) {
+                                const creditText = creditSpan.textContent;
+                                const creditMatch = creditText.match(/(\d+)\s*crédits?/);
+                                if (creditMatch) {
+                                    credit = parseInt(creditMatch[1]);
+                                }
+                            }
 
-                            // Extraire les IDs depuis les data attributes ou les valeurs
-                            const ueId = item.dataset.ueId || ueName;
-                            const ecueId = item.dataset.ecueId || ecueName;
+                            console.log('Note trouvée:', { ueId, ecueId, note, credit, noteInputValue: noteInput.value });
 
-                            if (note >= 0 && note <= 20 && credit > 0) {
+                            if (note >= 0 && note <= 20 && credit > 0 && ueId && ecueId) {
                                 if (!notes[ueId]) {
                                     notes[ueId] = {};
                                     credits[ueId] = {};
@@ -1550,15 +1564,57 @@ $total_pages = max(1, ceil($total_records / $limit));
                                 notes[ueId][ecueId] = note;
                                 credits[ueId][ecueId] = credit;
                                 hasNotes = true;
+                                console.log('Note ajoutée:', { ueId, ecueId, note, credit });
+                            } else {
+                                console.log('Note invalide ou manquante:', { 
+                                    ueId, 
+                                    ecueId, 
+                                    note, 
+                                    credit, 
+                                    noteValid: note >= 0 && note <= 20,
+                                    creditValid: credit > 0,
+                                    ueIdValid: !!ueId,
+                                    ecueIdValid: !!ecueId
+                                });
                             }
+                        } else {
+                            console.log('Aucun input de note trouvé dans l\'item');
                         }
                     });
+
+                    console.log('Résultat validation:', { hasNotes, notes, credits });
 
                     if (!hasNotes) {
                         e.preventDefault();
                         alert('Veuillez saisir au moins une note valide');
                         return;
                     }
+
+                    // Vérifier que les objets ne sont pas vides
+                    const notesKeys = Object.keys(notes);
+                    const creditsKeys = Object.keys(credits);
+                    
+                    console.log('Clés des notes:', notesKeys);
+                    console.log('Clés des crédits:', creditsKeys);
+                    
+                    if (notesKeys.length === 0) {
+                        e.preventDefault();
+                        alert('Aucune note valide trouvée dans les données');
+                        return;
+                    }
+                    
+                    if (creditsKeys.length === 0) {
+                        e.preventDefault();
+                        alert('Aucun crédit valide trouvé dans les données');
+                        return;
+                    }
+
+                    // Debug des données JSON avant envoi
+                    console.log('=== DEBUG AVANT ENVOI ===');
+                    console.log('Notes JSON:', JSON.stringify(notes));
+                    console.log('Credits JSON:', JSON.stringify(credits));
+                    console.log('Notes object:', notes);
+                    console.log('Credits object:', credits);
 
                     // Créer des champs cachés pour les données JSON
                     const notesInput = document.createElement('input');

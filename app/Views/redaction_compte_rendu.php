@@ -24,7 +24,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Vérification de sécurité
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_groups'])) {
-    header('Location: ../pageConnection.php');
+    header('Location: ../pageConnexion.php');
     exit;
 }
 
@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $rapport_ids_array = is_array($rapport_ids) ? $rapport_ids : explode(',', $rapport_ids);
                 $compte_rendu_id = $compteRenduController->createCompteRendu(
                     $nomCr,
-                    
+
                     $date_creation,
                     $auteur_id,
                     $filePath,
@@ -276,6 +276,220 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 break-before: page !important;
             }
         }
+
+
+        @media (max-width: 768px) {
+            /* Layout principal mobile */
+            #layout-container {
+                display: flex;
+                flex-direction: column;
+                height: auto;
+                min-height: auto;
+                gap: 20px;
+                padding: 10px;
+                box-sizing: border-box;
+            }
+            
+            /* Colonne gauche - Sélection des rapports */
+            #layout-container > div:first-child {
+                width: 100% !important;
+                flex-shrink: 0;
+                order: 1;
+                max-height: 400px;
+                overflow-y: auto;
+            }
+            
+            /* Colonne droite - Éditeur */
+            #layout-container > div:last-child {
+                width: 100% !important;
+                flex: 1;
+                order: 2;
+                min-height: 500px;
+                height: auto;
+            }
+            
+            /* Éditeur de texte mobile */
+            #text-editor {
+                min-height: 400px !important;
+                max-height: none !important;
+                height: auto !important;
+                padding: 15px !important;
+                font-size: 16px !important;
+                line-height: 1.6 !important;
+            }
+            
+            /* Wrapper de l'éditeur */
+            #editor-wrapper {
+                height: auto !important;
+                min-height: 500px;
+            }
+            
+            /* Container de l'éditeur */
+            #editor-container {
+                height: auto !important;
+                min-height: 500px;
+            }
+            
+            /* Barre d'outils mobile */
+            #editor-toolbar {
+                flex-wrap: wrap;
+                gap: 5px;
+                padding: 10px !important;
+            }
+            
+            .toolbar-btn {
+                padding: 8px 12px !important;
+                font-size: 14px !important;
+                margin: 2px !important;
+            }
+            
+            /* Sélecteurs de police et taille */
+            #font-family, #font-size {
+                font-size: 14px !important;
+                padding: 8px !important;
+            }
+            
+            /* Amélioration de la navigation mobile */
+            .navbar {
+                padding: 10px 15px;
+                position: sticky;
+                top: 0;
+                z-index: 1000;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+            }
+            
+            /* Optimisation des formulaires */
+            .form-control, .form-select {
+                font-size: 16px; /* Évite le zoom sur iOS */
+                padding: 12px 15px;
+                border-radius: 8px;
+            }
+            
+            /* Amélioration des boutons */
+            .btn {
+                padding: 12px 20px;
+                font-size: 16px;
+                border-radius: 8px;
+                margin: 5px 0;
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            /* Optimisation des tableaux */
+            .table-responsive {
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            
+            /* Amélioration des modales */
+            .modal-dialog {
+                margin: 10px;
+                max-width: calc(100% - 20px);
+            }
+            
+            .modal-content {
+                border-radius: 12px;
+                border: none;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            }
+            
+            /* Optimisation des cartes */
+            .card {
+                border-radius: 12px;
+                margin-bottom: 15px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            
+            /* Amélioration de la lisibilité */
+            body {
+                font-size: 16px;
+                line-height: 1.6;
+            }
+            
+            h1, h2, h3, h4, h5, h6 {
+                margin-bottom: 15px;
+                line-height: 1.3;
+            }
+            
+            /* Optimisation des espacements */
+            .container, .container-fluid {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+            
+            /* Amélioration de la zone de texte */
+            textarea {
+                min-height: 120px;
+                resize: vertical;
+            }
+            
+            /* Optimisation des listes */
+            .list-group-item {
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 5px;
+            }
+            
+            /* S'assurer que l'éditeur est toujours visible */
+            #text-editor:not(.hidden) {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+            
+            /* S'assurer que l'editor-wrapper s'affiche correctement sur mobile */
+            #editor-wrapper:not(.hidden) {
+                display: flex !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                flex-direction: column !important;
+                height: auto !important;
+                min-height: 500px !important;
+            }
+            
+            /* Placeholder mobile */
+            #placeholder {
+                min-height: 300px;
+                padding: 20px;
+            }
+            
+            /* Amélioration de l'éditeur sur mobile */
+            #text-editor {
+                -webkit-user-select: text !important;
+                -moz-user-select: text !important;
+                -ms-user-select: text !important;
+                user-select: text !important;
+                -webkit-touch-callout: default !important;
+                -webkit-tap-highlight-color: rgba(0,0,0,0.1) !important;
+            }
+            
+            /* Amélioration du focus sur mobile */
+            #text-editor:focus {
+                outline: 2px solid #3b82f6 !important;
+                outline-offset: 2px !important;
+            }
+            
+            /* Amélioration de la zone de saisie */
+            #text-editor[contenteditable="true"] {
+                cursor: text !important;
+                caret-color: #3b82f6 !important;
+            }
+            
+            /* Masquer les éléments non nécessaires sur mobile */
+            @media (max-width: 480px) {
+                #editor-toolbar {
+                    display: none !important;
+                }
+                
+                #text-editor {
+                    padding: 20px !important;
+                    font-size: 18px !important;
+                    line-height: 1.8 !important;
+                }
+            }
+        }
     </style>
 </head>
 
@@ -366,12 +580,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <input type="hidden" name="rapport_ids" id="rapport-ids-input">
 
             <!-- Layout en deux colonnes -->
-            <div class="flex gap-6 h-[calc(100vh-300px)] min-h-[800px]">
+            <div class="flex gap-6 h-[calc(100vh-300px)] min-h-[800px] md:flex-row flex-col" id="layout-container">
 
                 <!-- ========================================
                      COLONNE GAUCHE - SÉLECTION DES RAPPORTS
                      ======================================== -->
-                <div class="flex-shrink-0 w-96 bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8 overflow-y-auto">
+                <div class="flex-shrink-0 w-96 md:w-96 w-full bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8 overflow-y-auto">
                     <h3 class="text-xl font-bold text-gray-800 mb-8 flex items-center">
                         <i class="fas fa-list mr-4 text-blue-600"></i>
                         Rapports disponibles
@@ -510,8 +724,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <!-- Éditeur de texte -->
                         <div id="editor-wrapper" class="hidden w-full h-full flex flex-col">
 
+                            <!-- Bouton pour afficher/masquer la barre d'outils sur mobile -->
+                            <div class="md:hidden px-4 py-2 bg-gray-100 border-b border-gray-200">
+                                <button type="button" id="toggle-toolbar-btn" class="w-full px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-medium flex items-center justify-center">
+                                    <i class="fas fa-tools mr-2"></i>Afficher les outils
+                                </button>
+                            </div>
+
                             <!-- Barre d'outils -->
-                            <div id="editor-toolbar" class="px-6 py-3 bg-primary-second border-b border-gray-200 flex flex-wrap gap-2 items-center">
+                            <div id="editor-toolbar" class="px-6 py-3 bg-primary-second border-b border-gray-200 flex flex-wrap gap-2 items-center md:flex hidden">
                                 <!-- Sélecteur de police -->
                                 <div class="flex items-center space-x-2">
                                     <label for="font-family" class="text-sm font-medium text-gray-700 whitespace-nowrap">
@@ -691,7 +912,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <i class="fas fa-file-signature text-3xl opacity-80"></i>
                     </div>
                 </div>
-                
+
                 <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white">
                     <div class="flex items-center justify-between">
                         <div>
@@ -701,7 +922,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <i class="fas fa-file-alt text-3xl opacity-80"></i>
                     </div>
                 </div>
-                
+
                 <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white">
                     <div class="flex items-center justify-between">
                         <div>
@@ -711,13 +932,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <i class="fas fa-user-edit text-3xl opacity-80"></i>
                     </div>
                 </div>
-                
+
                 <div class="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-4 text-white">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm opacity-90">Rapports traités</p>
                             <p class="text-2xl font-bold">
-                                <?php 
+                                <?php
                                 $totalRapportsTraites = 0;
                                 foreach ($comptesRendusGroupes as $groupe) {
                                     foreach ($groupe['rapports'] as $rapport) {
@@ -783,7 +1004,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                         <div class="flex items-center space-x-2">
                                             <i class="fas fa-file-alt text-orange-600"></i>
                                             <span class="text-sm font-medium text-gray-700">
-                                                <?php 
+                                                <?php
                                                 // Compter le nombre total de rapports associés à ce titre
                                                 $totalRapports = 0;
                                                 foreach ($groupe['rapports'] as $rapport) {
@@ -797,29 +1018,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                     <td class="px-6 py-4">
                                         <div class="flex items-center space-x-2">
                                             <!-- Bouton pour voir tous les comptes rendus de ce titre -->
-                                            <button type="button" 
+                                            <button type="button"
                                                 onclick="showCompteRenduDetails('<?php echo htmlspecialchars($groupe['titre']); ?>')"
-                                                class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-colors" 
+                                                class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-colors"
                                                 title="Voir les détails">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            
+
                                             <!-- Bouton pour télécharger le dernier compte rendu -->
-                                            <?php 
+                                            <?php
                                             $dernierCompteRendu = end($groupe['rapports']);
-                                            if ($dernierCompteRendu) : 
+                                            if ($dernierCompteRendu) :
                                             ?>
-                                            <a href="?page=consultations&action=download_cr&id=<?php echo $dernierCompteRendu['id_cr']; ?>"
-                                                class="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 transition-colors" 
-                                                title="Télécharger le dernier">
-                                                <i class="fas fa-download"></i>
-                                            </a>
+                                                <a href="?page=consultations&action=download_cr&id=<?php echo $dernierCompteRendu['id_cr']; ?>"
+                                                    class="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 transition-colors"
+                                                    title="Télécharger le dernier">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
                                             <?php endif; ?>
-                                            
+
                                             <!-- Bouton pour supprimer le groupe -->
-                                            <button type="button" 
+                                            <button type="button"
                                                 onclick="deleteCompteRenduGroup('<?php echo htmlspecialchars($groupe['titre']); ?>')"
-                                                class="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors" 
+                                                class="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors"
                                                 title="Supprimer le groupe">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -1011,6 +1232,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         function showEditor() {
             window.elements.placeholder.classList.add('hidden');
             window.elements.editorWrapper.classList.remove('hidden');
+            
+            // S'assurer que l'éditeur est visible sur mobile
+            if (window.innerWidth <= 768) {
+                window.elements.editorWrapper.style.display = 'flex';
+                window.elements.editorWrapper.style.visibility = 'visible';
+                window.elements.editorWrapper.style.opacity = '1';
+                window.elements.textEditor.style.display = 'block';
+                window.elements.textEditor.style.visibility = 'visible';
+                window.elements.textEditor.style.opacity = '1';
+            }
+            
             isEditorLoaded = true;
         }
 
@@ -1246,11 +1478,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <
                         li > [RECOMMANDATION N° 1] < /li> <
                         li > [RECOMMANDATION N° 2] < /li> <
-                        li > [RECOMMANDATION N° 3] < /li> <
-                        /ul> <
+                        li > [RECOMMANDATION N° 3] < /li> < /
+                        ul > <
                         div > Directeur de mémoire: [NOM DU DIRECTEUR DE MÉMOIRE] < /div> <
-                        div > Encadreur pédagogique: [NOM DE L 'ENCADREUR PÉDAGOGIQUE]</div> <
-                            /div>
+                        div > Encadreur pédagogique: [NOM DE L 'ENCADREUR PÉDAGOGIQUE]</div> < /
+                            div >
                             `}
     </div>
 
@@ -1481,9 +1713,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         window.addEventListener('load', loadDraft);
 
                         // ========================================
+                        // GESTION DE LA BARRE D'OUTILS MOBILE
+                        // ========================================
+                        function initializeMobileToolbar() {
+                            const toggleBtn = document.getElementById('toggle-toolbar-btn');
+                            const toolbar = document.getElementById('editor-toolbar');
+                            
+                            if (toggleBtn && toolbar) {
+                                toggleBtn.addEventListener('click', function() {
+                                    const isVisible = !toolbar.classList.contains('hidden');
+                                    
+                                    if (isVisible) {
+                                        // Masquer la barre d'outils
+                                        toolbar.classList.add('hidden');
+                                        toggleBtn.innerHTML = '<i class="fas fa-tools mr-2"></i>Afficher les outils';
+                                        toggleBtn.classList.remove('bg-primary-dark');
+                                        toggleBtn.classList.add('bg-primary');
+                                    } else {
+                                        // Afficher la barre d'outils
+                                        toolbar.classList.remove('hidden');
+                                        toggleBtn.innerHTML = '<i class="fas fa-times mr-2"></i>Masquer les outils';
+                                        toggleBtn.classList.remove('bg-primary');
+                                        toggleBtn.classList.add('bg-primary-dark');
+                                    }
+                                });
+                            }
+                        }
+
+                        // Initialiser la barre d'outils mobile au chargement
+                        window.addEventListener('load', initializeMobileToolbar);
+
+                        // ========================================
+                        // INITIALISATION SPÉCIFIQUE MOBILE
+                        // ========================================
+                        function initializeMobileEditor() {
+                            // Vérifier si on est sur mobile
+                            if (window.innerWidth <= 768) {
+                                // S'assurer que l'éditeur s'affiche correctement si des rapports sont sélectionnés
+                                if (selectedRapports.length > 0 && window.elements.editorWrapper) {
+                                    window.elements.editorWrapper.style.display = 'flex';
+                                    window.elements.editorWrapper.style.visibility = 'visible';
+                                    window.elements.editorWrapper.style.opacity = '1';
+                                    
+                                    if (window.elements.textEditor) {
+                                        window.elements.textEditor.style.display = 'block';
+                                        window.elements.textEditor.style.visibility = 'visible';
+                                        window.elements.textEditor.style.opacity = '1';
+                                    }
+                                }
+                            }
+                        }
+
+                        // Initialiser l'éditeur mobile au chargement
+                        window.addEventListener('load', initializeMobileEditor);
+
+                        // ========================================
                         // FONCTIONS POUR LA GESTION DES GROUPES DE COMPTES RENDUS
                         // ========================================
-                        
+
                         // Afficher les détails d'un groupe de comptes rendus
                         function showCompteRenduDetails(titre) {
                             // Créer une modal pour afficher les détails
@@ -1504,7 +1791,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 </div>
                             `;
                             document.body.appendChild(modal);
-                            
+
                             // Fermer la modal en cliquant à l'extérieur
                             modal.addEventListener('click', function(e) {
                                 if (e.target === modal) {
@@ -1518,7 +1805,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             if (confirm(`Êtes-vous sûr de vouloir supprimer tous les comptes rendus avec le titre "${titre}" ?`)) {
                                 // Ici, vous pouvez ajouter une requête AJAX pour supprimer le groupe
                                 showNotification('Fonctionnalité de suppression en cours de développement', 'info');
-                                
+
                                 // Pour l'instant, on simule la suppression
                                 setTimeout(() => {
                                     showNotification('Groupe de comptes rendus supprimé avec succès', 'success');
