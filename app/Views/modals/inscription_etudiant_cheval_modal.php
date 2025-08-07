@@ -7,7 +7,7 @@
                     <div class="w-10 h-10 bg-warning/10 rounded-full flex items-center justify-center mr-3">
                         <i class="fas fa-horse text-warning text-lg"></i>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-900">Inscription Multiple Étudiants à Cheval</h3>
+                    <h3 class="text-xl font-semibold text-gray-900">Inscription des étudiants à cheval</h3>
                 </div>
                 <a href="?page=etudiants" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times text-xl"></i>

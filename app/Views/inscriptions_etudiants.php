@@ -442,7 +442,7 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
             </div>
             
             <div class="p-6">
-                <form action="/GSCV+/public/assets/traitements/ajax_handler.php" method="POST" id="std-form">
+                <form action="/assets/traitements/ajax_handler.php" method="POST" id="std-form">
                     <input type="hidden" name="action" id="form-action" value="enregistrer_reglement">
                     <input type="hidden" name="old_reglement" id="old-reglement" value="">
                     <input type="hidden" id="numero_reglement" name="numero_reglement">
@@ -810,7 +810,7 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
                     // Envoyer le formulaire via AJAX
                     const formData = new FormData(this);
 
-                    fetch('/GSCV+/public/assets/traitements/ajax_handler.php', {
+                    fetch('/assets/traitements/ajax_handler.php', {
                             method: 'POST',
                             body: formData
                         })
@@ -848,7 +848,7 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
                     if (prenomsField) prenomsField.value = 'Chargement...';
 
                     // Récupérer les informations de l'étudiant via le contrôleur
-                    fetch(`/GSCV+/public/assets/traitements/ajax_handler.php?action=get_etudiant_info&num_carte=${encodeURIComponent(numCarte)}`)
+                    fetch(`/assets/traitements/ajax_handler.php?action=get_etudiant_info&num_carte=${encodeURIComponent(numCarte)}`)
                         .then(response => {
                             if (!response.ok) {
                                 throw new Error(`Erreur HTTP: ${response.status}`);
@@ -944,7 +944,7 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
                     formData.append('action', 'get_montant_tarif');
                     formData.append('niveau', niveauId);
 
-                    fetch('/GSCV+/public/assets/traitements/ajax_handler.php', {
+                    fetch('/assets/traitements/ajax_handler.php', {
                             method: 'POST',
                             body: formData
                         })
@@ -1013,7 +1013,7 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
                         formData.append('action', 'get_payment_history');
                         formData.append('numero_reglement', reglement);
 
-                        const response = await fetch('/GSCV+/public/assets/traitements/ajax_handler.php', {
+                        const response = await fetch('/assets/traitements/ajax_handler.php', {
                             method: 'POST',
                             body: formData
                         });
@@ -1086,7 +1086,7 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${totalPaye.toLocaleString('fr-FR')} FCFA</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">${resteAPayer.toLocaleString('fr-FR')} FCFA</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <a href='/GSCV+/public/assets/traitements/imprimer_reglement.php?numero_reglement=${encodeURIComponent(numeroReglement)}&numero_recu=${encodeURIComponent(numeroRecu)}&mode_de_paiement=${encodeURIComponent(item.mode_de_paiement || '')}&numero_cheque=${encodeURIComponent(item.numero_cheque || '')}&motif_paiement=${encodeURIComponent(item.motif_paiement || '')}' target='_blank' class='bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-all duration-200' title="Voir reçu">
+                            <a href='/assets/traitements/imprimer_reglement.php?numero_reglement=${encodeURIComponent(numeroReglement)}&numero_recu=${encodeURIComponent(numeroRecu)}&mode_de_paiement=${encodeURIComponent(item.mode_de_paiement || '')}&numero_cheque=${encodeURIComponent(item.numero_cheque || '')}&motif_paiement=${encodeURIComponent(item.motif_paiement || '')}' target='_blank' class='bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-all duration-200' title="Voir reçu">
                                 <i class="fas fa-receipt"></i>
                             </a>
                         </td>
@@ -1147,7 +1147,7 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
                         formData.append('action', 'supprimer_reglement');
                         formData.append('numero_reglement', numeroReglement);
 
-                        fetch('/GSCV+/public/assets/traitements/ajax_handler.php', {
+                        fetch('/assets/traitements/ajax_handler.php', {
                                 method: 'POST',
                                 body: formData
                             })
@@ -1181,7 +1181,7 @@ $lib_user_type = isset($_SESSION['lib_user_type']) ? $_SESSION['lib_user_type'] 
                             formData.append('action', 'supprimer_reglements');
                             formData.append('reglement_ids', JSON.stringify(ids));
 
-                            fetch('/GSCV+/public/assets/traitements/ajax_handler.php', {
+                            fetch('/assets/traitements/ajax_handler.php', {
                                     method: 'POST',
                                     body: formData
                                 })

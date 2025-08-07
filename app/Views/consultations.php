@@ -399,7 +399,7 @@ if (!empty($rapports)) {
                                                     <i class="fas fa-download"></i>
                                                 </a>
                                             <?php endif; ?>
-                                            
+
                                             <button class="text-purple-600 hover:text-purple-900 p-2 rounded-lg hover:bg-purple-50 transition-colors show-evaluations-btn"
                                                 data-rapport-id="<?php echo $rapport['id_rapport_etd']; ?>"
                                                 title="Voir les détails des évaluations">
@@ -544,8 +544,8 @@ if (!empty($rapports)) {
 
                 <!-- Tableau des comptes rendus -->
                 <div class="overflow-x-auto">
-                    
-                    
+
+
                     <table class="w-full text-sm text-left text-gray-500">
                         <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                             <tr>
@@ -630,8 +630,8 @@ if (!empty($rapports)) {
                                                         title="Télécharger le dernier">
                                                         <i class="fas fa-download"></i>
                                                     </button>
-                                                    
-                                                    
+
+
                                                 <?php endif; ?>
 
                                                 <!-- Bouton pour envoyer par email -->
@@ -931,7 +931,7 @@ if (!empty($rapports)) {
             console.log('showEmailModal appelé avec:', titre, crId); // Debug
             console.log('Type de titre:', typeof titre);
             console.log('Type de crId:', typeof crId);
-            
+
             // Vérifier que les paramètres sont valides
             if (!titre || !crId || crId <= 0) {
                 console.error('ERREUR: Paramètres invalides pour l\'envoi d\'email');
@@ -940,15 +940,15 @@ if (!empty($rapports)) {
                 alert('Erreur: Paramètres invalides pour l\'envoi d\'email');
                 return;
             }
-            
+
             // Échapper les caractères spéciaux dans le titre pour éviter les erreurs JavaScript
             const titreEscaped = titre.replace(/'/g, "\\'").replace(/"/g, '\\"');
             console.log('Titre échappé:', titreEscaped);
-            
+
             console.log('Création de la modale...');
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-            
+
             const modalHTML = `
                 <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
                     <div class="flex items-center justify-between mb-4">
@@ -1001,7 +1001,7 @@ if (!empty($rapports)) {
                     </form>
                 </div>
             `;
-            
+
             modal.innerHTML = modalHTML;
             console.log('Modale créée, ajout au DOM...');
             document.body.appendChild(modal);
@@ -1010,75 +1010,77 @@ if (!empty($rapports)) {
         // Fonction pour envoyer le compte rendu par email
         function sendCompteRenduEmail(event, titre, crId) {
             event.preventDefault();
-            
+
             const form = event.target;
             const email = form.querySelector('#email-to').value;
             const subject = form.querySelector('#email-subject').value;
             const message = form.querySelector('#email-message').value;
             const sendBtn = form.querySelector('#send-email-btn');
-            
+
             // Désactiver le bouton et afficher l'indicateur de chargement
             sendBtn.disabled = true;
             sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Envoi en cours...';
-            
+
             fetch('ajax_consultations.php?action=sendCompteRenduEmail', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    cr_id: crId,
-                    titre: titre,
-                    email: email,
-                    subject: subject,
-                    message: message
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        cr_id: crId,
+                        titre: titre,
+                        email: email,
+                        subject: subject,
+                        message: message
+                    })
                 })
-            })
-            .then(response => {
-                console.log('Réponse reçue, statut:', response.status);
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    alert('Compte rendu envoyé avec succès !');
-                    document.querySelector('.fixed').remove();
-                } else {
-                    alert('Erreur: ' + (data.error || 'Impossible d\'envoyer l\'email'));
+                .then(response => {
+                    console.log('Réponse reçue, statut:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert('Compte rendu envoyé avec succès !');
+                        document.querySelector('.fixed').remove();
+                    } else {
+                        alert('Erreur: ' + (data.error || 'Impossible d\'envoyer l\'email'));
+                        // Réactiver le bouton
+                        sendBtn.disabled = false;
+                        sendBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Envoyer';
+                    }
+                })
+                .catch(error => {
+                    alert('Erreur de connexion: ' + error.message);
                     // Réactiver le bouton
                     sendBtn.disabled = false;
                     sendBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Envoyer';
-                }
-            })
-            .catch(error => {
-                alert('Erreur de connexion: ' + error.message);
-                // Réactiver le bouton
-                sendBtn.disabled = false;
-                sendBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Envoyer';
-            });
+                });
         }
 
         // Fonction pour supprimer un groupe de comptes rendus
         function deleteCompteRenduGroup(titre) {
             if (confirm(`Êtes-vous sûr de vouloir supprimer tous les comptes rendus avec le titre "${titre}" ?`)) {
                 fetch('ajax_consultations.php?action=deleteCompteRenduGroup', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ titre: titre })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Groupe de comptes rendus supprimé avec succès');
-                        location.reload();
-                    } else {
-                        alert('Erreur: ' + (data.error || 'Impossible de supprimer le groupe'));
-                    }
-                })
-                .catch(error => {
-                    alert('Erreur de connexion: ' + error.message);
-                });
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            titre: titre
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Groupe de comptes rendus supprimé avec succès');
+                            location.reload();
+                        } else {
+                            alert('Erreur: ' + (data.error || 'Impossible de supprimer le groupe'));
+                        }
+                    })
+                    .catch(error => {
+                        alert('Erreur de connexion: ' + error.message);
+                    });
             }
         }
 
@@ -1130,24 +1132,26 @@ if (!empty($rapports)) {
         function deleteCompteRendu(id) {
             if (confirm('Êtes-vous sûr de vouloir supprimer ce compte rendu ?')) {
                 fetch('ajax_consultations.php?action=deleteCompteRendu', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ id: id })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Compte rendu supprimé avec succès');
-                        location.reload();
-                    } else {
-                        alert('Erreur: ' + (data.error || 'Impossible de supprimer le compte rendu'));
-                    }
-                })
-                .catch(error => {
-                    alert('Erreur de connexion: ' + error.message);
-                });
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            id: id
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Compte rendu supprimé avec succès');
+                            location.reload();
+                        } else {
+                            alert('Erreur: ' + (data.error || 'Impossible de supprimer le compte rendu'));
+                        }
+                    })
+                    .catch(error => {
+                        alert('Erreur de connexion: ' + error.message);
+                    });
             }
         }
 
@@ -1155,18 +1159,18 @@ if (!empty($rapports)) {
         function showCompteRenduPreview(crId, titre) {
             console.log('=== SHOW COMPTE RENDU PREVIEW START ===');
             console.log('showCompteRenduPreview appelé avec:', crId, titre);
-            
+
             // Vérifier que les paramètres sont valides
             if (!crId || crId <= 0) {
                 console.error('ERREUR: ID du compte rendu invalide');
                 alert('Erreur: ID du compte rendu invalide');
                 return;
             }
-            
+
             // Créer la modal d'aperçu
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-            
+
             const modalHTML = `
                 <div class="bg-white rounded-lg max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden">
                     <div class="flex items-center justify-between p-6 border-b border-gray-200">
@@ -1192,10 +1196,10 @@ if (!empty($rapports)) {
                     </div>
                 </div>
             `;
-            
+
             modal.innerHTML = modalHTML;
             document.body.appendChild(modal);
-            
+
             // Charger l'aperçu via AJAX
             fetch(`ajax_consultations.php?action=getCompteRenduPreview&id=${crId}`)
                 .then(response => response.json())
@@ -1375,7 +1379,7 @@ if (!empty($rapports)) {
         // Fonction pour rendre l'historique des emails
         function renderEmailHistory(history, container) {
             console.log('renderEmailHistory appelé avec:', history);
-            
+
             if (!history || history.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-8 text-gray-500">
@@ -1442,7 +1446,142 @@ if (!empty($rapports)) {
             container.innerHTML = html;
         }
 
-        
+        // Fonction pour afficher l'aperçu d'un compte rendu
+        function previewCompteRendu(id) {
+            if (!id) {
+                alert('ID du compte rendu manquant');
+                return;
+            }
+
+            console.log('Tentative de prévisualisation du compte rendu ID:', id);
+
+            // Afficher un indicateur de chargement
+            const button = event.target.closest('.preview-bilan-button');
+            const originalContent = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Chargement...';
+            button.disabled = true;
+
+            // Créer une modal pour l'aperçu
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'preview-modal';
+            modal.style.display = 'flex';
+            modal.style.position = 'fixed';
+            modal.style.top = '0';
+            modal.style.left = '0';
+            modal.style.width = '100%';
+            modal.style.height = '100%';
+            modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            modal.style.zIndex = '9999';
+
+            const modalContent = document.createElement('div');
+            modalContent.className = 'modal-content';
+            modalContent.style.maxWidth = '90%';
+            modalContent.style.maxHeight = '90%';
+            modalContent.style.width = '100%';
+            modalContent.style.backgroundColor = 'white';
+            modalContent.style.borderRadius = '8px';
+            modalContent.style.position = 'relative';
+            modalContent.style.margin = 'auto';
+
+            const modalHeader = document.createElement('div');
+            modalHeader.style.padding = '20px';
+            modalHeader.style.borderBottom = '1px solid #eee';
+            modalHeader.style.display = 'flex';
+            modalHeader.style.justifyContent = 'space-between';
+            modalHeader.style.alignItems = 'center';
+
+            const modalTitle = document.createElement('h2');
+            modalTitle.innerHTML = '<i class="fas fa-file-pdf"></i> Aperçu du compte rendu';
+            modalTitle.style.margin = '0';
+            modalTitle.style.color = '#333';
+
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = '×';
+            closeButton.style.background = 'none';
+            closeButton.style.border = 'none';
+            closeButton.style.fontSize = '24px';
+            closeButton.style.cursor = 'pointer';
+            closeButton.style.color = '#666';
+            closeButton.onclick = () => {
+                document.body.removeChild(modal);
+                button.innerHTML = originalContent;
+                button.disabled = false;
+            };
+
+            const modalBody = document.createElement('div');
+            modalBody.style.padding = '20px';
+            modalBody.style.height = '70vh';
+            modalBody.style.overflow = 'auto';
+            modalBody.innerHTML = '<div style="text-align: center; padding: 50px;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Chargement du PDF...</p></div>';
+
+            modalHeader.appendChild(modalTitle);
+            modalHeader.appendChild(closeButton);
+            modalContent.appendChild(modalHeader);
+            modalContent.appendChild(modalBody);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Fermer la modal en cliquant en dehors
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                    button.innerHTML = originalContent;
+                    button.disabled = false;
+                }
+            };
+
+            // Fermer la modal avec la touche Échap
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    document.body.removeChild(modal);
+                    button.innerHTML = originalContent;
+                    button.disabled = false;
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            document.addEventListener('keydown', handleEscape);
+
+            // Charger le PDF via AJAX
+            fetch('./assets/preview/preview_cr.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'id=' + encodeURIComponent(id)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erreur HTTP: ' + response.status);
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    // Créer un objet URL pour le blob
+                    const url = URL.createObjectURL(blob);
+
+                    // Créer un iframe pour afficher le PDF
+                    modalBody.innerHTML = `
+                <iframe 
+                    src="${url}" 
+                    style="width: 100%; height: 100%; border: none;"
+                    title="Aperçu du compte rendu">
+                </iframe>
+            `;
+
+                    console.log('PDF chargé avec succès');
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement du PDF:', error);
+                    modalBody.innerHTML = `
+                <div style="text-align: center; padding: 50px; color: red;">
+                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    <p>Erreur lors du chargement du PDF</p>
+                    <p>${error.message}</p>
+                </div>
+            `;
+                });
+        }
     </script>
 </body>
 

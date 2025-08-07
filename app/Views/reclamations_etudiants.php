@@ -670,8 +670,7 @@ $filters = $data['filters'];
                     </button>
                     <button 
                         onclick="telechargerReclamation()"
-                        class="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium flex items-center"
-                    >
+                        class="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium flex items-center">
                         <i class="fas fa-eye mr-2"></i>Voir fiche de réclamation
                     </button>
                 </div>
@@ -979,6 +978,12 @@ $filters = $data['filters'];
                         });
                 }
             );
+        }
+
+          function telechargerReclamation() {
+            if (currentReclamationId) {
+                window.open(`assets/traitements/imprimer_reclamation.php?id_reclamation=${currentReclamationId}`, '_blank');
+            }
         }
 
         // Système de notifications moderne

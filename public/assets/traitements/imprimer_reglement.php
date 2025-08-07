@@ -133,7 +133,7 @@ $qr_data = json_encode([
     <meta charset="UTF-8">
     <title>Reçu de paiement</title>
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
-    <script src="../../../qrcodejs/qrcode.min.js"></script>
+    <script src="../qrcodejs/qrcode.min.js"></script>
 
     <style>
         body {
@@ -537,18 +537,24 @@ $qr_data = json_encode([
                 console.log('Élément qrcode trouvé:', qrcodeElement);
 
                 // Générer le QR Code avec les données du reçu
-                // var qrText = "<?php echo $_SERVER['HTTP_HOST']; ?>/GSCV+/public/verifier_recu.php?numero_recu=<?php echo urlencode($numero_recu); ?>&numero_reglement=<?php echo urlencode($numero_reglement); ?>&etudiant=<?php echo urlencode(trim($nom_complet)); ?>&montant=<?php echo urlencode(number_format($montant_affiche, 0, ',', ' ') . ' FCFA'); ?>&date=<?php echo urlencode(date('d/m/Y', strtotime($date_paiement))); ?>";
-                var qrText = "http://192.168.1.64:8000/GSCV+/public/verifier_recu.php?numero_recu=<?php echo urlencode($numero_recu); ?>&numero_reglement=<?php echo urlencode($numero_reglement); ?>&etudiant=<?php echo urlencode(trim($nom_complet)); ?>&montant=<?php echo urlencode(number_format($montant_affiche, 0, ',', ' ') . ' FCFA'); ?>&date=<?php echo urlencode(date('d/m/Y', strtotime($date_paiement))); ?>";
+                // URL simplifiée pour faciliter le scan
+                <?php
+                $server_ip = $_SERVER['SERVER_ADDR'] ?? '192.168.1.64';
+                $server_port = $_SERVER['SERVER_PORT'] ?? '8083';
+                $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+                $base_url = $protocol . '://' . $server_ip . ':' . $server_port;
+                ?>
+                var qrText = "http://<?php echo '192.168.1.64:8083'; ?>/public/verifier_recu.php?r=<?php echo urlencode($numero_recu); ?>&n=<?php echo urlencode($numero_reglement); ?>";
 
                 console.log('Texte QR Code:', qrText);
 
                 var qrcode = new QRCode(qrcodeElement, {
                     text: qrText,
-                    width: 100,
-                    height: 100,
+                    width: 120,
+                    height: 120,
                     colorDark: '#000000',
                     colorLight: '#FFFFFF',
-                    correctLevel: QRCode.CorrectLevel.M
+                    correctLevel: QRCode.CorrectLevel.L
                 });
 
                 console.log('QR Code généré avec succès');
