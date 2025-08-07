@@ -141,8 +141,11 @@
                                     Montant d'inscription (FCFA)
                                 </label>
                                 <input type="number" name="montant_inscription" id="montant_inscription" 
-                                       min="0" value="0"
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-warning focus:border-transparent">
+                                       min="0" value="0" readonly
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-warning focus:border-transparent">
+                                <div class="mt-1 text-xs text-gray-500">
+                                    <span id="montant-breakdown">Frais de base: 0 FCFA</span>
+                                </div>
                             </div>
 
                             <!-- Commentaire -->
@@ -197,6 +200,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const filterNiveau = document.getElementById('filter_niveau');
     const filterPromotion = document.getElementById('filter_promotion');
     const matieresSection = document.getElementById('matieres-section');
+    const montantInscription = document.getElementById('montant_inscription');
+    const montantBreakdown = document.getElementById('montant-breakdown');
+    
+    // Variables pour le calcul du montant
+    let fraisBase = 0;
+    let prixMatieresSelectionnees = 0;
+    let matieresSelectionnees = new Set();
 
     // Gestion de la sélection multiple
     selectAllCheckbox.addEventListener('change', function() {
@@ -204,6 +214,8 @@ document.addEventListener('DOMContentLoaded', function() {
         visibleCheckboxes.forEach(cb => cb.checked = this.checked);
         updateSelectedCount();
         updateSubmitButton();
+        // Charger les frais de base après la sélection
+        chargerFraisBase();
     });
 
     etudiantCheckboxes.forEach(cb => {
@@ -211,7 +223,8 @@ document.addEventListener('DOMContentLoaded', function() {
             updateSelectedCount();
             updateSubmitButton();
             updateSelectAllState();
-            // Charger les matières si une année et promotion sont sélectionnées
+            // Charger les frais de base et les matières
+            chargerFraisBase();
             const anneeSelected = document.getElementById('id_ac').value;
             const promotionSelected = document.getElementById('promotion_principale').value;
             if (anneeSelected && promotionSelected) {
@@ -254,6 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateSelectedCount() {
         const selectedCount = document.querySelectorAll('.etudiant-checkbox:checked').length;
         selectedCountSpan.textContent = selectedCount;
+        console.log('updateSelectedCount appelé, étudiants sélectionnés:', selectedCount);
     }
 
     function updateSubmitButton() {
@@ -262,9 +276,135 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.disabled = selectedCount === 0;
     }
 
+    // Fonction pour calculer le montant total
+    function calculerMontantTotal() {
+        const montantTotal = fraisBase + prixMatieresSelectionnees;
+        montantInscription.value = montantTotal;
+        
+        // Mettre à jour le breakdown
+        let breakdownText = `Frais de base: ${fraisBase.toLocaleString()} FCFA`;
+        if (prixMatieresSelectionnees > 0) {
+            breakdownText += ` | Matières: ${prixMatieresSelectionnees.toLocaleString()} FCFA`;
+        }
+        montantBreakdown.textContent = breakdownText;
+    }
+    
+    // Fonction pour récupérer les frais de base
+    async function chargerFraisBase() {
+        console.log('=== DÉBUT chargerFraisBase ===');
+        const selectedEtudiants = Array.from(document.querySelectorAll('.etudiant-checkbox:checked')).map(cb => cb.value);
+        console.log('Étudiants sélectionnés:', selectedEtudiants);
+        
+        if (selectedEtudiants.length === 0) {
+            console.log('Aucun étudiant sélectionné, frais de base = 0');
+            fraisBase = 0;
+            calculerMontantTotal();
+            return;
+        }
+        
+        // Récupérer l'année courante
+        try {
+            console.log('Récupération de l\'année courante...');
+            const yearResponse = await fetch('/assets/traitements/get_current_year_id.php');
+            const yearData = await yearResponse.json();
+            console.log('Données année:', yearData);
+            
+            if (!yearData.success) {
+                console.error('Erreur récupération année:', yearData.message);
+                return;
+            }
+            
+            // Récupérer le niveau du premier étudiant sélectionné (on suppose qu'ils sont du même niveau)
+            const firstEtudiant = document.querySelector('.etudiant-checkbox:checked');
+            if (!firstEtudiant) {
+                console.error('Aucun étudiant trouvé dans le DOM');
+                return;
+            }
+            
+            const etudiantItem = firstEtudiant.closest('.etudiant-item');
+            const niveauId = etudiantItem.dataset.niveau;
+            console.log('Niveau ID récupéré:', niveauId);
+            console.log('Élément étudiant:', etudiantItem);
+            
+            if (!niveauId) {
+                console.error('Niveau ID non trouvé dans dataset');
+                return;
+            }
+            
+            // Récupérer les frais d'inscription
+            const fraisUrl = `/assets/traitements/get_frais_inscription.php?niveau_id=${niveauId}&annee_id=${yearData.id_ac}`;
+            console.log('URL frais:', fraisUrl);
+            
+            const fraisResponse = await fetch(fraisUrl);
+            const fraisData = await fraisResponse.json();
+            console.log('Données frais:', fraisData);
+            
+            if (fraisData.success) {
+                fraisBase = fraisData.montant * selectedEtudiants.length; // Multiplier par le nombre d'étudiants
+                console.log(`Frais de base: ${fraisBase} FCFA (${fraisData.montant} × ${selectedEtudiants.length} étudiants)`);
+            } else {
+                console.error('Erreur récupération frais:', fraisData.message);
+                fraisBase = 0;
+            }
+            
+            calculerMontantTotal();
+            
+        } catch (error) {
+            console.error('Erreur lors du chargement des frais:', error);
+            fraisBase = 0;
+            calculerMontantTotal();
+        }
+        console.log('=== FIN chargerFraisBase ===');
+    }
+    
+    // Rendre la fonction accessible globalement pour debug
+    window.chargerFraisBase = chargerFraisBase;
+    window.calculerMontantTotal = calculerMontantTotal;
+    console.log('Fonctions de calcul rendues globales pour debug');
+    
+    // Debug: vérifier les données des étudiants
+    console.log('=== DEBUG ÉTUDIANTS ===');
+    const etudiantItems = document.querySelectorAll('.etudiant-item');
+    console.log('Nombre d\'étudiants dans le DOM:', etudiantItems.length);
+    etudiantItems.forEach((item, index) => {
+        console.log(`Étudiant ${index + 1}:`, {
+            niveau: item.dataset.niveau,
+            promotion: item.dataset.promotion,
+            checkbox: item.querySelector('.etudiant-checkbox')?.value
+        });
+    });
+    
+    // Fonction pour calculer le prix des matières sélectionnées
+    function calculerPrixMatieres() {
+        const selectedMatieres = document.querySelectorAll('.matiere-checkbox:checked');
+        const selectedEtudiants = document.querySelectorAll('.etudiant-checkbox:checked');
+        
+        prixMatieresSelectionnees = 0;
+        matieresSelectionnees.clear();
+        
+        selectedMatieres.forEach(cb => {
+            const prix = parseFloat(cb.dataset.prix) || 0;
+            matieresSelectionnees.add(cb.value);
+            prixMatieresSelectionnees += prix;
+        });
+        
+        // Multiplier par le nombre d'étudiants sélectionnés
+        prixMatieresSelectionnees *= selectedEtudiants.length;
+        
+        console.log(`Prix matières: ${prixMatieresSelectionnees} FCFA (${selectedMatieres.length} matières × ${selectedEtudiants.length} étudiants)`);
+        calculerMontantTotal();
+    }
+    
     // Chargement automatique des matières au chargement de la page
     document.addEventListener('DOMContentLoaded', function() {
         loadMatieres();
+        // Initialiser le montant d'inscription
+        calculerMontantTotal();
+        // Forcer le chargement des frais de base pour tester
+        setTimeout(() => {
+            console.log('Test automatique du chargement des frais...');
+            chargerFraisBase();
+        }, 1000);
     });
 
     // Chargement dynamique des matières (se déclenche quand des étudiants sont sélectionnés)
@@ -383,15 +523,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Parcourir les ECUE de cette UE
             ue.ecues.forEach(ecue => {
+                const prix = ecue.prix_matiere_cheval || 25000;
                 html += `
                     <div class="flex items-center p-2 bg-white rounded border border-gray-200 hover:bg-gray-50 transition-colors">
                         <input type="checkbox" name="selected_matieres[]" 
                                value="${ecue.id_ecue}" 
+                               data-prix="${prix}"
                                class="matiere-checkbox w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 focus:ring-2">
                         <div class="ml-3 flex-1">
                             <div class="font-medium text-gray-900">${ecue.lib_ecue}</div>
                             <div class="text-sm text-gray-500">
-                                Crédits: ${ecue.credit_ecue || 0} | Prix: ${ecue.prix_matiere_cheval || 25000} FCFA
+                                Crédits: ${ecue.credit_ecue || 0} | Prix: ${prix} FCFA
                                 ${ecue.credit_ecue === 0 ? '<span class="text-red-500 text-xs">(Crédit non défini)</span>' : ''}
                                 ${!ecue.prix_matiere_cheval ? '<span class="text-orange-500 text-xs">(Prix par défaut)</span>' : ''}
                             </div>
@@ -423,12 +565,14 @@ document.addEventListener('DOMContentLoaded', function() {
         selectAllMatieres.addEventListener('change', function() {
             matiereCheckboxes.forEach(cb => cb.checked = this.checked);
             updateMatieresCount();
+            calculerPrixMatieres();
         });
 
         matiereCheckboxes.forEach(cb => {
             cb.addEventListener('change', function() {
                 updateMatieresCount();
                 updateSelectAllMatieresState();
+                calculerPrixMatieres();
             });
         });
     }
