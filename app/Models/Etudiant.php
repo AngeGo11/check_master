@@ -20,7 +20,7 @@ class Etudiant
     /**
      * Récupère tous les étudiants avec filtres et pagination
      */
-    public function getAllEtudiants($search = '', $promotion = '', $niveau = '', $page = 1, $limit = 50)
+    public function getAllEtudiants($search = '', $promotion = '', $niveau = '', $statut_etudiant = '', $page = 1, $limit = 50)
     {
         $offset = ($page - 1) * $limit;
 
@@ -43,12 +43,18 @@ class Etudiant
             $params[] = $niveau;
         }
 
+        if ($statut_etudiant !== '') {
+            $where[] = "e.id_statut = ?";
+            $params[] = $statut_etudiant;
+        }
+
         $where_sql = count($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
 
-        $sql = "SELECT e.*, ne.lib_niv_etd, p.lib_promotion 
+        $sql = "SELECT e.*, ne.lib_niv_etd, p.lib_promotion, se.lib_statut 
                 FROM etudiants e 
                 JOIN niveau_etude ne ON ne.id_niv_etd = e.id_niv_etd 
                 LEFT JOIN promotion p ON e.id_promotion = p.id_promotion 
+                LEFT JOIN statut_etudiant se ON e.id_statut = se.id_statut 
                 $where_sql 
                 ORDER BY e.nom_etd, e.prenom_etd 
                 LIMIT $limit OFFSET $offset";
@@ -58,10 +64,11 @@ class Etudiant
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    
     /**
      * Compte le total des étudiants avec filtres
      */
-    public function getTotalEtudiants($search = '', $promotion = '', $niveau = '')
+    public function getTotalEtudiants($search = '', $promotion = '', $niveau = '', $statut_etudiant = '')
     {
         $where = [];
         $params = [];
@@ -80,6 +87,11 @@ class Etudiant
         if ($niveau !== '') {
             $where[] = "e.id_niv_etd = ?";
             $params[] = $niveau;
+        }
+
+        if ($statut_etudiant !== '') {
+            $where[] = "e.id_statut = ?";
+            $params[] = $statut_etudiant;
         }
 
         $where_sql = count($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
@@ -488,12 +500,36 @@ class Etudiant
     public function inscrireEtudiantCheval($num_etd, $id_ac, $promotion_principale, $nombre_matieres_rattrapage, $montant_inscription, $commentaire = '')
     {
         try {
+            $this->db->beginTransaction();
+            
+            // Insérer dans la table inscription_etudiant_cheval
             $sql = "INSERT INTO inscription_etudiant_cheval 
                     (num_etd, id_ac, promotion_principale, nombre_matieres_rattrapage, montant_inscription, commentaire)
                     VALUES (?, ?, ?, ?, ?, ?)";
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$num_etd, $id_ac, $promotion_principale, $nombre_matieres_rattrapage, $montant_inscription, $commentaire]);
+            $result = $stmt->execute([$num_etd, $id_ac, $promotion_principale, $nombre_matieres_rattrapage, $montant_inscription, $commentaire]);
+            
+            if ($result) {
+                // Mettre à jour le statut de l'étudiant à 2 (À cheval)
+                $sql_update = "UPDATE etudiants SET id_statut = 2 WHERE num_etd = ?";
+                $stmt_update = $this->db->prepare($sql_update);
+                $result_update = $stmt_update->execute([$num_etd]);
+                
+                if ($result_update) {
+                    error_log("Étudiant $num_etd inscrit à cheval - statut mis à jour à 2");
+                    $this->db->commit();
+                    return true;
+                } else {
+                    error_log("Erreur lors de la mise à jour du statut pour l'étudiant $num_etd");
+                    $this->db->rollBack();
+                    return false;
+                }
+            } else {
+                $this->db->rollBack();
+                return false;
+            }
         } catch (PDOException $e) {
+            $this->db->rollBack();
             error_log("Erreur inscription étudiant à cheval: " . $e->getMessage());
             return false;
         }
@@ -980,33 +1016,22 @@ class Etudiant
     /**
      * Mettre à jour le statut académique d'un étudiant
      */
-    public function updateStatutAcademique($num_etd, $id_ac, $id_semestre, $moyenne_generale, $total_credits_obtenus, $total_credits_inscrits, $statut_academique)
+    public function updateStatutAcademique($num_etd, $id_ac, $id_semestre)
     {
         try {
-            // Vérifier si une entrée existe déjà
-            $sql_check = "SELECT id_moyenne FROM moyenne_generale 
-                         WHERE num_etd = ? AND id_ac = ? AND id_semestre = ?";
-            $stmt_check = $this->db->prepare($sql_check);
-            $stmt_check->execute([$num_etd, $id_ac, $id_semestre]);
-            $exists = $stmt_check->fetchColumn();
-
-            if ($exists) {
-                // Mettre à jour l'entrée existante
-                $sql = "UPDATE moyenne_generale 
-                        SET moyenne_generale = ?, total_credits_obtenus = ?, 
-                            total_credits_inscrits = ?, statut_academique = ?, 
-                            date_mise_a_jour = NOW()
-                        WHERE num_etd = ? AND id_ac = ? AND id_semestre = ?";
-                $stmt = $this->db->prepare($sql);
-                return $stmt->execute([$moyenne_generale, $total_credits_obtenus, $total_credits_inscrits, $statut_academique, $num_etd, $id_ac, $id_semestre]);
+            // Mettre à jour directement le statut de l'étudiant à 2 (À cheval)
+            $sql = "UPDATE etudiants 
+                    SET id_statut = 2
+                    WHERE num_etd = ?";
+            $stmt = $this->db->prepare($sql);
+            $result = $stmt->execute([$num_etd]);
+            
+            if ($result) {
+                error_log("Statut académique mis à jour pour l'étudiant $num_etd - id_statut = 2");
+                return true;
             } else {
-                // Créer une nouvelle entrée
-                $sql = "INSERT INTO moyenne_generale 
-                        (num_etd, id_ac, id_semestre, moyenne_generale, total_credits_obtenus, 
-                         total_credits_inscrits, statut_academique, date_calcul)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
-                $stmt = $this->db->prepare($sql);
-                return $stmt->execute([$num_etd, $id_ac, $id_semestre, $moyenne_generale, $total_credits_obtenus, $total_credits_inscrits, $statut_academique]);
+                error_log("Erreur lors de la mise à jour du statut pour l'étudiant $num_etd");
+                return false;
             }
         } catch (PDOException $e) {
             error_log("Erreur mise à jour statut académique: " . $e->getMessage());
@@ -1266,7 +1291,7 @@ class Etudiant
             $stmt = $this->db->prepare("
                 SELECT moyenne_generale 
                 FROM moyenne_generale 
-                WHERE num_etd = ? AND id_ac = ? AND id_semestre = 2
+                WHERE num_etd = ? AND id_ac = ? AND id_semestre = 8
             ");
             $stmt->execute([$num_etd, $id_ac_precedente]);
             $moyenne = $stmt->fetchColumn();
@@ -1451,7 +1476,7 @@ class Etudiant
         $sql = "SELECT e.num_etd, e.nom, e.prenom, e.email, e.telephone, e.date_naissance, e.sexe, e.id_niv_etd, e.id_promotion, mg.moyenne_generale, mg.statut_academique
                 FROM etudiants e
                 JOIN moyenne_generale mg ON e.num_etd = mg.num_etd
-                WHERE mg.id_ac = ? AND mg.statut_academique = 'Autorisé'
+                WHERE mg.id_ac = ? AND e.id_statut = 2 
                 ORDER BY e.nom_etd ASC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$id_ac]);
@@ -1460,9 +1485,35 @@ class Etudiant
 
     public function getStatutEtudiant()
     {
-        $sql = "SELECT statut_academique FROM moyenne_generale";
+        $sql = "SELECT id_statut, lib_statut FROM statut_etudiant ORDER BY id_statut";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getSemestreEtudiant($num_etd, $id_ac = null)
+    {
+        try {
+            // Récupérer le semestre le plus récent pour l'étudiant
+            $sql = "SELECT s.id_semestre 
+                    FROM semestre s
+                    JOIN etudiants e ON s.id_niv_etd = e.id_niv_etd
+                    WHERE e.num_etd = ?
+                    ORDER BY s.id_semestre DESC 
+                    LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$num_etd]);
+            $semestre = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($semestre) {
+                return $semestre['id_semestre'];
+            } else {
+                // Retourner le semestre par défaut (1) si aucun n'est trouvé
+                return 1;
+            }
+        } catch (PDOException $e) {
+            error_log("Erreur récupération semestre étudiant: " . $e->getMessage());
+            return 1; // Semestre par défaut
+        }
     }
 }

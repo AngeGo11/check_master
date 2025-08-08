@@ -671,6 +671,9 @@ if ($action === 'modify' && isset($_GET['id'])) {
                                     Promotion
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Statut
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions
                                 </th>
                             </tr>
@@ -713,6 +716,32 @@ if ($action === 'modify' && isset($_GET['id'])) {
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <?php echo $etudiant["lib_promotion"] ? htmlspecialchars($etudiant["lib_promotion"]) : 'N/A'; ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <?php if (isset($etudiant["lib_statut"]) && $etudiant["lib_statut"]): ?>
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                                    <?php 
+                                                    switch($etudiant["id_statut"]) {
+                                                        case 1:
+                                                            echo 'bg-green-100 text-green-800';
+                                                            break;
+                                                        case 2:
+                                                            echo 'bg-yellow-100 text-yellow-800';
+                                                            break;
+                                                        case 3:
+                                                            echo 'bg-red-100 text-red-800';
+                                                            break;
+                                                        default:
+                                                            echo 'bg-gray-100 text-gray-800';
+                                                    }
+                                                    ?>">
+                                                    <?php echo htmlspecialchars($etudiant["lib_statut"]); ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                    N/A
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div class="flex space-x-2">

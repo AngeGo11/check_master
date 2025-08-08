@@ -26,16 +26,20 @@ class EtudiantsController {
         $page_num = max(1, intval($_GET['page_num'] ?? 1));
         $limit = 50;
 
+      
+
         // Récupération des données
-        $etudiants = $this->model->getAllEtudiants($search, $promotion, $niveau, $page_num, $limit);
-        $total_records = $this->model->getTotalEtudiants($search, $promotion, $niveau);
+        $etudiants = $this->model->getAllEtudiants($search, $promotion, $niveau, $statut_etudiant, $page_num, $limit);
+        $total_records = $this->model->getTotalEtudiants($search, $promotion, $niveau, $statut_etudiant);
         $total_pages = max(1, ceil($total_records / $limit));
         $statistics = $this->model->getStatistiques();
-        $statut_etudiant = $this->model->getStatutEtudiant();
+        $statut_etudiant_list = $this->model->getStatutEtudiant();
+        $etudiants_a_cheval = $this->model->getAllEtudiants($search, $promotion, $niveau, $statut_etudiant, $page_num, $limit);
 
         // Récupération des listes pour les filtres
         $promotions = $this->getPromotions();
         $niveaux = $this->getNiveaux();
+        
 
         return [
             'etudiants' => $etudiants,
@@ -43,15 +47,17 @@ class EtudiantsController {
             'total_pages' => $total_pages,
             'current_page' => $page_num,
             'statistics' => $statistics,
+            'etudiants_a_cheval' => $etudiants_a_cheval,
             'filters' => [
                 'search' => $search,
                 'promotion' => $promotion,
-                'niveau' => $niveau
+                'niveau' => $niveau,
+                'statut_etudiant' => $statut_etudiant
             ],
             'lists' => [
+                'statut_etudiant' => $statut_etudiant_list,  
                 'promotions' => $promotions,
                 'niveaux' => $niveaux
-
             ]
         ];
     }
@@ -537,13 +543,14 @@ class EtudiantsController {
      */
     public function getInscriptionChevalData() {
         try {
-            // Récupérer les étudiants autorisés seulement
-            $sql = "SELECT e.num_etd, e.nom_etd, e.prenom_etd, e.email_etd, e.id_niv_etd, e.id_promotion,
+            // Récupérer les étudiants autorisés seulement et non déjà à cheval
+            $sql = "SELECT DISTINCT e.num_etd, e.nom_etd, e.prenom_etd, e.email_etd, e.id_niv_etd, e.id_promotion,
                            ne.lib_niv_etd, mg.statut_academique
                     FROM etudiants e
                     JOIN niveau_etude ne ON e.id_niv_etd = ne.id_niv_etd
                     JOIN moyenne_generale mg ON e.num_etd = mg.num_etd
-                    WHERE e.id_statut = 2 AND mg.statut_academique = 'Autorisé'
+                    WHERE mg.statut_academique = 'Autorisé'
+                      AND e.id_statut <> 2
                     ORDER BY e.nom_etd, e.prenom_etd";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute();
@@ -666,8 +673,7 @@ class EtudiantsController {
      */
     public function inscrireEtudiantsCheval($data) {
         try {
-            $this->pdo->beginTransaction();
-
+            // Extraire les données du formulaire
             $etudiants_ids = $data['selected_etudiants'] ?? [];
             $matieres_ids = $data['selected_matieres'] ?? [];
             $annee_id = $data['id_ac'] ?? '';
@@ -675,12 +681,21 @@ class EtudiantsController {
             $montant_inscription = $data['montant_inscription'] ?? 0;
             $commentaire = $data['commentaire'] ?? '';
 
+            // Validation des données
             if (empty($etudiants_ids)) {
                 return ['success' => false, 'message' => 'Aucun étudiant sélectionné'];
             }
 
             if (empty($matieres_ids)) {
                 return ['success' => false, 'message' => 'Aucune matière sélectionnée'];
+            }
+
+            if (empty($annee_id)) {
+                return ['success' => false, 'message' => 'Année académique requise'];
+            }
+
+            if (empty($promotion_principale)) {
+                return ['success' => false, 'message' => 'Promotion principale requise'];
             }
 
             $success_count = 0;
@@ -694,7 +709,7 @@ class EtudiantsController {
                         continue;
                     }
 
-                    // Inscrire l'étudiant à cheval
+                    // Inscrire l'étudiant à cheval (le modèle gère sa propre transaction)
                     $nombre_matieres = count($matieres_ids);
                     $result = $this->model->inscrireEtudiantCheval(
                         $etudiant_id,
@@ -716,6 +731,7 @@ class EtudiantsController {
                                 $promotion_principale
                             );
                         }
+                        // Le statut est déjà mis à jour dans inscrireEtudiantCheval
                         $success_count++;
                     } else {
                         $error_messages[] = "Erreur lors de l'inscription de l'étudiant $etudiant_id";
@@ -726,18 +742,15 @@ class EtudiantsController {
             }
 
             if ($success_count > 0) {
-                $this->pdo->commit();
                 $message = "$success_count étudiant(s) inscrit(s) avec succès à cheval.";
                 if (!empty($error_messages)) {
                     $message .= " Erreurs: " . implode(', ', $error_messages);
                 }
                 return ['success' => true, 'message' => $message];
             } else {
-                $this->pdo->rollBack();
                 return ['success' => false, 'message' => 'Aucun étudiant n\'a pu être inscrit. ' . implode(', ', $error_messages)];
             }
         } catch (Exception $e) {
-            $this->pdo->rollBack();
             error_log("Erreur inscription multiple étudiants à cheval: " . $e->getMessage());
             return ['success' => false, 'message' => 'Erreur lors de l\'inscription: ' . $e->getMessage()];
         }
