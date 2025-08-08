@@ -166,13 +166,34 @@ try {
     // Valider la transaction
     $pdo->commit();
 
-    // Calculer et mettre à jour les moyennes générales pour l'étudiant
+    // Calculer et mettre à jour les moyennes générales pour l'étudiant selon les règles (u1..u4, m1, m2, mga)
     try {
         $etudiantModel = new App\Models\Etudiant($pdo);
-        $etudiantModel->calculerMoyenneGenerale($num_etd, $id_ac);
-        error_log("Moyennes recalculées pour l'étudiant: $numero");
+        $resultat = $etudiantModel->calculerMoyenneGenerale($num_etd, $id_ac);
+
+        // Déterminer le semestre le plus récent du niveau de l'étudiant pour enregistrer la moyenne annuelle
+        $sql_semestre = "SELECT s.id_semestre FROM semestre s 
+                         JOIN etudiants e ON s.id_niv_etd = e.id_niv_etd
+                         WHERE e.num_etd = ?
+                         ORDER BY s.id_semestre DESC LIMIT 1";
+        $stmt_semestre = $pdo->prepare($sql_semestre);
+        $stmt_semestre->execute([$num_etd]);
+        $id_semestre_recent = (int)($stmt_semestre->fetchColumn() ?: 1);
+
+        // Mettre à jour/insérer la ligne moyenne_generale avec la mga et le statut académique
+        $etudiantModel->updateMoyenneGenerale(
+            $num_etd,
+            $id_ac,
+            $id_semestre_recent,
+            $resultat['mga'] ?? 0,
+            $resultat['total_credits'] ?? 0,
+            $resultat['total_credits'] ?? 0,
+            $resultat['statut_academique'] ?? 'Non évalué'
+        );
+
+        error_log("Moyennes et statut mis à jour (M1=" . ($resultat['m1'] ?? 0) . ", M2=" . ($resultat['m2'] ?? 0) . ", MGA=" . ($resultat['mga'] ?? 0) . ") pour l'étudiant: $numero");
     } catch (Exception $e) {
-        error_log("Erreur lors du calcul des moyennes pour l'étudiant $numero: " . $e->getMessage());
+        error_log("Erreur lors du calcul/mise à jour des moyennes pour l'étudiant $numero: " . $e->getMessage());
         // Ne pas faire échouer l'enregistrement si le calcul des moyennes échoue
     }
 

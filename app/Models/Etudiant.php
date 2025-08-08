@@ -601,7 +601,7 @@ class Etudiant
             $total_prix_matieres = 0;
             if (!empty($matieres_ids)) {
                 $placeholders = str_repeat('?,', count($matieres_ids) - 1) . '?';
-                $sql = "SELECT SUM(COALESCE(prix_matiere_cheval, 25000.00)) as total_prix
+                $sql = "SELECT SUM(COALESCE(prix_matiere_cheval_ecue, 25000.00)) as total_prix
                         FROM ecue 
                         WHERE id_ecue IN ($placeholders)";
                 $stmt = $this->db->prepare($sql);
@@ -638,7 +638,7 @@ class Etudiant
             }
 
             $placeholders = str_repeat('?,', count($matieres_ids) - 1) . '?';
-            $sql = "SELECT id_ecue, lib_ecue, COALESCE(prix_matiere_cheval, 25000.00) as prix_matiere_cheval
+            $sql = "SELECT id_ecue, lib_ecue, COALESCE(prix_matiere_cheval_ecue, 25000.00) as prix_matiere_cheval
                     FROM ecue 
                     WHERE id_ecue IN ($placeholders)
                     ORDER BY lib_ecue";
@@ -781,7 +781,7 @@ class Etudiant
             $placeholders = str_repeat('?,', count($niveaux_ids) - 1) . '?';
             $sql = "SELECT DISTINCT ec.id_ecue, ec.lib_ecue, ec.credit_ecue, 
                            ne.id_niv_etd, ne.lib_niv_etd,
-                           COALESCE(ec.prix_matiere_cheval, 25000.00) as prix_matiere_cheval
+                           COALESCE(ec.prix_matiere_cheval_ecue, 25000.00) as prix_matiere_cheval
                     FROM ecue ec
                     JOIN ue u ON ec.id_ue = u.id_ue
                     JOIN niveau_etude ne ON u.id_niv_etd = ne.id_niv_etd
@@ -1040,10 +1040,19 @@ class Etudiant
     }
 
     /**
-     * Calculer la moyenne générale selon le système défini
-     * m1: moyenne du 1er semestre (UE mineures)
-     * m2: moyenne du 2ème semestre (UE majeures)
-     * mga: moyenne générale annuelle = (m1*30 + m2*30)/60
+     * Calculer la moyenne générale selon le système défini par l'utilisateur
+     * Définitions:
+     *  - u1: moyenne pondérée des UE mineures du 1er semestre de l'année en cours
+     *  - u2: moyenne pondérée des UE majeures du 1er semestre de l'année en cours
+     *  - u3: moyenne pondérée des UE mineures du 2ème semestre de l'année en cours
+     *  - u4: moyenne pondérée des UE majeures du 2ème semestre de l'année en cours
+     *  - cm1: somme des crédits des UE mineures du 1er semestre
+     *  - cm2: somme des crédits des UE majeures du 1er semestre
+     *  - cm3: somme des crédits des UE mineures du 2ème semestre
+     *  - cm4: somme des crédits des UE majeures du 2ème semestre
+     *  - m1: (u1*cm1 + u2*cm2) / 30
+     *  - m2: (u3*cm3 + u4*cm4) / 30
+     *  - mga: (m1*30 + m2*30) / 60
      */
     public function calculerMoyenneGenerale($num_etd, $id_ac)
     {
@@ -1152,103 +1161,85 @@ class Etudiant
                 }
             }
 
-            // Calculer les moyennes par semestre
-            $m1 = 0; // Moyenne du 1er semestre (UE mineures)
-            $m2 = 0; // Moyenne du 2ème semestre (UE majeures)
-            $cm1 = 0; // Total crédits UE mineures du 1er semestre
-            $cm2 = 0; // Total crédits UE majeures du 2ème semestre
-            $total_credits = 0;
+            // Calculer les moyennes u1..u4 et m1, m2
+            $u1 = 0.0; $u2 = 0.0; $u3 = 0.0; $u4 = 0.0;
+            $cm1 = 0;  $cm2 = 0;  $cm3 = 0;  $cm4 = 0;
+            $m1 = 0.0; $m2 = 0.0; $total_credits = 0;
             $details = [];
 
             foreach ($semestres as $semestre_id => $semestre) {
-                $moyenne_semestre = 0;
-                $total_credit_semestre = 0;
                 $notes_semestre = [];
 
-                // Calculer la moyenne des UE mineures (crédits < 4)
-                if (!empty($semestre['mineures'])) {
-                    $somme_notes_mineures = 0;
-                    $total_credit_mineures = 0;
-                    foreach ($semestre['mineures'] as $ue) {
-                        $somme_notes_mineures += $ue['note'] * $ue['credit'];
-                        $total_credit_mineures += $ue['credit'];
-                        $notes_semestre[] = "UE mineure: {$ue['note']} (crédit: {$ue['credit']})";
-                    }
-                    if ($total_credit_mineures > 0) {
-                        $moyenne_mineures = $somme_notes_mineures / $total_credit_mineures;
-                        $moyenne_semestre += $moyenne_mineures * $total_credit_mineures;
-                        $total_credit_semestre += $total_credit_mineures;
-                    }
+                // Mineures
+                $somme_notes_mineures = 0.0; $total_credit_mineures = 0;
+                foreach ($semestre['mineures'] as $ue) {
+                    $somme_notes_mineures += $ue['note'] * $ue['credit'];
+                    $total_credit_mineures += $ue['credit'];
+                    $notes_semestre[] = "UE mineure: {$ue['note']} (crédit: {$ue['credit']})";
+                }
+                $moyenne_mineures = $total_credit_mineures > 0 ? ($somme_notes_mineures / $total_credit_mineures) : 0.0;
+
+                // Majeures
+                $somme_notes_majeures = 0.0; $total_credit_majeures = 0;
+                foreach ($semestre['majeures'] as $ue) {
+                    $somme_notes_majeures += $ue['note'] * $ue['credit'];
+                    $total_credit_majeures += $ue['credit'];
+                    $notes_semestre[] = "UE majeure: {$ue['note']} (crédit: {$ue['credit']})";
+                }
+                $moyenne_majeures = $total_credit_majeures > 0 ? ($somme_notes_majeures / $total_credit_majeures) : 0.0;
+
+                if ($semestre_id % 2 == 1) { // Semestre 1 de l'année (impair)
+                    $u1 = $moyenne_mineures; $cm1 = $total_credit_mineures;
+                    $u2 = $moyenne_majeures; $cm2 = $total_credit_majeures;
+                } else { // Semestre 2 de l'année (pair)
+                    $u3 = $moyenne_mineures; $cm3 = $total_credit_mineures;
+                    $u4 = $moyenne_majeures; $cm4 = $total_credit_majeures;
                 }
 
-                // Calculer la moyenne des UE majeures (crédits >= 4)
-                if (!empty($semestre['majeures'])) {
-                    $somme_notes_majeures = 0;
-                    $total_credit_majeures = 0;
-                    foreach ($semestre['majeures'] as $ue) {
-                        $somme_notes_majeures += $ue['note'] * $ue['credit'];
-                        $total_credit_majeures += $ue['credit'];
-                        $notes_semestre[] = "UE majeure: {$ue['note']} (crédit: {$ue['credit']})";
-                    }
-                    if ($total_credit_majeures > 0) {
-                        $moyenne_majeures = $somme_notes_majeures / $total_credit_majeures;
-                        $moyenne_semestre += $moyenne_majeures * $total_credit_majeures;
-                        $total_credit_semestre += $total_credit_majeures;
-                    }
-                }
-
-                // Moyenne du semestre
-                if ($total_credit_semestre > 0) {
-                    $moyenne_semestre = $moyenne_semestre / $total_credit_semestre;
-                }
-
-                // Assigner selon le semestre
-                if ($semestre_id % 2 == 1) { // Semestre impair (1, 3, 5, etc.)
-                    $m1 = $moyenne_semestre;
-                    $cm1 = $total_credit_semestre;
-                } else { // Semestre pair (2, 4, 6, etc.)
-                    $m2 = $moyenne_semestre;
-                    $cm2 = $total_credit_semestre;
-                }
-
-                $total_credits += $total_credit_semestre;
+                $total_credits += ($total_credit_mineures + $total_credit_majeures);
                 $details[] = [
                     'semestre' => $semestre['lib_semestre'],
-                    'moyenne' => round($moyenne_semestre, 2),
-                    'total_credits' => $total_credit_semestre,
+                    'ue_mineures_moyenne' => round($moyenne_mineures, 2),
+                    'ue_majeures_moyenne' => round($moyenne_majeures, 2),
+                    'credits_mineures' => $total_credit_mineures,
+                    'credits_majeures' => $total_credit_majeures,
                     'notes' => $notes_semestre
                 ];
             }
 
-            // Calculer la moyenne générale annuelle selon le niveau
-            $mga = 0;
-            if (($cm1 + $cm2) > 0) {
-                if ($is_master2) {
-                    // Formule spécifique pour Master 2: (Moyenne M1 Sem2 × 2 + moyenne M2 Sem1 × 3)/5
-                    // Récupérer la moyenne M1 Sem2 de l'année précédente
-                    $moyenne_m1_sem2 = $this->getMoyenneM1Sem2($num_etd, $id_ac);
+            // m1, m2 selon la définition: division par 30 (crédits semestriels attendus)
+            $m1 = ($cm1 + $cm2) > 0 ? (($u1 * $cm1) + ($u2 * $cm2)) / 30.0 : 0.0;
+            $m2 = ($cm3 + $cm4) > 0 ? (($u3 * $cm3) + ($u4 * $cm4)) / 30.0 : 0.0;
 
-                    if ($moyenne_m1_sem2 > 0) {
-                        $mga = (($moyenne_m1_sem2 * 2) + ($m1 * 3)) / 5;
-                    } else {
-                        // Si pas de moyenne M1 disponible, utiliser la formule standard
-                        $mga = (($m1 * 30) + ($m2 * 30)) / 60;
-                    }
+            // Calculer la moyenne générale annuelle selon la définition
+            $mga = 0.0;
+            if ($is_master2) {
+                // Formule spécifique pour Master 2 (si disponible), sinon formule standard
+                $moyenne_m1_sem2 = $this->getMoyenneM1Sem2($num_etd, $id_ac);
+                if ($moyenne_m1_sem2 > 0) {
+                    $mga = (($moyenne_m1_sem2 * 2) + ($m1 * 3)) / 5.0;
                 } else {
-                    // Formule standard pour les autres niveaux
-                    $mga = (($m1 * 30) + ($m2 * 30)) / 60;
+                    $mga = (($m1 * 30.0) + ($m2 * 30.0)) / 60.0;
                 }
+            } else {
+                $mga = (($m1 * 30.0) + ($m2 * 30.0)) / 60.0;
             }
 
             // Déterminer le statut académique
             $statut_academique = $this->determinerStatutAcademique($evaluations, $mga, $total_credits);
 
             return [
+                'u1' => round($u1, 2),
+                'u2' => round($u2, 2),
+                'u3' => round($u3, 2),
+                'u4' => round($u4, 2),
                 'm1' => round($m1, 2),
                 'm2' => round($m2, 2),
                 'mga' => round($mga, 2),
                 'cm1' => $cm1,
                 'cm2' => $cm2,
+                'cm3' => $cm3,
+                'cm4' => $cm4,
                 'total_credits' => $total_credits,
                 'statut_academique' => $statut_academique,
                 'details' => $details

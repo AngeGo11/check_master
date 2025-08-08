@@ -62,138 +62,374 @@ try {
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vérification de reçu - <?php echo htmlspecialchars($numero_recu); ?></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Vérification - <?php echo htmlspecialchars($numero_recu); ?></title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Times New Roman', Times, serif;
+            background: linear-gradient(135deg, #1a5276 0%, #2471a3 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            padding: 10px;
+            color: #333;
+            font-size: 16px;
+            line-height: 1.6;
         }
         
         .container {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            padding: 40px;
-            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(26, 82, 118, 0.3);
+            margin: 0 auto;
+            max-width: 400px;
             width: 100%;
-            text-align: center;
+            overflow: hidden;
+            animation: slideUp 0.4s ease-out;
+            border: 2px solid #1a5276;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .header {
-            margin-bottom: 30px;
+            background: linear-gradient(135deg, #1a5276, #2471a3);
+            color: white;
+            padding: 25px 20px;
+            text-align: center;
+            position: relative;
+            border-bottom: 3px solid #1a5276;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #1a5276, #85c1e9, #1a5276);
         }
         
         .logo {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
-            margin: 0 auto 20px;
+            margin: 0 auto 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
             font-size: 24px;
             font-weight: bold;
+            font-family: 'Times New Roman', serif;
         }
         
         .title {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
+            font-family: 'Times New Roman', serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
         .subtitle {
-            color: #666;
-            font-size: 16px;
+            font-size: 14px;
+            opacity: 0.9;
+            font-style: italic;
+            font-family: 'Times New Roman', serif;
+        }
+        
+        .content {
+            padding: 25px 20px 20px;
+            background: #f8f9fa;
+        }
+        
+        .status-card {
+            text-align: center;
+            margin-bottom: 25px;
         }
         
         .status {
-            display: inline-block;
-            padding: 8px 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
             border-radius: 25px;
-            font-weight: bold;
-            margin: 20px 0;
-            font-size: 14px;
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
         }
         
         .status.paid {
-            background: #d4edda;
+            background: linear-gradient(45deg, #d4edda, #c3e6cb);
             color: #155724;
+            border: 2px solid #28a745;
+            font-family: 'Times New Roman', serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .status.paid::before {
+            background: #28a745;
         }
         
         .status.partial {
-            background: #fff3cd;
+            background: linear-gradient(45deg, #fff3cd, #ffeaa7);
             color: #856404;
+            border: 2px solid #ffc107;
+            font-family: 'Times New Roman', serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .status.partial::before {
+            background: #ffc107;
         }
         
         .status.unpaid {
-            background: #f8d7da;
+            background: linear-gradient(45deg, #f8d7da, #f5c6cb);
             color: #721c24;
+            border: 2px solid #dc3545;
+            font-family: 'Times New Roman', serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
-        .info-grid {
-            display: grid;
-            gap: 15px;
-            margin: 30px 0;
+        .status.unpaid::before {
+            background: #dc3545;
+        }
+        
+        .info-section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1a5276;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 15px;
+            padding-left: 5px;
+            font-family: 'Times New Roman', serif;
+            border-left: 4px solid #1a5276;
+            padding-left: 12px;
+        }
+        
+        .info-card {
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 1px solid #e8e8e8;
+            box-shadow: 0 2px 8px rgba(26, 82, 118, 0.1);
         }
         
         .info-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
+            align-items: flex-start;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e8e8e8;
+            gap: 15px;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
         }
         
         .info-label {
-            font-weight: bold;
-            color: #333;
+            font-weight: 600;
+            color: #1a5276;
+            flex-shrink: 0;
+            font-size: 15px;
+            font-family: 'Times New Roman', serif;
         }
         
         .info-value {
-            color: #666;
+            color: #333;
             text-align: right;
+            font-weight: 500;
+            word-break: break-word;
+            font-family: 'Times New Roman', serif;
         }
         
         .amount {
-            font-size: 24px;
+            font-size: 18px;
             font-weight: bold;
-            color: #667eea;
+            color: #1a5276;
+            font-family: 'Times New Roman', serif;
         }
         
-        .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-            color: #666;
-            font-size: 14px;
+        .amount.negative {
+            color: #dc3545;
+        }
+        
+        .student-name {
+            font-weight: bold;
+            color: #1a5276;
+            font-family: 'Times New Roman', serif;
         }
         
         .verification-badge {
-            display: inline-block;
-            background: #28a745;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(45deg, #1a5276, #2471a3);
             color: white;
-            padding: 5px 15px;
-            border-radius: 15px;
-            font-size: 12px;
+            padding: 15px 25px;
+            border-radius: 6px;
+            font-size: 16px;
             font-weight: bold;
-            margin-top: 10px;
+            margin: 25px 0;
+            box-shadow: 0 4px 15px rgba(26, 82, 118, 0.4);
+            font-family: 'Times New Roman', serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .verification-badge::before {
+            content: '✓';
+            font-weight: bold;
+            font-size: 18px;
+            background: white;
+            color: #1a5276;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .footer {
+            padding: 25px 20px;
+            background: #1a5276;
+            color: white;
+            text-align: center;
+            font-size: 13px;
+            line-height: 1.6;
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+        }
+        
+        .footer p {
+            margin-bottom: 8px;
+            opacity: 0.9;
+        }
+        
+        /* Améliorations pour le touch */
+        .touchable {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .touchable:active {
+            transform: scale(0.98);
+        }
+        
+        /* Animation pour les éléments importants */
+        .amount {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.02);
+            }
+        }
+        
+        /* Responsive pour très petits écrans */
+        @media (max-width: 320px) {
+            body {
+                padding: 5px;
+                font-size: 14px;
+            }
+            
+            .container {
+                border-radius: 12px;
+            }
+            
+            .header {
+                padding: 15px;
+            }
+            
+            .content {
+                padding: 20px 15px 15px;
+            }
+            
+            .title {
+                font-size: 18px;
+            }
+            
+            .info-item {
+                padding: 14px 16px;
+                gap: 10px;
+            }
+            
+            .amount {
+                font-size: 16px;
+            }
+        }
+        
+        /* Mode sombre (détection automatique) */
+        @media (prefers-color-scheme: dark) {
+            .container {
+                background: #1a1a1a;
+                color: #f5f5f5;
+            }
+            
+            .info-card {
+                background: #2a2a2a;
+            }
+            
+            .info-item {
+                border-bottom-color: rgba(255,255,255,0.1);
+            }
+            
+            .info-label {
+                color: #aaa;
+            }
+            
+            .info-value {
+                color: #f5f5f5;
+            }
+            
+            .footer {
+                background: #2a2a2a;
+                color: #aaa;
+            }
+            
+            .section-title {
+                color: #aaa;
+            }
         }
     </style>
 </head>
@@ -202,65 +438,105 @@ try {
         <div class="header">
             <div class="logo">CM</div>
             <h1 class="title">Vérification de reçu</h1>
-            <p class="subtitle">Check Master - Système de gestion</p>
+            <p class="subtitle">Check Master</p>
         </div>
         
-        <div class="status <?php echo strtolower($statut); ?>">
-            <?php echo htmlspecialchars($statut); ?>
-        </div>
-        
-        <div class="info-grid">
-            <div class="info-item">
-                <span class="info-label">Numéro de reçu</span>
-                <span class="info-value"><?php echo htmlspecialchars($numero_recu); ?></span>
+        <div class="content">
+            <div class="status-card">
+                <div class="status <?php echo strtolower($statut) === 'payé' ? 'paid' : (strtolower($statut) === 'partiel' ? 'partial' : 'unpaid'); ?>">
+                    <?php echo htmlspecialchars($statut); ?>
+                </div>
             </div>
             
-            <div class="info-item">
-                <span class="info-label">Numéro de règlement</span>
-                <span class="info-value"><?php echo htmlspecialchars($numero_reglement); ?></span>
+            <div class="info-section">
+                <h2 class="section-title">Informations du reçu</h2>
+                <div class="info-card">
+                    <div class="info-item">
+                        <span class="info-label">N° reçu</span>
+                        <span class="info-value"><?php echo htmlspecialchars($numero_recu); ?></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">N° règlement</span>
+                        <span class="info-value"><?php echo htmlspecialchars($numero_reglement); ?></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Date</span>
+                        <span class="info-value"><?php echo date('d/m/Y', strtotime($reglement['date_reglement'])); ?></span>
+                    </div>
+                </div>
             </div>
             
-            <div class="info-item">
-                <span class="info-label">Étudiant</span>
-                <span class="info-value"><?php echo htmlspecialchars($reglement['nom_etd'] . ' ' . $reglement['prenom_etd']); ?></span>
+            <div class="info-section">
+                <h2 class="section-title">Étudiant</h2>
+                <div class="info-card">
+                    <div class="info-item">
+                        <span class="info-label">Nom complet</span>
+                        <span class="info-value student-name"><?php echo htmlspecialchars($reglement['nom_etd'] . ' ' . $reglement['prenom_etd']); ?></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Niveau</span>
+                        <span class="info-value"><?php echo htmlspecialchars($reglement['lib_niv_etd'] ?? 'Non défini'); ?></span>
+                    </div>
+                </div>
             </div>
             
-            <div class="info-item">
-                <span class="info-label">Niveau</span>
-                <span class="info-value"><?php echo htmlspecialchars($reglement['lib_niv_etd'] ?? 'Non défini'); ?></span>
+            <div class="info-section">
+                <h2 class="section-title">Montants</h2>
+                <div class="info-card">
+                    <div class="info-item">
+                        <span class="info-label">Montant total</span>
+                        <span class="info-value amount"><?php echo number_format($reglement['montant_a_payer'], 0, ',', ' ') . ' FCFA'; ?></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Total payé</span>
+                        <span class="info-value amount"><?php echo number_format($total_paye, 0, ',', ' ') . ' FCFA'; ?></span>
+                    </div>
+                    <?php if ($reste_a_payer > 0): ?>
+                    <div class="info-item">
+                        <span class="info-label">Reste à payer</span>
+                        <span class="info-value amount negative"><?php echo number_format($reste_a_payer, 0, ',', ' ') . ' FCFA'; ?></span>
+                    </div>
+                    <?php endif; ?>
+                </div>
             </div>
             
-            <div class="info-item">
-                <span class="info-label">Montant total</span>
-                <span class="info-value amount"><?php echo number_format($reglement['montant_a_payer'], 0, ',', ' ') . ' FCFA'; ?></span>
+            <div class="verification-badge">
+                Reçu authentifié
             </div>
-            
-            <div class="info-item">
-                <span class="info-label">Total payé</span>
-                <span class="info-value amount"><?php echo number_format($total_paye, 0, ',', ' ') . ' FCFA'; ?></span>
-            </div>
-            
-            <?php if ($reste_a_payer > 0): ?>
-            <div class="info-item">
-                <span class="info-label">Reste à payer</span>
-                <span class="info-value amount" style="color: #dc3545;"><?php echo number_format($reste_a_payer, 0, ',', ' ') . ' FCFA'; ?></span>
-            </div>
-            <?php endif; ?>
-            
-            <div class="info-item">
-                <span class="info-label">Date de règlement</span>
-                <span class="info-value"><?php echo date('d/m/Y', strtotime($reglement['date_reglement'])); ?></span>
-            </div>
-        </div>
-        
-        <div class="verification-badge">
-            ✓ Reçu vérifié
         </div>
         
         <div class="footer">
-            <p>Ce reçu a été généré automatiquement par le système Check Master</p>
-            <p>Pour toute question, contactez l'administration</p>
+            <p>Ce reçu a été vérifié automatiquement</p>
+            <p>Check Master - Système de gestion scolaire</p>
         </div>
     </div>
+    
+    <script>
+        // Amélioration de l'expérience tactile
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animation d'entrée
+            const container = document.querySelector('.container');
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                container.style.transition = 'all 0.4s ease-out';
+                container.style.opacity = '1';
+                container.style.transform = 'translateY(0)';
+            }, 100);
+            
+            // Feedback tactile pour les éléments interactifs
+            const touchableElements = document.querySelectorAll('.touchable');
+            touchableElements.forEach(element => {
+                element.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                element.addEventListener('touchend', function() {
+                    this.style.transform = 'scale(1)';
+                });
+            });
+        });
+    </script>
 </body>
 </html>

@@ -544,7 +544,7 @@ $qr_data = json_encode([
                 $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
                 $base_url = $protocol . '://' . $server_ip . ':' . $server_port;
                 ?>
-                var qrText = "http://<?php echo '192.168.1.64:8083'; ?>/public/verifier_recu.php?r=<?php echo urlencode($numero_recu); ?>&n=<?php echo urlencode($numero_reglement); ?>";
+                var qrText = "http://<?php echo 'localhost:8083'; ?>/public/verifier_recu.php?r=<?php echo urlencode($numero_recu); ?>&n=<?php echo urlencode($numero_reglement); ?>";
 
                 console.log('Texte QR Code:', qrText);
 

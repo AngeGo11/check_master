@@ -681,6 +681,12 @@ class EtudiantsController {
             $montant_inscription = $data['montant_inscription'] ?? 0;
             $commentaire = $data['commentaire'] ?? '';
 
+            // Champs paiement (par étudiant)
+            $mode_paiement = $data['mode_paiement'] ?? 'espece';
+            $numero_cheque = $data['numero_cheque'] ?? 'Néant';
+            $motif_paiement = $data['motif_paiement'] ?? 'Inscription à cheval';
+            $montant_paye_par_etudiant = (int)($data['montant_paye'] ?? 0);
+
             // Validation des données
             if (empty($etudiants_ids)) {
                 return ['success' => false, 'message' => 'Aucun étudiant sélectionné'];
@@ -698,18 +704,28 @@ class EtudiantsController {
                 return ['success' => false, 'message' => 'Promotion principale requise'];
             }
 
+            if ($mode_paiement === 'cheque' && (empty($numero_cheque) || $numero_cheque === 'Néant')) {
+                return ['success' => false, 'message' => 'Numéro de chèque requis pour un paiement par chèque'];
+            }
+
             $success_count = 0;
             $error_messages = [];
 
+            // Préparer des statements de calcul
+            $stmtGetNiv = $this->pdo->prepare("SELECT id_niv_etd FROM etudiants WHERE num_etd = ?");
+            $stmtFraisBase = $this->pdo->prepare("SELECT montant FROM frais_inscription WHERE id_niv_etd = ? AND id_ac = ?");
+            $placeholders = str_repeat('?,', count($matieres_ids) - 1) . '?';
+            $stmtSommeMat = $this->pdo->prepare("SELECT SUM(COALESCE(ec.prix_matiere_cheval_ecue, 25000.00)) AS total_prix FROM ecue ec WHERE ec.id_ecue IN ($placeholders)");
+
             foreach ($etudiants_ids as $etudiant_id) {
                 try {
-                    // Vérifier si l'étudiant n'est pas déjà inscrit à cheval pour cette année
+                    // Éviter doublon d'inscription à cheval sur la même année
                     if ($this->model->isEtudiantCheval($etudiant_id, $annee_id)) {
                         $error_messages[] = "L'étudiant $etudiant_id est déjà inscrit à cheval pour cette année";
                         continue;
                     }
 
-                    // Inscrire l'étudiant à cheval (le modèle gère sa propre transaction)
+                    // Inscription à cheval + matières
                     $nombre_matieres = count($matieres_ids);
                     $result = $this->model->inscrireEtudiantCheval(
                         $etudiant_id,
@@ -720,8 +736,11 @@ class EtudiantsController {
                         $commentaire
                     );
 
-                    if ($result) {
-                        // Ajouter les matières de rattrapage pour cet étudiant
+                    if (!$result) {
+                        $error_messages[] = "Erreur lors de l'inscription de l'étudiant $etudiant_id";
+                        continue;
+                    }
+
                         foreach ($matieres_ids as $matiere_id) {
                             $this->model->ajouterMatiereRattrapage(
                                 $etudiant_id,
@@ -731,11 +750,54 @@ class EtudiantsController {
                                 $promotion_principale
                             );
                         }
-                        // Le statut est déjà mis à jour dans inscrireEtudiantCheval
-                        $success_count++;
+
+                    // Calcul du montant total à payer (par étudiant)
+                    $stmtGetNiv->execute([$etudiant_id]);
+                    $id_niv_etd = (int)$stmtGetNiv->fetchColumn();
+ 
+                    // Récupérer le frais de base (frais_inscription) pour le niveau/année
+                    $stmtFraisBase->execute([$id_niv_etd, $annee_id]);
+                    $frais_base = (int)($stmtFraisBase->fetchColumn() ?: 0);
+
+                    // Somme des prix des matières sélectionnées
+                    $stmtSommeMat->execute($matieres_ids);
+                    $total_prix_matieres = (int)($stmtSommeMat->fetchColumn() ?: 0);
+ 
+                    $montant_total_par_etudiant = $frais_base + $total_prix_matieres;
+
+                    // Gestion du règlement (sans créer de paiement ici)
+                    // Chercher un règlement existant le plus récent pour cet étudiant/année/niveau
+                    $stmt = $this->pdo->prepare("SELECT * FROM reglement WHERE num_etd = ? AND id_ac = ? AND id_niv_etd = ? ORDER BY id_reglement DESC LIMIT 1");
+                    $stmt->execute([$etudiant_id, $annee_id, $id_niv_etd]);
+                    $reglement = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                    if ($reglement) {
+                        $id_reglement = (int)$reglement['id_reglement'];
+                        $total_paye = (int)($reglement['total_paye'] ?? 0);
+                        $reste_a_payer = max(0, $montant_total_par_etudiant - $total_paye);
+                        $statut = ($total_paye >= $montant_total_par_etudiant) ? 'Soldé' : (($total_paye > 0) ? 'Partiel' : 'Non payé');
+
+                        // MAJ du règlement: montant_a_payer et reste/statut recalculés
+                        $stmt = $this->pdo->prepare("UPDATE reglement SET montant_a_payer = ?, reste_a_payer = ?, statut = ?, date_reglement = NOW() WHERE id_reglement = ?");
+                        $stmt->execute([$montant_total_par_etudiant, $reste_a_payer, $statut, $id_reglement]);
                     } else {
-                        $error_messages[] = "Erreur lors de l'inscription de l'étudiant $etudiant_id";
+                        // Nouveau règlement REG-YYYY-XXXX (sans paiement ici)
+                        $prefix = 'REG-' . date('Y') . '-';
+                        $stmt = $this->pdo->prepare("SELECT MAX(CAST(SUBSTRING(numero_reglement, LENGTH(?) + 1) AS UNSIGNED)) FROM reglement WHERE numero_reglement LIKE CONCAT(?, '%')");
+                        $stmt->execute([$prefix, $prefix]);
+                        $max = (int)$stmt->fetchColumn();
+                        $next = str_pad(($max + 1), 4, '0', STR_PAD_LEFT);
+                        $numero_reglement = $prefix . $next;
+
+                        $total_paye_initial = 0;
+                        $reste_a_payer = $montant_total_par_etudiant;
+                        $statut = 'Non payé';
+
+                        $stmt = $this->pdo->prepare("INSERT INTO reglement (num_etd, id_ac, numero_reglement, montant_a_payer, total_paye, reste_a_payer, id_niv_etd, date_reglement, statut, mode_de_paiement, numero_cheque, motif_paiement) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?, 'espece', 'Néant', 'Inscription à cheval')");
+                        $stmt->execute([$etudiant_id, $annee_id, $numero_reglement, $montant_total_par_etudiant, $total_paye_initial, $reste_a_payer, $id_niv_etd, $statut]);
                     }
+
+                    $success_count++;
                 } catch (Exception $e) {
                     $error_messages[] = "Erreur pour l'étudiant $etudiant_id: " . $e->getMessage();
                 }
@@ -774,7 +836,7 @@ class EtudiantsController {
             $total_prix_matieres = 0;
             if (!empty($matieres_ids)) {
                 $placeholders = str_repeat('?,', count($matieres_ids) - 1) . '?';
-                $sql = "SELECT SUM(COALESCE(prix_matiere_cheval, 25000.00)) as total_prix
+                $sql = "SELECT SUM(COALESCE(prix_matiere_cheval_ecue, 25000.00)) as total_prix
                         FROM ecue 
                         WHERE id_ecue IN ($placeholders)";
                 $stmt = $this->pdo->prepare($sql);
