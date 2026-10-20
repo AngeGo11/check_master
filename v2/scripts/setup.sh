@@ -9,7 +9,7 @@ fi
 docker info >/dev/null
 docker compose version >/dev/null
 
-docker run --rm -v "$PWD:/app" -w /app php:8.4-cli-alpine php scripts/init-env.php
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/app" -w /app php:8.4-cli-alpine php scripts/init-env.php
 docker compose config --quiet
 docker compose build app
 
