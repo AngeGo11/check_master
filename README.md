@@ -1,5 +1,10 @@
 # CheckMaster
 
+## Refonte v2 — lot 1
+
+Le nouveau socle Laravel + React/Inertia se trouve dans [`v2/`](v2/README.md), sur la branche `refactor/v2-foundation`.
+Le [guide de démarrage sur Mac](v2/README.md#démarrer-sur-mac) décrit l'installation Docker, la création d'un compte et les tests. La v2 utilise le port **8085** et une base distincte. Les instructions ci-dessous décrivent la version historique.
+
 Plateforme de **gestion des commissions de validation** pour les soutenances de Master 2 MIAGE à l’[Université Félix Houphouët-Boigny (UFHB)](https://www.univ-fhb.edu.ci/).
 
 L’application centralise le dépôt des mémoires, le suivi des dossiers, les réunions de commission, les décisions, la messagerie et l’administration pédagogique / RH.

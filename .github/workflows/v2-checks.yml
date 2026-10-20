@@ -1,0 +1,69 @@
+name: Check Master v2
+
+on:
+  push:
+    branches: [refactor/v2-foundation]
+    paths: ['v2/**', '.github/workflows/v2-checks.yml']
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths: ['v2/**', '.github/workflows/v2-checks.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v2-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build and start the same Docker environment as on macOS
+        run: bash v2/scripts/setup.sh
+      - name: Check authentication, CSRF, session privacy and HTTP availability
+        run: bash v2/scripts/check.sh
+      - name: Preserve the exact dependency versions that passed
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-v2-lockfiles
+          path: |
+            v2/composer.lock
+            v2/package-lock.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Stop containers
+        if: always()
+        working-directory: v2
+        run: docker compose down
+
+  persist-locks:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/refactor/v2-foundation' && github.repository == 'AngeGo11/check_master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-v2-lockfiles
+          path: v2
+      - name: Commit only verified dependency locks to the foundation branch
+        run: |
+          git add -- v2/composer.lock v2/package-lock.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "build(v2): lock verified PHP and frontend dependencies"
+          git push origin HEAD:refs/heads/refactor/v2-foundation
