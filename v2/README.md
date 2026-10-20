@@ -5,6 +5,13 @@ Ce lot comprend une connexion fonctionnelle, un espace authentifié, une command
 
 Les mémoires, les rôles métier, les validations et les données de la version historique ne sont pas encore migrés. Le tableau de bord présente un état initial, sans statistiques fictives.
 
+## Continuité de l’interface
+
+La v2 reprend les logos, la palette bleue, la police Poppins et la structure des écrans Check Master existants.
+Les améliorations portent sur la lisibilité, l’accessibilité et l’affichage mobile.
+Les rubriques métier restent clairement indisponibles tant que leurs données et droits ne sont pas migrés.
+Voir les [repères de continuité](docs/interface-continuity.md) à respecter pour chaque prochain écran.
+
 ## Démarrer sur Mac
 
 Installer puis ouvrir [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/).
