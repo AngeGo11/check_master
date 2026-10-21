@@ -2,7 +2,12 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Settings\UserController;
+use App\Http\Controllers\Settings\GroupController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::redirect('/', '/dashboard');
 
@@ -14,5 +19,20 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
+    Route::get('/password/change', [ProfileController::class, 'password'])->name('password.edit');
+    Route::patch('/password', [ProfileController::class, 'updatePassword'])->middleware('throttle:10,1')->name('password.update');
+    Route::get('/settings', function (Request $request) {
+        abort_unless($request->user()->can('users.view') || $request->user()->can('groups.view'), 403);
+
+        return Inertia::render('settings/index');
+    })->name('settings');
+    Route::get('/settings/users', [UserController::class, 'index'])->middleware('can:users.view')->name('users.index');
+    Route::get('/settings/users/create', [UserController::class, 'create'])->middleware('can:users.manage')->name('users.create');
+    Route::post('/settings/users', [UserController::class, 'store'])->middleware('can:users.manage')->name('users.store');
+    Route::get('/settings/users/{user}/edit', [UserController::class, 'edit'])->middleware('can:users.manage')->name('users.edit');
+    Route::put('/settings/users/{user}', [UserController::class, 'update'])->middleware('can:users.manage')->name('users.update');
+    Route::get('/settings/groups', [GroupController::class, 'index'])->middleware('can:groups.view')->name('groups.index');
+    Route::put('/settings/groups/{group}', [GroupController::class, 'update'])->middleware('can:groups.manage')->name('groups.update');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });

@@ -18,6 +18,10 @@ const paths = {
   logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M9 12h12m-4-4 4 4-4 4" /></>,
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
   close: <path d="m6 6 12 12M6 18 18 6" />,
+  settings: <><path d="M4 7h16M4 17h16" /><circle cx="9" cy="7" r="3" fill="currentColor" stroke="none" /><circle cx="15" cy="17" r="3" fill="currentColor" stroke="none" /></>,
+  plus: <path d="M12 5v14M5 12h14" />,
+  arrow: <path d="m9 5-7 7 7 7M3 12h19" />,
+  search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></>,
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof paths;

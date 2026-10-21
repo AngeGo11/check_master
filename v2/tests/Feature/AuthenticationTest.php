@@ -66,7 +66,7 @@ class AuthenticationTest extends TestCase
     public function test_dashboard_never_exposes_password_or_remember_token(): void
     {
         $user = User::factory()->create();
-        $this->withoutVite()->actingAs($user)->get('/dashboard')->assertOk()
+        $this->withoutVite()->actingAs($user)->withSession(['auth_version' => $user->auth_version])->get('/dashboard')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('dashboard')
                 ->where('auth.user.id', $user->id)
@@ -77,7 +77,7 @@ class AuthenticationTest extends TestCase
     public function test_logout_invalidates_the_session(): void
     {
         $user = User::factory()->create();
-        $this->actingAs($user)->withSession(['private_marker' => 'private'])
+        $this->actingAs($user)->withSession(['private_marker' => 'private', 'auth_version' => $user->auth_version])
             ->post('/logout')->assertRedirect('/login');
         $this->assertGuest();
         $this->assertFalse(session()->has('private_marker'));
@@ -111,5 +111,7 @@ class AuthenticationTest extends TestCase
         $user = User::where('email', 'account@example.test')->firstOrFail();
         $this->assertTrue(Hash::check('a-long-test-password', $user->password));
         $this->assertNull($user->getAttribute('role'));
+        $this->assertCount(0, $user->groups);
+        $this->assertCount(0, $user->types);
     }
 }
