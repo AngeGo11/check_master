@@ -3,6 +3,7 @@ import type { PropsWithChildren } from 'react';
 import Icon, { type IconName } from '../components/icon';
 import AppLayout from '../layouts/app-layout';
 import type { SharedData } from '../types';
+import { reportLabels, type ReportStatus } from '../types/reports';
 
 const indicators: { label: string; icon: IconName; tone: string }[] = [
   { label: 'Étudiants enregistrés', icon: 'graduate', tone: 'blue' },
@@ -33,7 +34,7 @@ function Unavailable({ children, compact = false }: PropsWithChildren<{ compact?
   );
 }
 
-export default function Dashboard({ studentCount, studentsByLevel }: { studentCount: number | null; studentsByLevel: { name: string; total: number }[] | null }) {
+export default function Dashboard({ studentCount, studentsByLevel, reportCount, pendingReportCount, latestReport }: { studentCount: number | null; studentsByLevel: { name: string; total: number }[] | null; reportCount: number | null; pendingReportCount: number | null; latestReport: { title: string; status: ReportStatus; reference: string; href: string } | null }) {
   const { auth } = usePage<SharedData>().props;
   return (
     <AppLayout>
@@ -47,15 +48,15 @@ export default function Dashboard({ studentCount, studentsByLevel }: { studentCo
         {indicators.map(({ label, icon, tone }, index) => (
           <article className={'stat-card stat-' + tone} key={label}>
             <div className="stat-heading"><h2>{label}</h2><span className="stat-icon"><Icon name={icon} /></span></div>
-            <p className="stat-value" aria-label={index === 0 && studentCount !== null ? undefined : 'Valeur indisponible'}>{index === 0 && studentCount !== null ? studentCount : '—'}</p>
-            <p className="stat-caption">{index === 0 && studentCount !== null ? 'Dossiers non archivés' : 'Données indisponibles'}</p>
+            <p className="stat-value" aria-label={(index === 0 && studentCount !== null) || (index === 1 && reportCount !== null) ? undefined : 'Valeur indisponible'}>{index === 0 && studentCount !== null ? studentCount : index === 1 && reportCount !== null ? reportCount : '—'}</p>
+            <p className="stat-caption">{index === 0 && studentCount !== null ? 'Dossiers non archivés' : index === 1 && reportCount !== null ? 'Mémoires déposés, toutes les années' : 'Données indisponibles'}</p>
           </article>
         ))}
       </section>
-      <p className="availability-note">{studentCount !== null ? 'L’effectif correspond aux dossiers enregistrés. Le suivi des rapports et des soutenances sera disponible avec ces services.' : 'Les indicateurs et le suivi académique seront disponibles selon vos droits et l’ouverture des services.'}</p>
+      <p className="availability-note">Les indicateurs disponibles correspondent aux dossiers enregistrés et à vos droits de consultation.</p>
       <div className="charts-grid">
         <Panel title="Évolution des étudiants" subtitle="Effectifs actuels par niveau d’étude" icon="chart">
-          {studentsByLevel === null ? <Unavailable>Les effectifs sont réservés aux personnes habilitées à consulter les dossiers étudiants.</Unavailable> : studentsByLevel.length ? <><ul className="level-counts">{studentsByLevel.map((level) => <li key={level.name}><span>{level.name}</span><strong>{level.total}</strong></li>)}</ul><p className="field-hint">Situation actuelle des dossiers non archivés. L’historique annuel sera disponible avec les inscriptions.</p><Link href="/students" className="table-action">Consulter les étudiants</Link></> : <div className="empty-state"><h3>Aucun dossier étudiant</h3><p>Les effectifs apparaîtront dès l’enregistrement des premiers dossiers.</p><Link href="/students" className="table-action">Consulter les étudiants</Link></div>}
+          {studentsByLevel === null ? <Unavailable>Les effectifs sont réservés aux personnes habilitées à consulter les dossiers étudiants.</Unavailable> : studentsByLevel.length ? <><ul className="level-counts">{studentsByLevel.map((level) => <li key={level.name}><span>{level.name}</span><strong>{level.total}</strong></li>)}</ul><p className="field-hint">Situation actuelle des dossiers non archivés.</p><Link href="/students" className="table-action">Consulter les étudiants</Link></> : <div className="empty-state"><h3>Aucun dossier étudiant</h3><p>Les effectifs apparaîtront dès l’enregistrement des premiers dossiers.</p><Link href="/students" className="table-action">Consulter les étudiants</Link></div>}
         </Panel>
         <Panel title="Répartition" subtitle="Types d’utilisateurs" icon="pie">
           <Unavailable>La répartition des utilisateurs sera disponible avec la gestion des rôles.</Unavailable>
@@ -68,10 +69,10 @@ export default function Dashboard({ studentCount, studentsByLevel }: { studentCo
       </div>
       <div className="details-grid">
         <Panel title="Dernier rapport" icon="document">
-          <Unavailable compact>Les informations du dernier rapport seront affichées à l’ouverture du service des rapports.</Unavailable>
+          <div className="empty-state empty-state-compact">{latestReport ? <><h3>{latestReport.title}</h3><p>{reportLabels[latestReport.status]}</p><Link href={latestReport.href} className="table-action">Consulter le mémoire</Link></> : <><h3>Aucun mémoire disponible</h3><p>Les dépôts accessibles à votre compte apparaîtront ici.</p></>}</div>
         </Panel>
         <Panel title="Rapports en attente" icon="clock">
-          <Unavailable compact>Les rapports à examiner apparaîtront ici selon vos droits d’accès.</Unavailable>
+          {pendingReportCount !== null ? <div className="empty-state empty-state-compact"><h3>{pendingReportCount} mémoire(s) en attente</h3><p>Approbation administrative</p><Link href="/reports?status=submitted" className="table-action">Consulter les dépôts</Link></div> : <Unavailable compact>Les rapports à examiner sont réservés aux personnes habilitées.</Unavailable>}
         </Panel>
         <Panel title="Commission d’évaluation" icon="users">
           <Unavailable compact>La composition de la commission sera disponible avec le service des évaluations.</Unavailable>

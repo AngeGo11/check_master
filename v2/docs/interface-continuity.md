@@ -54,3 +54,11 @@ La liste des étudiants conserve ses quatre cartes, les filtres promotion/niveau
 ## Lot 4 — scolarité
 
 Les écrans d’inscriptions reprennent les quatre cartes Total inscriptions, Partiellement payé, Tout payé et Rien payé ainsi que les colonnes carte/étudiant, niveau, référence, montants, date, statut et actions. Les compteurs sont explicitement limités à l’année sélectionnée et excluent les annulations. Le numéro de reçu appartient à chaque règlement, accessible depuis l’historique de l’inscription. Les critères de scolarité, Master 2 et stage sont affichés avec leur résultat calculé. Années et tarifs restent dans les paramètres généraux. Les styles d’impression masquent la navigation uniquement dans le reçu imprimé.
+
+## État après le lot 5
+
+Les inscriptions, règlements et critères d’éligibilité du lot 4 sont disponibles. Le lot 5 reprend les trois cartes de `app/Views/rapports.php` : Création du rapport, Statut du dépôt et Commentaires. Le dépôt PDF, le statut et l’historique des versions prolongent ces cartes, avec les composants de formulaire et les couleurs existants. La liste administrative utilise les mêmes cartes de totaux, filtres, tableaux et boutons que les autres modules.
+
+Les indicateurs « Rapports soumis », « Rapports en attente » et le panneau « Dernier rapport » utilisent maintenant les données réelles, selon les permissions. L’étudiant voit uniquement son dernier mémoire. Les soutenances et commissions restent indisponibles. L’approbation administrative est explicitement distinguée de la future validation par la commission.
+
+La comparaison visuelle sur Mac, notamment sur mobile, reste à effectuer avec le [scénario du lot 5](reports.md).

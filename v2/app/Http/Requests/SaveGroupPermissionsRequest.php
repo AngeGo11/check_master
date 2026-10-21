@@ -37,6 +37,9 @@ class SaveGroupPermissionsRequest extends FormRequest
             if (array_intersect(['payments.manage', 'eligibility.review'], $this->input('permissions', [])) && ! in_array('enrollments.view', $this->input('permissions', []), true)) {
                 $validator->errors()->add('permissions', 'La consultation des inscriptions est nécessaire pour les règlements et l’examen d’éligibilité.');
             }
+            if (in_array('reports.review', $this->input('permissions', []), true) && ! in_array('reports.view', $this->input('permissions', []), true)) {
+                $validator->errors()->add('permissions', 'La consultation des mémoires est nécessaire pour les approuver ou demander une correction.');
+            }
         }];
     }
 }

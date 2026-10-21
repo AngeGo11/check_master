@@ -91,3 +91,7 @@ Scénario avec des données fictives :
 8. Vérifier les tableaux et formulaires en largeur mobile, les erreurs, le clavier, le menu et l’aperçu d’impression.
 
 `EnrollmentsTest` complète les tests des lots précédents : permissions, années et tarifs, montants, dates, doublons, répétition de soumission, corrections, révisions, trois critères, péremption des décisions, isolation des reçus, pagination et CSRF. Les tests applicatifs utilisent SQLite en mémoire. Le workflow Docker construit PHP/Node, applique les migrations sur MySQL, compile TypeScript/Vite et vérifie HTTP. Les essais visuels sur Mac et à deux connexions MySQL simultanées restent à réaliser.
+
+## Suite du parcours
+
+Le [lot 5](reports.md) utilise cet examen d’éligibilité pour le dépôt privé des mémoires PDF, leurs versions et leur approbation administrative. Son guide fournit la branche de mise à jour et le scénario de test suivant.
