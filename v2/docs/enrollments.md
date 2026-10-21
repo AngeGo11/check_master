@@ -61,7 +61,7 @@ Les écritures utilisent une transaction et le même ordre de verrouillage que l
 
 Les contraintes uniques et clés étrangères protègent les références. Les révisions refusent les formulaires périmés. `enrollment_audits` conserve acteurs, actions, références, montants et motifs des corrections ; les valeurs du dossier d’identité et les coordonnées du compte ne sont pas recopiées. Les examens sont conservés dans `eligibility_reviews`. L’écran de piste d’audit et la consultation complète des examens historiques restent à reprendre.
 
-L’accès personnel relit le rattachement à chaque requête et exige le type Étudiant. Un e-mail identique, un identifiant ajouté à l’URL ou un reçu appartenant à une autre inscription ne donne aucun accès. Les réponses ne contiennent ni clé de soumission, ni identifiant de l’opérateur de caisse, ni secret de compte.
+L’accès personnel relit le rattachement à chaque requête et exige le type Étudiant. Un e-mail identique, un identifiant ajouté à l’URL ou un reçu appartenant à une autre inscription ne donne aucun accès. L’historique et les reçus ne contiennent ni clé de soumission déjà utilisée, ni identifiant de l’opérateur de caisse, ni secret de compte. Une nouvelle clé est fournie au formulaire de règlement du service habilité.
 
 ## Mettre à jour et tester sur Mac
 

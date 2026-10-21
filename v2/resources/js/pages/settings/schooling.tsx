@@ -41,10 +41,12 @@ function FeeEditor({ fee, years, levels }: { fee?: Fee; years: AcademicYear[]; l
   </div><button className="button-primary" disabled={form.processing}>{fee ? 'Enregistrer le tarif' : 'Ajouter le tarif'}</button></form>;
 }
 export default function Schooling({ years, fees, levels }: { years: AcademicYear[]; fees: Fee[]; levels: AccessOption[] }) {
-  const canManage = usePage<SharedData>().props.auth.permissions.includes('schooling.manage');
+  const page = usePage<SharedData & { errors: Record<string, string> }>();
+  const canManage = page.props.auth.permissions.includes('schooling.manage');
   return <AppLayout title="Années et tarifs" subtitle="Paramètres de scolarité"><Head title="Années et tarifs" />
     <p className="breadcrumb"><Link href="/settings">Paramètres généraux</Link><span>/</span><strong>Années et tarifs</strong></p>
     <div className="page-intro"><div><h1>Années académiques et frais de scolarité</h1><p>Retrouvez les années et le montant à payer pour chaque niveau.</p></div></div>
+    {page.props.errors.revision && <div><FormErrors errors={{ revision: page.props.errors.revision }} /><a className="table-action" href="/settings/schooling">Recharger les paramètres</a></div>}
     <section className="panel schooling-section"><h2>Années académiques</h2>{!years.length && <p className="notice notice-neutral">Aucune année configurée. Ajoutez l’année à utiliser, puis passez-la « En cours ».</p>}
       {years.map((year) => <details className="schooling-details" key={year.id + '-' + year.revision}><summary><strong>{year.name}</strong> · {yearLabels[year.status]} · {year.enrollments_count} inscription(s)</summary>{canManage ? <YearEditor year={year} /> : <p>Du {dateLabel(year.starts_on)} au {dateLabel(year.ends_on)}</p>}</details>)}
       {canManage && <details className="schooling-details"><summary>Ajouter une année académique</summary><YearEditor /></details>}

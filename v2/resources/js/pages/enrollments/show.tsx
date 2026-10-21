@@ -52,7 +52,8 @@ function InternshipForm({ enrollment, internship }: { enrollment: EnrollmentDeta
   </div><p className="field-hint">La déclaration est enregistrée après vérification du justificatif par le service habilité.</p><button className="button-primary" disabled={form.processing}>Enregistrer le stage</button></form>;
 }
 export default function ShowEnrollment({ enrollment: e, payments, internship, eligibility, personal, operationKey, today }: Props) {
-  const permissions = usePage<SharedData>().props.auth.permissions;
+  const page = usePage<SharedData & { errors: Record<string, string> }>();
+  const permissions = page.props.auth.permissions;
   const base = personal ? '/my-enrollments' : '/enrollments';
   const canManage = !personal && permissions.includes('enrollments.manage');
   const canPay = !personal && permissions.includes('payments.manage');
@@ -60,6 +61,7 @@ export default function ShowEnrollment({ enrollment: e, payments, internship, el
   return <AppLayout title="Détail de l’inscription" subtitle="Inscriptions et règlements"><Head title={'Inscription · ' + e.student.card_number} />
     <p className="breadcrumb"><Link href={base}>{personal ? 'Mes inscriptions' : 'Inscriptions et règlements'}</Link><span>/</span><strong>{e.student.card_number}</strong></p>
     <div className="page-intro"><div><h1>{e.student.last_name} {e.student.first_name}</h1><p>{e.year.name} · {e.level.name} · Carte {e.student.card_number}</p><p className="reference-cell">{e.reference} · Inscription du {dateLabel(e.enrolled_on)}</p></div><Link href={base} className="button-secondary">Retour à la liste</Link></div>
+    {page.props.errors.revision && <div><FormErrors errors={{ revision: page.props.errors.revision }} /><a className="table-action" href={base + '/' + e.id}>Recharger l’inscription</a></div>}
     {!e.editable && <p className="notice notice-neutral">Les nouvelles écritures et l’examen sont indisponibles : vérifiez le statut de l’année, de l’inscription et du dossier étudiant.{e.cancelled && <> Inscription annulée : {e.cancellation_reason}</>}</p>}
     <section className="stats-grid enrollment-stats" aria-label="Situation du règlement">{[['Montant à payer', money(e.amount_due)], ['Total payé', money(e.paid_amount)], ['Reste à payer', money(e.balance)]].map(([label, value]) => <article className="stat-card stat-blue" key={label}><h2 className="stat-label">{label}</h2><p className="stat-value money-value">{value}</p><p className="stat-caption">{e.cancelled ? 'Inscription annulée' : paymentLabels[e.payment_status]}</p></article>)}</section>
     <section className="panel schooling-section"><h2>Historique des règlements</h2><div className="table-scroll" tabIndex={0} role="region" aria-label="Historique des règlements"><table className="data-table"><thead><tr>{['Reçu / Date', 'Montant', 'Mode / Motif', 'Statut', 'Actions'].map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>
