@@ -30,6 +30,15 @@ return [
 
     'disks' => [
 
+        // Dedicated private local disk: never follows FILESYSTEM_DISK or a public URL.
+        'reports' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/reports'),
+            'serve' => false,
+            'visibility' => 'private',
+            'throw' => true,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
