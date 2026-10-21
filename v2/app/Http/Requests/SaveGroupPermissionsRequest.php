@@ -28,11 +28,14 @@ class SaveGroupPermissionsRequest extends FormRequest
             if ($validator->errors()->isNotEmpty()) {
                 return;
             }
-            foreach (['users', 'groups', 'students', 'academic'] as $resource) {
+            foreach (['users', 'groups', 'students', 'academic', 'schooling', 'enrollments'] as $resource) {
                 $permissions = $this->input('permissions', []);
                 if (in_array($resource.'.manage', $permissions, true) && ! in_array($resource.'.view', $permissions, true)) {
                     $validator->errors()->add('permissions', 'Le droit de consultation correspondant est nécessaire pour accorder la gestion.');
                 }
+            }
+            if (array_intersect(['payments.manage', 'eligibility.review'], $this->input('permissions', [])) && ! in_array('enrollments.view', $this->input('permissions', []), true)) {
+                $validator->errors()->add('permissions', 'La consultation des inscriptions est nécessaire pour les règlements et l’examen d’éligibilité.');
             }
         }];
     }

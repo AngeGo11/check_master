@@ -1,6 +1,6 @@
 # Lot 3 — dossiers étudiants et références pédagogiques
 
-Ce lot prépare les données nécessaires au dépôt des mémoires. Il reprend la liste des étudiants, les fiches individuelles, les promotions, les niveaux et les statuts de l’application historique. Il ne déclare pas un étudiant éligible au dépôt : cette décision dépendra des règles de scolarité, des notes et des règlements, qui restent à migrer.
+Ce lot prépare les données nécessaires au dépôt des mémoires. Il reprend la liste des étudiants, les fiches individuelles, les promotions, les niveaux et les statuts de l’application historique. Il ne déclare pas un étudiant éligible au dépôt : le lot 4 reprend les trois critères de l’écran historique des demandes : scolarité soldée, Master 2 et stage déclaré. Voir [le guide des inscriptions](enrollments.md).
 
 ## Références et correspondances
 
@@ -79,6 +79,6 @@ Pour une première installation, suivre le README et les commandes nominatives `
 
 Les tests applicatifs utilisent SQLite en mémoire. Le workflow démarre également Docker, applique réellement les migrations sur MySQL et vérifie HTTP ainsi que la compilation TypeScript/Vite. Le contrôle visuel sur Mac et un test à deux connexions MySQL simultanées restent à réaliser ; les tests de révision simulent deux formulaires ouverts successivement.
 
-Ne sont pas encore disponibles : import des étudiants historiques, photo, export ou opérations en masse, années académiques/inscriptions, matières à rattraper, frais et règlements, notes et calcul d’éligibilité, dépôt de mémoire et décisions de commission. Le statut « À cheval » est une information de dossier ; il ne déclenche aucun calcul de frais ni inscription à une matière. Le journal est stocké mais son écran de consultation reste à reprendre avec la piste d’audit.
+À la fin du lot 3, les années, inscriptions, frais, règlements et critères d’éligibilité restaient à reprendre ; ils sont maintenant décrits dans le [lot 4](enrollments.md). Restent à reprendre : import des étudiants historiques, photo, export ou opérations en masse, matières à rattraper, notes, dépôt de mémoire et décisions de commission. Le statut « À cheval » est une information de dossier ; il ne déclenche aucun calcul de frais ni inscription à une matière. Le journal est stocké mais son écran de consultation reste à reprendre avec la piste d’audit.
 
-La prochaine dépendance métier est la reprise des inscriptions et de leurs règles avant d’ouvrir le dépôt de mémoire soumis à éligibilité.
+Le lot 4 complète cette dépendance avec les inscriptions et leurs règles avant la reprise du dépôt de mémoire.

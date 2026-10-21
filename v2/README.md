@@ -1,12 +1,14 @@
-# Check Master v2 — lot 3 : dossiers étudiants
+# Check Master v2 — lot 4 : inscriptions et règlements
 
 Socle Laravel 13 / PHP 8.4, React 19 / TypeScript, Inertia 3, Tailwind 4 et Vite 8.
-Cette version comprend la connexion, les comptes, les types et groupes historiques, les permissions, les dossiers étudiants, les promotions, le profil personnel, le changement de mot de passe et MySQL 8.4.
+Cette version comprend la connexion, les comptes, les types et groupes historiques, les permissions, les dossiers étudiants, les promotions, les années et tarifs, les inscriptions et règlements, les critères d’éligibilité, le profil personnel, le changement de mot de passe et MySQL 8.4.
 
-Les mémoires, les validations, les inscriptions, les règlements et les données personnelles historiques ne sont pas encore migrés. Le tableau de bord utilise les effectifs réels des dossiers non archivés, selon les droits de consultation. Les autres indicateurs restent indisponibles.
+Le dépôt des mémoires, les décisions de commission, les notes, le parcours À cheval et les données personnelles historiques ne sont pas encore migrés. Le tableau de bord utilise les effectifs réels des dossiers non archivés, selon les droits de consultation. Les autres indicateurs restent indisponibles.
 
 Voir le [guide du lot 2](docs/access-control.md) pour les règles d’accès, les correspondances historiques et l’attribution explicite du premier administrateur.
 Le [guide du lot 3](docs/student-records.md) détaille les dossiers étudiants, leur rattachement à un compte, les promotions, les permissions et les limites métier.
+
+Le [guide du lot 4](docs/enrollments.md) décrit les règles de scolarité, les paiements, les critères d’éligibilité et un scénario complet de test sur Mac.
 
 ## Continuité de l’interface
 
@@ -23,7 +25,7 @@ Git et Docker Compose v2 sont les seuls outils nécessaires sur le Mac : PHP, Co
 Depuis un nouveau dossier de travail :
 
 ```bash
-git clone --branch refactor/v2-students https://github.com/AngeGo11/check_master.git check-master-v2
+git clone --branch refactor/v2-enrollments https://github.com/AngeGo11/check_master.git check-master-v2
 cd check-master-v2/v2
 bash scripts/setup.sh
 docker compose exec app php artisan checkmaster:create-user
@@ -35,13 +37,13 @@ Si le dépôt existe déjà, enregistrer les modifications locales puis, à sa r
 
 ```bash
 git fetch origin
-git switch --track origin/refactor/v2-students
+git switch --track origin/refactor/v2-enrollments
 cd v2
 bash scripts/setup.sh
 docker compose exec app php artisan checkmaster:create-user
 ```
 
-Si la branche locale existe déjà, utiliser `git switch refactor/v2-students` puis `git pull --ff-only`. Pour une mise à jour, conserver le même dossier/projet Docker afin de réutiliser le volume existant ; ne pas recréer un compte qui existe déjà.
+Si la branche locale existe déjà, utiliser `git switch refactor/v2-enrollments` puis `git pull --ff-only`. Pour une mise à jour, conserver le même dossier/projet Docker afin de réutiliser le volume existant ; ne pas recréer un compte qui existe déjà.
 
 La création d’un compte n’accorde aucun droit d’administration. Pour le compte nominatif choisi, exécuter `docker compose exec app php artisan checkmaster:grant-admin responsable@example.com` en remplaçant l’adresse d’exemple. Confirmer l’identité affichée, puis se reconnecter. Les comptes créés depuis l’interface doivent personnaliser leur mot de passe temporaire avant d’accéder aux services.
 
@@ -111,7 +113,7 @@ Si des tables de session sont absentes, exécuter les migrations ci-dessus.
 | `tests/Feature` | Tests des parcours critiques |
 | `docker`, `scripts` | Environnement et commandes d'installation |
 
-Les Actions d’accès et de gestion des étudiants portent les écritures transactionnelles. Les autres services seront introduits avec les opérations qu’ils portent.
+Les Actions d’accès, de gestion des étudiants et de scolarité portent les écritures transactionnelles. Le service Eligibility recalcule les trois critères et la validité du dernier examen.
 
 ## Sécurité et limites du lot
 

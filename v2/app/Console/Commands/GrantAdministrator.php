@@ -23,7 +23,7 @@ class GrantAdministrator extends Command
             return self::FAILURE;
         }
         $this->line($user->name.' <'.$user->email.'>');
-        if (! $this->confirm('Accorder à ce compte les droits d’administrateur plateforme (comptes, accès et dossiers étudiants) ?', false)) {
+        if (! $this->confirm('Accorder à ce compte les droits d’administrateur plateforme (tous les modules disponibles) ?', false)) {
             $this->info('Aucune modification.');
 
             return self::SUCCESS;

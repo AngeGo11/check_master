@@ -307,3 +307,36 @@ svg { flex-shrink: 0; }
 .level-counts strong { color: var(--primary); }
 @media (max-width: 1000px) { .academic-grid { grid-template-columns: 1fr; } }
 @media (max-width: 720px) { .promotion-form-row { flex-direction: column; align-items: stretch; } .promotion-form-row .button-primary { margin-top: 0; } }
+
+/* Schooling screens keep the existing blue cards, tables and form controls. */
+.schooling-section { margin-bottom: 24px; }
+.schooling-section > h2 { margin: 0 0 18px; color: var(--primary); font-size: 17px; }
+.schooling-details { border-top: 1px solid var(--border); padding: 16px 0; }
+.schooling-details summary, .schooling-section details > summary { cursor: pointer; color: var(--primary); line-height: 1.8; font-size: 13px; }
+.schooling-details[open] > summary { margin-bottom: 16px; }
+.schooling-details .management-form { padding: 8px 0; }
+.management-form { display: grid; gap: 18px; }
+.management-form > button { justify-self: start; }
+.reference-cell { overflow-wrap: anywhere; font-size: 11px; }
+.enrollment-stats { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.money-value { font-size: clamp(18px,2vw,28px); }
+.checkbox-label { display: flex; gap: 9px; align-items: center; font-size: 12px; }
+.eligibility-status { margin: 0 0 16px; }
+.eligibility-criteria { margin: 0 0 20px; padding: 0; list-style: none; }
+.eligibility-criteria li { display: flex; align-items: flex-start; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.eligibility-criteria p { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+.criterion-mark { flex: 0 0 30px; text-align: center; line-height: 30px; border-radius: 50%; color: #795014; background: #fff5e7; }
+.criterion-mark.is-met { color: #285e35; background: #edf7ef; }
+.receipt { max-width: 860px; margin: auto; }
+.receipt-heading { border-bottom: 2px solid var(--primary); padding-bottom: 20px; margin-bottom: 24px; }
+.receipt-heading p { margin: 12px 0 0; font-size: 12px; }
+.receipt-total { border-top: 1px solid var(--border); margin-top: 24px; padding-top: 20px; line-height: 1.8; }
+@media (max-width: 720px) { .enrollment-stats { grid-template-columns: 1fr; } }
+@media print {
+  .topbar, .sidebar, .page-footer, .skip-link, .no-print, .main-content > .notice { display: none !important; }
+  .workspace { display: block; background: #fff; }
+  .main-content { margin: 0 !important; padding: 0 !important; width: 100%; }
+  .receipt { border: 0; box-shadow: none; max-width: none; padding: 12mm; color: #111; }
+  .receipt .profile-details { grid-template-columns: 1fr 1fr; }
+  .receipt .notice-error { border: 2px solid #111; color: #111; }
+}
