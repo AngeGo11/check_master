@@ -2,7 +2,7 @@ name: Check Master v2
 
 on:
   push:
-    branches: [refactor/v2-foundation, refactor/v2-access-control]
+    branches: [refactor/v2-foundation, refactor/v2-access-control, refactor/v2-students]
     paths: ['v2/**', '.github/workflows/v2-checks.yml']
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]

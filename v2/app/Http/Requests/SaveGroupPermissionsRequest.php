@@ -17,7 +17,7 @@ class SaveGroupPermissionsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'permissions' => ['present', 'array', 'max:4'],
+            'permissions' => ['present', 'array', 'max:'.count(Permission::CODES)],
             'permissions.*' => ['required', 'string', 'distinct', Rule::in(Permission::CODES)],
         ];
     }
@@ -28,7 +28,7 @@ class SaveGroupPermissionsRequest extends FormRequest
             if ($validator->errors()->isNotEmpty()) {
                 return;
             }
-            foreach (['users', 'groups'] as $resource) {
+            foreach (['users', 'groups', 'students', 'academic'] as $resource) {
                 $permissions = $this->input('permissions', []);
                 if (in_array($resource.'.manage', $permissions, true) && ! in_array($resource.'.view', $permissions, true)) {
                     $validator->errors()->add('permissions', 'Le droit de consultation correspondant est nécessaire pour accorder la gestion.');

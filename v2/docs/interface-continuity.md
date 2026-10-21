@@ -31,13 +31,15 @@ Sources : public/pageConnexion.php, app/Views/index_commission.php, app/Views/in
 - Cartes et formulaires adaptés aux petites largeurs, sans masquer leurs informations.
 - Logos historiques conservés sans transformation. Poppins utilise Google Fonts comme dans l’application d’origine.
 
-## État après le lot 2
+## État après le lot 3
 
 Le tableau de bord commun reprend pour l’instant la structure commission/administration. Les types, groupes et permissions de gestion des comptes sont branchés. Les autorisations des autres modules et leurs écrans propres à chaque rôle restent à reprendre.
 
-Les indicateurs ne disposent d’aucune donnée historique : ils affichent un tiret et « Données indisponibles ». Les graphiques et listes indiquent l’ouverture future des services. Aucun chiffre, courbe ou rapport n’est simulé.
+Les effectifs étudiants sont alimentés par les dossiers non archivés, uniquement pour les personnes habilitées à les consulter. Le premier indicateur s’appelle « Étudiants enregistrés » pour ne pas confondre les fiches avec les inscriptions administratives à venir. Le panneau « Évolution des étudiants » conserve sa place et présente la répartition actuelle par niveau, explicitement sans historique annuel. Les autres indicateurs affichent un tiret et « Données indisponibles ». Aucun chiffre, courbe ou rapport n’est simulé.
 
-Les entrées actives sont le tableau de bord, le profil avec changement de mot de passe et la déconnexion. « Paramètres généraux » apparaît selon les droits et contient les listes des utilisateurs et des groupes. La liste des comptes reprend les trois totaux, la recherche, les filtres et les actions de gestion. Les autres menus seront repris avec leurs modules et permissions ; leur ordre et leur regroupement suivront le MenuController historique.
+Les entrées actives sont le tableau de bord, le profil avec changement de mot de passe et la déconnexion. Selon les droits, « Étudiants », « Mon dossier étudiant » et « Paramètres généraux » sont aussi disponibles. Les paramètres regroupent utilisateurs, groupes et promotions/niveaux. La liste des comptes reprend les trois totaux, la recherche, les filtres et les actions de gestion.
+
+La liste des étudiants conserve ses quatre cartes, les filtres promotion/niveau/statut, l’action « Ajouter un étudiant » et les colonnes Étudiant, N° Carte, Niveau, Promotion, Statut, Actions. Seul le total est calculé ; les trois indicateurs liés aux décisions restent indisponibles. Les fiches s’ouvrent dans la même structure bleue, avec formulaires accessibles et tableau défilant sur petit écran. La suppression est remplacée par un archivage réversible ; export, actions en masse et inscription aux matières à rattraper restent à migrer. Voir `student-records.md` pour les correspondances.
 
 « Mot de passe oublié ? » ouvre une aide invitant à contacter l’administration. Le parcours de réinitialisation, les notifications et l’accueil public seront repris dans leurs lots respectifs.
 
