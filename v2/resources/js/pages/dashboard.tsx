@@ -1,11 +1,11 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import Icon, { type IconName } from '../components/icon';
 import AppLayout from '../layouts/app-layout';
 import type { SharedData } from '../types';
 
 const indicators: { label: string; icon: IconName; tone: string }[] = [
-  { label: 'Étudiants inscrits', icon: 'graduate', tone: 'blue' },
+  { label: 'Étudiants enregistrés', icon: 'graduate', tone: 'blue' },
   { label: 'Rapports soumis', icon: 'document', tone: 'green' },
   { label: 'Demandes de soutenance', icon: 'calendar', tone: 'orange' },
   { label: 'Enseignants', icon: 'users', tone: 'blue' },
@@ -33,7 +33,7 @@ function Unavailable({ children, compact = false }: PropsWithChildren<{ compact?
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({ studentCount, studentsByLevel }: { studentCount: number | null; studentsByLevel: { name: string; total: number }[] | null }) {
   const { auth } = usePage<SharedData>().props;
   return (
     <AppLayout>
@@ -44,18 +44,18 @@ export default function Dashboard() {
         <span className="badge"><Icon name="check" /> Compte connecté</span>
       </div>
       <section className="stats-grid" aria-label="Indicateurs généraux">
-        {indicators.map(({ label, icon, tone }) => (
+        {indicators.map(({ label, icon, tone }, index) => (
           <article className={'stat-card stat-' + tone} key={label}>
             <div className="stat-heading"><h2>{label}</h2><span className="stat-icon"><Icon name={icon} /></span></div>
-            <p className="stat-value" aria-label="Valeur indisponible">—</p>
-            <p className="stat-caption">Données indisponibles</p>
+            <p className="stat-value" aria-label={index === 0 && studentCount !== null ? undefined : 'Valeur indisponible'}>{index === 0 && studentCount !== null ? studentCount : '—'}</p>
+            <p className="stat-caption">{index === 0 && studentCount !== null ? 'Dossiers non archivés' : 'Données indisponibles'}</p>
           </article>
         ))}
       </section>
-      <p className="availability-note">Les indicateurs et le suivi académique seront disponibles à l’ouverture des services.</p>
+      <p className="availability-note">{studentCount !== null ? 'L’effectif correspond aux dossiers enregistrés. Le suivi des rapports et des soutenances sera disponible avec ces services.' : 'Les indicateurs et le suivi académique seront disponibles selon vos droits et l’ouverture des services.'}</p>
       <div className="charts-grid">
-        <Panel title="Évolution des étudiants" subtitle="Par promotion et niveau d’étude" icon="chart">
-          <Unavailable>Les effectifs par promotion apparaîtront ici lorsque le service sera disponible.</Unavailable>
+        <Panel title="Évolution des étudiants" subtitle="Effectifs actuels par niveau d’étude" icon="chart">
+          {studentsByLevel === null ? <Unavailable>Les effectifs sont réservés aux personnes habilitées à consulter les dossiers étudiants.</Unavailable> : studentsByLevel.length ? <><ul className="level-counts">{studentsByLevel.map((level) => <li key={level.name}><span>{level.name}</span><strong>{level.total}</strong></li>)}</ul><p className="field-hint">Situation actuelle des dossiers non archivés. L’historique annuel sera disponible avec les inscriptions.</p><Link href="/students" className="table-action">Consulter les étudiants</Link></> : <div className="empty-state"><h3>Aucun dossier étudiant</h3><p>Les effectifs apparaîtront dès l’enregistrement des premiers dossiers.</p><Link href="/students" className="table-action">Consulter les étudiants</Link></div>}
         </Panel>
         <Panel title="Répartition" subtitle="Types d’utilisateurs" icon="pie">
           <Unavailable>La répartition des utilisateurs sera disponible avec la gestion des rôles.</Unavailable>

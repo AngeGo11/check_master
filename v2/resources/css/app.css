@@ -284,3 +284,26 @@ svg { flex-shrink: 0; }
   .permission-editor form { padding: 14px; }
 }
 @media (max-width: 420px) { .account-stats { grid-template-columns: 1fr; } }
+
+/* Student directory: same cards, filters, tables and blue navigation as the existing application. */
+.student-stats { margin-bottom: 24px; }
+.student-form-note { margin-top: 16px; }
+.student-detail-panel h2, .student-account-panel h2, .section-title { font-size: 15px; font-weight: 600; color: var(--primary-dark); margin: 0 0 20px; }
+.student-account-panel { margin-top: 24px; }
+.student-link-form { display: grid; gap: 20px; max-width: 680px; }
+.student-link-form .form-field input, .promotion-form-row input { padding: 11px 14px; }
+.notice-neutral { background: #fff5e7; border-color: #f0dbb8; color: #795014; }
+.academic-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr); gap: 24px; }
+.academic-catalogs { display: grid; gap: 24px; align-content: start; }
+.catalog-list { list-style: none; padding: 0; margin: 0 0 16px; }
+.catalog-list li { padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--primary-dark); }
+.promotion-create { padding: 0 0 24px; border-bottom: 1px solid var(--border); }
+.promotion-form-row { display: flex; gap: 14px; align-items: flex-start; }
+.promotion-form-row .form-field { flex: 1; min-width: 0; }
+.promotion-form-row .button-primary { margin-top: 25px; min-height: 49px; font-size: 12px; }
+.group-heading h3 { margin: 0; font-size: 14px; color: var(--primary-dark); font-weight: 600; }
+.level-counts { padding: 0; margin: 0 0 20px; list-style: none; }
+.level-counts li { display: flex; justify-content: space-between; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.level-counts strong { color: var(--primary); }
+@media (max-width: 1000px) { .academic-grid { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .promotion-form-row { flex-direction: column; align-items: stretch; } .promotion-form-row .button-primary { margin-top: 0; } }

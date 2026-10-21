@@ -7,7 +7,8 @@ import type { SharedData } from '../types';
 export default function AppLayout({ children, title = 'Tableau de bord', subtitle = 'Gestion de commission de validation' }: PropsWithChildren<{ title?: string; subtitle?: string }>) {
   const { auth, flash } = usePage<SharedData>().props;
   const path = usePage().url.split('?')[0];
-  const settingsAllowed = auth.permissions.includes('users.view') || auth.permissions.includes('groups.view');
+  const settingsAllowed = auth.permissions.includes('users.view') || auth.permissions.includes('groups.view') || auth.permissions.includes('academic.view');
+  const ownStudentRecord = auth.permissions.includes('students.self') && auth.user?.types.some((type) => type.id === 1);
   const needsPassword = auth.user?.must_change_password;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuToggle = useRef<HTMLButtonElement>(null);
@@ -53,6 +54,8 @@ export default function AppLayout({ children, title = 'Tableau de bord', subtitl
           {!needsPassword && <><Link href="/dashboard" className={'nav-item' + (path === '/dashboard' ? ' nav-active' : '')} aria-current={path === '/dashboard' ? 'page' : undefined} onClick={() => setMenuOpen(false)}>
             <Icon name="dashboard" /> Tableau de bord
           </Link>
+          {auth.permissions.includes('students.view') && <Link href="/students" className={'nav-item' + (path.startsWith('/students') ? ' nav-active' : '')} aria-current={path.startsWith('/students') ? 'page' : undefined} onClick={() => setMenuOpen(false)}><Icon name="graduate" /> Étudiants</Link>}
+          {ownStudentRecord && <Link href="/my-student-record" className={'nav-item' + (path === '/my-student-record' ? ' nav-active' : '')} aria-current={path === '/my-student-record' ? 'page' : undefined} onClick={() => setMenuOpen(false)}><Icon name="graduate" /> Mon dossier étudiant</Link>}
           {settingsAllowed && <Link href="/settings" className={'nav-item' + (path.startsWith('/settings') ? ' nav-active' : '')} aria-current={path.startsWith('/settings') ? 'page' : undefined} onClick={() => setMenuOpen(false)}><Icon name="settings" /> Paramètres généraux</Link>}
           <Link href="/profile" className={'nav-item' + (path === '/profile' ? ' nav-active' : '')} aria-current={path === '/profile' ? 'page' : undefined} onClick={() => setMenuOpen(false)}><Icon name="user" /> Mon profil</Link></>}
           <Link href="/logout" method="post" as="button" className="nav-item" onClick={() => setMenuOpen(false)}>
