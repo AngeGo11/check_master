@@ -60,7 +60,7 @@ class AccessControlTest extends TestCase
         $this->assertDatabaseCount('user_group_user_type', 10);
         $this->assertDatabaseCount('users', 0);
         $this->assertDatabaseHas('user_groups', ['id' => 9, 'name' => 'Commission de validation']);
-        $this->assertDatabaseCount('group_permission', 9);
+        $this->assertDatabaseCount('group_permission', 15);
     }
 
     public function test_guests_cannot_access_account_management(): void
@@ -271,7 +271,7 @@ class AccessControlTest extends TestCase
         $this->signIn($this->administrator())->put('/settings/groups/8', ['permissions' => []])->assertSessionHasErrors('permissions');
         $this->put('/settings/groups/1', ['permissions' => ['super-admin']])->assertSessionHasErrors('permissions.0');
         $this->put('/settings/groups/1', ['permissions' => ['users.manage']])->assertSessionHasErrors('permissions');
-        $this->assertDatabaseCount('group_permission', 9);
+        $this->assertDatabaseCount('group_permission', 15);
         $this->assertDatabaseCount('access_audits', 0);
     }
 
@@ -352,7 +352,7 @@ class AccessControlTest extends TestCase
     public function test_administrator_assignment_is_explicit_and_can_be_cancelled(): void
     {
         $user = User::factory()->create(['email' => 'bootstrap@example.test']);
-        $question = 'Accorder à ce compte les droits d’administrateur plateforme (comptes, accès et dossiers étudiants) ?';
+        $question = 'Accorder à ce compte les droits d’administrateur plateforme (tous les modules disponibles) ?';
         $this->artisan('checkmaster:grant-admin', ['email' => $user->email])->expectsConfirmation($question, 'no')
             ->expectsOutput('Aucune modification.')->assertExitCode(0);
         $this->assertCount(0, $user->fresh()->groups);

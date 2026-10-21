@@ -50,3 +50,7 @@ La liste des étudiants conserve ses quatre cartes, les filtres promotion/niveau
 3. Améliorer la hiérarchie, la lisibilité, l’accessibilité et le comportement mobile.
 4. Vérifier le fonctionnement avec les vrais droits et données avant d’activer les commandes.
 5. Documenter les différences restantes avec la version historique.
+
+## Lot 4 — scolarité
+
+Les écrans d’inscriptions reprennent les quatre cartes Total inscriptions, Partiellement payé, Tout payé et Rien payé ainsi que les colonnes carte/étudiant, niveau, référence, montants, date, statut et actions. Les compteurs sont explicitement limités à l’année sélectionnée et excluent les annulations. Le numéro de reçu appartient à chaque règlement, accessible depuis l’historique de l’inscription. Les critères de scolarité, Master 2 et stage sont affichés avec leur résultat calculé. Années et tarifs restent dans les paramètres généraux. Les styles d’impression masquent la navigation uniquement dans le reçu imprimé.

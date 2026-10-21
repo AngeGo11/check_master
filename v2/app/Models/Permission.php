@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Permission extends Model
 {
-    public const CODES = ['users.view', 'users.manage', 'groups.view', 'groups.manage', 'students.view', 'students.manage', 'students.self', 'academic.view', 'academic.manage'];
+    public const CODES = ['users.view', 'users.manage', 'groups.view', 'groups.manage', 'students.view', 'students.manage', 'students.self', 'academic.view', 'academic.manage', 'schooling.view', 'schooling.manage', 'enrollments.view', 'enrollments.manage', 'payments.manage', 'eligibility.review'];
 
     protected $primaryKey = 'code';
     protected $keyType = 'string';

@@ -25,6 +25,7 @@ export default function Settings() {
         <p>Consultez les niveaux et statuts étudiants, et gérez les promotions.</p>
         <Link href="/settings/academic" className="button-primary">Accéder aux paramètres</Link>
       </section>}
+      {auth.permissions.includes('schooling.view') && <section className="panel settings-card"><span className="panel-icon"><Icon name="graduate" /></span><h2>Années et tarifs</h2><p>Définissez l’année en cours et les frais de scolarité par niveau.</p><Link href="/settings/schooling" className="button-primary">Accéder aux paramètres</Link></section>}
     </div>
   </AppLayout>;
 }
