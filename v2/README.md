@@ -1,9 +1,11 @@
-# Check Master v2 — lot 1 : fondations
+# Check Master v2 — lot 2 : comptes et accès
 
 Socle Laravel 13 / PHP 8.4, React 19 / TypeScript, Inertia 3, Tailwind 4 et Vite 8.
-Ce lot comprend une connexion fonctionnelle, un espace authentifié, une commande de création de compte, MySQL 8.4 et les tests de sécurité du parcours de connexion.
+Cette version comprend la connexion, les comptes, les types et groupes historiques, les permissions de gestion, le profil personnel, le changement de mot de passe, MySQL 8.4 et les tests des accès.
 
-Les mémoires, les rôles métier, les validations et les données de la version historique ne sont pas encore migrés. Le tableau de bord présente un état initial, sans statistiques fictives.
+Les mémoires, les validations et les données historiques ne sont pas encore migrés. Les types et groupes sont repris ; les droits des modules métier suivront avec ces modules. Le tableau de bord métier reste sans statistiques fictives. La liste des comptes utilise les données réelles de la v2.
+
+Voir le [guide du lot 2](docs/access-control.md) pour les règles d’accès, les correspondances historiques et l’attribution explicite du premier administrateur.
 
 ## Continuité de l’interface
 
@@ -20,7 +22,7 @@ Git et Docker Compose v2 sont les seuls outils nécessaires sur le Mac : PHP, Co
 Depuis un nouveau dossier de travail :
 
 ```bash
-git clone --branch refactor/v2-foundation https://github.com/AngeGo11/check_master.git check-master-v2
+git clone --branch refactor/v2-access-control https://github.com/AngeGo11/check_master.git check-master-v2
 cd check-master-v2/v2
 bash scripts/setup.sh
 docker compose exec app php artisan checkmaster:create-user
@@ -32,13 +34,15 @@ Si le dépôt existe déjà, enregistrer les modifications locales puis, à sa r
 
 ```bash
 git fetch origin
-git switch --track origin/refactor/v2-foundation
+git switch --track origin/refactor/v2-access-control
 cd v2
 bash scripts/setup.sh
 docker compose exec app php artisan checkmaster:create-user
 ```
 
-Si la branche locale existe déjà, utiliser `git switch refactor/v2-foundation` puis `git pull --ff-only`.
+Si la branche locale existe déjà, utiliser `git switch refactor/v2-access-control` puis `git pull --ff-only`.
+
+La création d’un compte n’accorde aucun droit d’administration. Pour le compte nominatif choisi, exécuter `docker compose exec app php artisan checkmaster:grant-admin responsable@example.com` en remplaçant l’adresse d’exemple. Confirmer l’identité affichée, puis se reconnecter. Les comptes créés depuis l’interface doivent personnaliser leur mot de passe temporaire avant d’accéder aux services.
 
 Le script :
 1. crée `.env` avec une clé applicative et deux mots de passe MySQL aléatoires ;
@@ -60,10 +64,10 @@ Cette commande valide Composer, exécute les tests et vérifie la page servie pa
 La compilation TypeScript et Vite est vérifiée pendant `setup.sh`.
 Les tests utilisent une base SQLite en mémoire distincte de MySQL ; le démarrage et les migrations utilisent réellement MySQL.
 
-Les tests couvrent les accès invités, la connexion, la rotation de session, les mauvais identifiants, la limitation des tentatives, l'absence de mot de passe dans les réponses, la déconnexion, CSRF et la création de compte.
+Les tests couvrent les accès invités, la connexion, la rotation de session, les mauvais identifiants, la limitation des tentatives, la confidentialité des réponses, la déconnexion, CSRF, la création de compte, les permissions, la révocation des sessions et la protection du dernier administrateur.
 
 Le workflow [Check Master v2](../.github/workflows/v2-checks.yml) exécute la même installation sur GitHub Actions.
-Après réussite, il enregistre uniquement les deux fichiers de verrouillage résolus dans cette branche. Il ne fusionne pas la branche.
+Les deux branches des lots 1 et 2 sont vérifiées. L’enregistrement automatique des fichiers de verrouillage est limité à la branche du lot 1 ; ceux-ci sont déjà présents dans le lot 2. Le workflow ne fusionne aucune branche.
 Les installations suivantes utilisent `composer.lock` et `package-lock.json`.
 Si les droits Actions interdisent l'enregistrement, les fichiers restent téléchargeables dans l'artefact `verified-v2-lockfiles` du workflow ; ils peuvent aussi être produits et commités depuis le Mac après vérification.
 
@@ -114,8 +118,8 @@ Les Actions métier, Policies, Jobs, Notifications et services PDF seront introd
 - Sessions en base, chiffrées, cookie HttpOnly / SameSite=Lax distinct de la version historique.
 - Limitation par couple adresse e-mail/IP et limitation globale par IP sur la connexion.
 - Aucun formulaire d'inscription public et aucun compte fourni avec un mot de passe par défaut.
-- Aucune reprise des mots de passe SHA-256 de l'ancienne application ; stratégie de migration à traiter dans le lot 2.
-- Aucun rôle ni droit de validation attribué à ce stade.
+- Aucune reprise des mots de passe SHA-256 de l’ancienne application ; la migration des comptes historiques reste un lot distinct.
+- Types et groupes historiques, permissions de gestion des comptes, vérifications serveur et révocation des sessions. Aucun droit de validation métier activé à ce stade.
 - `.env`, journaux, dépendances et documents exclus du nouveau code versionné.
 - Les anciens fichiers sensibles déjà présents dans l'historique du dépôt ne sont pas nettoyés par l'ajout de `v2/`.
 

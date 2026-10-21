@@ -31,13 +31,13 @@ Sources : public/pageConnexion.php, app/Views/index_commission.php, app/Views/in
 - Cartes et formulaires adaptés aux petites largeurs, sans masquer leurs informations.
 - Logos historiques conservés sans transformation. Poppins utilise Google Fonts comme dans l’application d’origine.
 
-## Limites explicites du lot 1
+## État après le lot 2
 
-Le tableau de bord commun reprend pour l’instant la structure commission/administration. Les rôles et les autorisations métier ne sont pas encore branchés. Cette structure ne remplace pas la future reprise des écrans propres à chaque rôle.
+Le tableau de bord commun reprend pour l’instant la structure commission/administration. Les types, groupes et permissions de gestion des comptes sont branchés. Les autorisations des autres modules et leurs écrans propres à chaque rôle restent à reprendre.
 
 Les indicateurs ne disposent d’aucune donnée historique : ils affichent un tiret et « Données indisponibles ». Les graphiques et listes indiquent l’ouverture future des services. Aucun chiffre, courbe ou rapport n’est simulé.
 
-Les seules entrées actives sont le tableau de bord, le profil en lecture et la déconnexion. Les autres menus seront repris avec leurs modules et leurs permissions ; leur ordre et leur regroupement suivront le MenuController historique.
+Les entrées actives sont le tableau de bord, le profil avec changement de mot de passe et la déconnexion. « Paramètres généraux » apparaît selon les droits et contient les listes des utilisateurs et des groupes. La liste des comptes reprend les trois totaux, la recherche, les filtres et les actions de gestion. Les autres menus seront repris avec leurs modules et permissions ; leur ordre et leur regroupement suivront le MenuController historique.
 
 « Mot de passe oublié ? » ouvre une aide invitant à contacter l’administration. Le parcours de réinitialisation, les notifications et l’accueil public seront repris dans leurs lots respectifs.
 

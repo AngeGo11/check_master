@@ -14,8 +14,14 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => fn () => $request->user()?->only('id', 'name', 'email'),
+                'user' => fn () => $request->user() ? [
+                    ...$request->user()->only('id', 'name', 'email', 'must_change_password'),
+                    'types' => $request->user()->types()->orderBy('user_types.id')->get(['user_types.id', 'name'])->map(fn ($type) => $type->only('id', 'name')),
+                    'groups' => $request->user()->groups()->orderBy('user_groups.id')->get(['user_groups.id', 'name'])->map(fn ($group) => $group->only('id', 'name')),
+                ] : null,
+                'permissions' => fn () => $request->user()?->permissionCodes() ?? [],
             ],
+            'flash' => ['success' => fn () => $request->session()->get('success')],
         ];
     }
 }
