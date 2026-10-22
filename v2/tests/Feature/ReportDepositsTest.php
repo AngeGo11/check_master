@@ -645,19 +645,40 @@ class ReportDepositsTest extends TestCase
 
     public function test_legacy_administrative_approval_is_preserved_but_must_go_through_commission(): void
     {
-        [$user, $e, $r] = $this->deposited(); $version = $r->latestVersion;
-        $r->forceFill(['status' => 'approved'])->save();
-        DB::table('report_decisions')->insert(['report_id' => $r->id, 'report_version_id' => $version->id, 'reviewed_by' => $this->admin()->id,
-            'decision' => 'approved', 'comment' => 'Ancien avis administratif.', 'created_at' => now()]);
-        // Recreate the pre-correction schema boundary in this isolated test database.
-        foreach (['report_votes', 'report_round_members', 'report_rounds'] as $table) { Schema::drop($table); }
-        Schema::table('report_versions', fn (Blueprint $table) => $table->dropColumn('eligibility_snapshot'));
-        DB::table('permissions')->whereIn('code', ['internships.self', 'reports.forward', 'reports.assigned', 'reports.vote'])->delete();
-        $migration = require database_path('migrations/2026_10_22_000000_correct_report_workflow.php'); $migration->up();
-        $this->assertSame('submitted', $r->fresh()->status); $this->assertSame(2, $r->fresh()->revision);
-        $this->assertDatabaseCount('report_decisions', 1); $this->assertDatabaseCount('report_votes', 0); Storage::disk('reports')->assertExists($version->storage_path);
-        $this->signIn($user)->get('/my-reports')->assertInertia(fn (Assert $page) => $page->where('versions.data.0.legacy_decision.comment', 'Ancien avis administratif.'));
-        $this->accept($r); $this->assertSame('accepted', $r->fresh()->status);
+        // SQLite rebuilds referenced tables for column changes. Run DDL on a separate
+        // database, outside RefreshDatabase's rollback transaction, with FK checks restored.
+        $original = DB::getDefaultConnection();
+        config(['database.connections.workflow_upgrade' => [...config('database.connections.sqlite'), 'database' => ':memory:']]);
+        DB::setDefaultConnection('workflow_upgrade');
+        Schema::clearResolvedInstance('db.schema');
+        try {
+            $this->artisan('migrate', ['--database' => 'workflow_upgrade', '--force' => true])->assertExitCode(0);
+            [$user, $e, $r] = $this->deposited(); $version = $r->latestVersion;
+            app(ManageEnrollments::class)->review($this->admin(), $e, ['revision' => $e->revision, 'reason' => 'Ancien examen administratif.']);
+            $reviewId = $e->fresh()->latestReview->id;
+            $version->forceFill(['eligibility_review_id' => $reviewId])->save();
+            $r->forceFill(['status' => 'approved'])->save();
+            DB::table('report_decisions')->insert(['report_id' => $r->id, 'report_version_id' => $version->id, 'reviewed_by' => $this->admin()->id,
+                'decision' => 'approved', 'comment' => 'Ancien avis administratif.', 'created_at' => now()]);
+            foreach (['report_votes', 'report_round_members', 'report_rounds'] as $table) { Schema::drop($table); }
+            Schema::table('report_versions', function (Blueprint $table) {
+                $table->unsignedBigInteger('eligibility_review_id')->nullable(false)->change();
+                $table->dropColumn('eligibility_snapshot');
+            });
+            DB::table('permissions')->whereIn('code', ['internships.self', 'reports.forward', 'reports.assigned', 'reports.vote'])->delete();
+            $migration = require database_path('migrations/2026_10_22_000000_correct_report_workflow.php'); $migration->up();
+            $this->assertSame('submitted', $r->fresh()->status); $this->assertSame(2, $r->fresh()->revision);
+            $this->assertSame($reviewId, $version->fresh()->eligibility_review_id);
+            $this->assertSame(1, (int) DB::selectOne('PRAGMA foreign_keys')->foreign_keys);
+            $this->assertSame([], DB::select('PRAGMA foreign_key_check'));
+            $this->assertDatabaseCount('report_decisions', 1); $this->assertDatabaseCount('report_votes', 0); Storage::disk('reports')->assertExists($version->storage_path);
+            $this->signIn($user)->get('/my-reports')->assertInertia(fn (Assert $page) => $page->where('versions.data.0.legacy_decision.comment', 'Ancien avis administratif.'));
+            $this->accept($r); $this->assertSame('accepted', $r->fresh()->status);
+        } finally {
+            DB::setDefaultConnection($original);
+            Schema::clearResolvedInstance('db.schema');
+            DB::purge('workflow_upgrade');
+        }
     }
 
 }
