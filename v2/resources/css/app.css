@@ -356,3 +356,10 @@ svg { flex-shrink: 0; }
 progress { display: block; width: 100%; accent-color: var(--primary-light); margin-top: 10px; }
 #report-upload, #report-history, #report-status { scroll-margin-top: 90px; }
 @media (max-width: 900px) { .report-actions { grid-template-columns: 1fr; } }
+
+.report-stats { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.commission-members { list-style: none; padding: 0; margin: 16px 0 0; }
+.commission-members li { border-top: 1px solid var(--border); padding: 12px 0; }
+.commission-members .status-tag { margin-left: 12px; }
+.commission-members h4, .report-feedback h4 { margin: 0 0 8px; }
+.commission-roster { padding-left: 20px; line-height: 1.9; }

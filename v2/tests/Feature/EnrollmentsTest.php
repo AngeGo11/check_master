@@ -64,7 +64,8 @@ class EnrollmentsTest extends TestCase
     }
     private function enrollment(?Student $student = null): Enrollment
     {
-        $student ??= $this->student();
+        $student ??= $this->student(['user_id' => $this->studentAccount()->id]);
+        if (! $student->user_id) { $student->forceFill(['user_id' => $this->studentAccount()->id])->save(); }
         $year = AcademicYear::where('status', 'current')->first() ?? $this->year();
         if (! TuitionFee::where('academic_year_id', $year->id)->where('study_level_id', $student->study_level_id)->exists()) { $this->fee($year, (int) $student->study_level_id); }
         return app(ManageEnrollments::class)->create($this->admin(), ['card_number' => $student->card_number, 'academic_year_id' => $year->id, 'study_level_id' => $student->study_level_id, 'enrolled_on' => '2026-10-01']);
@@ -89,14 +90,14 @@ class EnrollmentsTest extends TestCase
     private function eligible(): Enrollment
     {
         $enrollment = $this->enrollment(); $this->payment($enrollment, ['amount' => 100000]);
-        app(ManageEnrollments::class)->saveInternship($this->admin(), $enrollment, $this->stageData($enrollment));
+        app(ManageEnrollments::class)->saveInternship(User::findOrFail($enrollment->student->user_id), $enrollment, $this->stageData($enrollment));
         $this->review($enrollment); return $enrollment;
     }
 
     public function test_migration_adds_no_historical_financial_data_or_automatic_year(): void
     {
         foreach (['academic_years', 'tuition_fees', 'enrollments', 'tuition_payments', 'eligibility_reviews', 'enrollment_audits'] as $table) { $this->assertDatabaseCount($table, 0); }
-        $this->assertDatabaseCount('permissions', 18); $this->assertDatabaseCount('group_permission', 18);
+        $this->assertDatabaseCount('permissions', 21); $this->assertDatabaseCount('group_permission', 31);
         $this->assertDatabaseHas('group_permission', ['user_group_id' => 8, 'permission_code' => 'payments.manage']);
         $this->assertDatabaseMissing('group_permission', ['user_group_id' => 1, 'permission_code' => 'enrollments.view']);
     }
@@ -274,7 +275,7 @@ class EnrollmentsTest extends TestCase
         $this->patch('/enrollments/'.$e->id.'/payments/'.$payment->id.'/void', ['reason' => 'Test interdit.', 'revision' => 2])->assertForbidden();
         $this->post('/enrollments/'.$e->id.'/eligibility', ['reason' => 'Test interdit.', 'revision' => 2])->assertForbidden();
         $this->signIn($this->delegate(['enrollments.view', 'payments.manage']));
-        $this->put('/enrollments/'.$e->id.'/internship', $this->stageData($e))->assertForbidden();
+        $this->put('/my-enrollments/'.$e->id.'/internship', $this->stageData($e))->assertForbidden();
         $this->patch('/enrollments/'.$e->id.'/status', ['cancelled' => true, 'reason' => 'Test interdit.', 'revision' => 2])->assertForbidden();
     }
 
@@ -283,24 +284,24 @@ class EnrollmentsTest extends TestCase
         $e = $this->enrollment();
         $this->signIn($this->delegate(['enrollments.view']));
         $this->get('/enrollments/create')->assertForbidden(); $this->post('/enrollments', [])->assertForbidden();
-        $this->put('/enrollments/'.$e->id.'/internship', [])->assertForbidden(); $this->delete('/enrollments/'.$e->id.'/internship', [])->assertForbidden();
+        $this->put('/my-enrollments/'.$e->id.'/internship', [])->assertForbidden(); $this->delete('/my-enrollments/'.$e->id.'/internship', [])->assertForbidden();
         $this->post('/enrollments/'.$e->id.'/eligibility', [])->assertForbidden();
     }
 
-    public function test_stage_dates_and_evidence_are_required_and_edits_use_revisions(): void
+    public function test_student_stage_dates_are_required_and_edits_use_revisions(): void
     {
-        $e = $this->enrollment(); $this->signIn($this->admin());
-        $this->put('/enrollments/'.$e->id.'/internship', $this->stageData($e, ['evidence_reference' => '', 'ends_on' => '2026-09-01']))->assertSessionHasErrors(['evidence_reference', 'ends_on']);
-        $data = $this->stageData($e); $this->put('/enrollments/'.$e->id.'/internship', $data)->assertSessionHasNoErrors();
-        $this->put('/enrollments/'.$e->id.'/internship', [...$data, 'title' => 'Modification périmée'])->assertSessionHasErrors('revision');
+        $e = $this->enrollment(); $this->signIn(User::findOrFail($e->student->user_id));
+        $this->put('/my-enrollments/'.$e->id.'/internship', $this->stageData($e, ['evidence_reference' => '', 'ends_on' => '2026-09-01']))->assertSessionHasErrors('ends_on');
+        $data = $this->stageData($e); $this->put('/my-enrollments/'.$e->id.'/internship', $data)->assertSessionHasNoErrors();
+        $this->put('/my-enrollments/'.$e->id.'/internship', [...$data, 'title' => 'Modification périmée'])->assertSessionHasErrors('revision');
         $this->assertDatabaseCount('enrollment_internships', 1);
     }
 
-    public function test_three_criteria_are_calculated_and_require_an_explicit_review(): void
+    public function test_three_criteria_immediately_enable_eligibility_without_an_explicit_review(): void
     {
         $e = $this->enrollment(); $this->payment($e, ['amount' => 100000]);
-        app(ManageEnrollments::class)->saveInternship($this->admin(), $e, $this->stageData($e));
-        $this->assertSame('eligible', $this->decision($e)['computed_result']); $this->assertSame('pending', $this->decision($e)['status']);
+        app(ManageEnrollments::class)->saveInternship(User::findOrFail($e->student->user_id), $e, $this->stageData($e));
+        $this->assertSame('eligible', $this->decision($e)['computed_result']); $this->assertSame($this->decision($e)['computed_result'], $this->decision($e)['status']);
         $this->signIn($this->admin())->post('/enrollments/'.$e->id.'/eligibility', ['reason' => 'Les critères sont vérifiés.', 'revision' => 3])->assertSessionHasNoErrors();
         $this->assertSame('eligible', $this->decision($e)['status']); $this->assertDatabaseCount('eligibility_reviews', 1);
         $this->get('/enrollments/'.$e->id)->assertInertia(fn (Assert $page) => $page->where('eligibility.status', 'eligible')->has('eligibility.criteria', 3)->missing('eligibility.fingerprint'));
@@ -316,46 +317,47 @@ class EnrollmentsTest extends TestCase
         $this->assertDatabaseCount('eligibility_reviews', 1);
     }
 
-    public function test_future_stage_and_non_master2_never_meet_all_criteria(): void
+    public function test_declared_future_stage_counts_but_non_master2_blocks_deposit(): void
     {
         $e = $this->enrollment($this->student(['study_level_id' => 4])); $this->payment($e, ['amount' => 100000]);
-        app(ManageEnrollments::class)->saveInternship($this->admin(), $e, $this->stageData($e, ['starts_on' => '2026-11-01']));
+        app(ManageEnrollments::class)->saveInternship(User::findOrFail($e->student->user_id), $e, $this->stageData($e, ['starts_on' => '2026-11-01']));
         $this->review($e); $decision = $this->decision($e);
-        $this->assertFalse($decision['criteria'][1]['met']); $this->assertFalse($decision['criteria'][2]['met']); $this->assertSame('ineligible', $decision['status']);
+        $this->assertFalse($decision['criteria'][1]['met']); $this->assertTrue($decision['criteria'][2]['met']); $this->assertSame('ineligible', $decision['status']);
     }
 
     public function test_voiding_a_payment_invalidates_a_previous_eligible_decision(): void
     {
         $e = $this->eligible(); $payment = $e->payments()->firstOrFail();
         app(ManageEnrollments::class)->voidPayment($this->admin(), $e, $payment, ['reason' => 'Écriture incorrecte.', 'revision' => $e->fresh()->revision]);
-        $this->assertSame('pending', $this->decision($e)['status']); $this->assertSame('ineligible', $this->decision($e)['computed_result']); $this->assertFalse($this->decision($e)['review']['current']);
+        $this->assertSame($this->decision($e)['computed_result'], $this->decision($e)['status']); $this->assertSame('ineligible', $this->decision($e)['computed_result']); $this->assertFalse($this->decision($e)['review']['current']);
         $this->review($e); $this->assertSame('ineligible', $this->decision($e)['status']); $this->assertDatabaseCount('eligibility_reviews', 2);
     }
 
     public function test_removing_a_stage_invalidates_eligibility_and_records_the_reason(): void
     {
         $e = $this->eligible();
-        $this->signIn($this->admin())->delete('/enrollments/'.$e->id.'/internship', ['reason' => 'Convention attribuée par erreur.', 'revision' => $e->fresh()->revision])->assertSessionHasNoErrors();
-        $this->assertDatabaseCount('enrollment_internships', 0); $this->assertSame('pending', $this->decision($e)['status']);
+        $this->signIn(User::findOrFail($e->student->user_id))->delete('/my-enrollments/'.$e->id.'/internship', ['reason' => 'Convention attribuée par erreur.', 'revision' => $e->fresh()->revision])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('enrollment_internships', 0); $this->assertSame($this->decision($e)['computed_result'], $this->decision($e)['status']);
         $this->assertFalse($this->decision($e)['criteria'][2]['met']); $this->assertDatabaseHas('enrollment_audits', ['action' => 'internship.removed', 'enrollment_id' => $e->id]);
     }
 
     public function test_student_and_year_changes_make_a_review_stale_and_block_new_entries(): void
     {
         $e = $this->eligible(); $e->student->forceFill(['is_archived' => true, 'revision' => 2])->save();
-        $this->assertSame('pending', $this->decision($e)['status']); $this->assertFalse($this->decision($e)['context_valid']);
+        $this->assertSame($this->decision($e)['computed_result'], $this->decision($e)['status']); $this->assertFalse($this->decision($e)['context_valid']);
         $this->signIn($this->admin())->post('/enrollments/'.$e->id.'/eligibility', ['reason' => 'Nouvel examen.', 'revision' => $e->fresh()->revision])->assertSessionHasErrors('card_number');
         $e->student->forceFill(['is_archived' => false, 'revision' => 3])->save(); $this->review($e);
         $e->academicYear->forceFill(['status' => 'closed', 'current_slot' => null, 'revision' => 2])->save();
-        $this->assertSame('pending', $this->decision($e)['status']); $this->assertFalse($this->decision($e)['context_valid']);
+        $this->assertSame($this->decision($e)['computed_result'], $this->decision($e)['status']); $this->assertFalse($this->decision($e)['context_valid']);
     }
 
-    public function test_time_changes_cannot_keep_an_outdated_stage_decision_current(): void
+    public function test_declared_stage_does_not_require_waiting_for_its_start_or_a_manual_review(): void
     {
         $e = $this->enrollment(); $this->payment($e, ['amount' => 100000]);
-        app(ManageEnrollments::class)->saveInternship($this->admin(), $e, $this->stageData($e, ['starts_on' => '2026-10-22']));
-        $this->review($e); $this->assertSame('ineligible', $this->decision($e)['status']);
-        $this->travelTo(Carbon::parse('2026-10-22 12:00:00')); $this->assertSame('pending', $this->decision($e)['status']);
+        app(ManageEnrollments::class)->saveInternship(User::findOrFail($e->student->user_id), $e, $this->stageData($e, ['starts_on' => '2026-10-22']));
+        $this->assertSame('eligible', $this->decision($e)['status']);
+        $this->assertNull($this->decision($e)['review']);
+        $this->travelTo(Carbon::parse('2026-10-22 12:00:00')); $this->assertSame($this->decision($e)['computed_result'], $this->decision($e)['status']);
     }
 
     public function test_personal_history_and_receipts_are_scoped_to_the_explicit_owner(): void
@@ -427,4 +429,39 @@ class EnrollmentsTest extends TestCase
         $this->post('/enrollments/'.$e->id.'/eligibility', ['reason' => 'Test CSRF.', 'revision' => 1])->assertStatus(419);
         $this->post('/settings/years', [])->assertStatus(419); $this->assertDatabaseCount('tuition_payments', 0); $this->assertDatabaseCount('eligibility_reviews', 0);
     }
+
+    public function test_only_the_linked_student_can_declare_and_remove_their_stage(): void
+    {
+        $e = $this->enrollment(); $owner = User::findOrFail($e->student->user_id); $other = $this->studentAccount();
+        $this->signIn($this->admin())->put('/my-enrollments/'.$e->id.'/internship', $this->stageData($e))->assertForbidden();
+        $this->put('/enrollments/'.$e->id.'/internship', $this->stageData($e))->assertNotFound();
+        $this->signIn($other)->put('/my-enrollments/'.$e->id.'/internship', $this->stageData($e))->assertNotFound();
+        $this->signIn($owner)->put('/my-enrollments/'.$e->id.'/internship', $this->stageData($e, ['evidence_reference' => null]))->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('enrollment_internships', ['enrollment_id' => $e->id, 'recorded_by' => $owner->id, 'evidence_reference' => '']);
+        $this->signIn($other)->delete('/my-enrollments/'.$e->id.'/internship', ['revision' => 2, 'reason' => 'Retrait interdit.'])->assertNotFound();
+        $this->signIn($owner)->delete('/my-enrollments/'.$e->id.'/internship', ['revision' => 2, 'reason' => 'Déclaration incorrecte.'])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('enrollment_internships', 0);
+    }
+
+    public function test_student_stage_permission_revocation_and_unlinking_are_checked_under_lock(): void
+    {
+        $e = $this->enrollment(); $owner = User::findOrFail($e->student->user_id); $data = $this->stageData($e);
+        UserGroup::findOrFail(1)->permissions()->detach('internships.self');
+        try { app(ManageEnrollments::class)->saveInternship($owner, $e, $data); $this->fail('Revoked declaration right accepted.'); }
+        catch (AuthorizationException) { $this->assertDatabaseCount('enrollment_internships', 0); }
+        UserGroup::findOrFail(1)->permissions()->attach('internships.self');
+        $e->student->forceFill(['user_id' => null])->save();
+        $this->signIn($owner)->put('/my-enrollments/'.$e->id.'/internship', $data)->assertNotFound();
+    }
+
+    public function test_personal_stage_mutations_validate_csrf_and_reject_forged_ownership(): void
+    {
+        $e = $this->enrollment(); $owner = User::findOrFail($e->student->user_id); $this->signIn($owner);
+        $this->put('/my-enrollments/'.$e->id.'/internship', $this->stageData($e, ['recorded_by' => $this->admin()->id, 'student_id' => 999]))->assertSessionHasErrors(['recorded_by', 'student_id']);
+        $this->app->instance('env', 'local');
+        $this->put('/my-enrollments/'.$e->id.'/internship', $this->stageData($e))->assertStatus(419);
+        $this->delete('/my-enrollments/'.$e->id.'/internship', ['revision' => 1, 'reason' => 'Test CSRF.'])->assertStatus(419);
+        $this->assertDatabaseCount('enrollment_internships', 0);
+    }
+
 }

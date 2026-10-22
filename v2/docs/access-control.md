@@ -1,5 +1,7 @@
 # Lot 2 — comptes, groupes et permissions
 
+La [matrice actuelle du sprint correctif](report-workflow-corrections.md#interfaces-par-groupe-dans-ce-sprint) précise désormais les droits de scolarité, de transmission et de commission pour les neuf groupes.
+
 Ce document décrit le socle du lot 2. Le lot 3 ajoute les permissions étudiants et pédagogiques, et la lecture personnelle pour le groupe Étudiant : voir [dossiers étudiants](student-records.md). Le catalogue historique de types et groupes reste identique.
 
 Ce lot reprend la gestion des comptes depuis les paramètres généraux. Il conserve les types et groupes de la base historique, la palette, les logos et les intitulés des listes.

@@ -20,8 +20,8 @@ class Eligibility
                 'detail' => max(0, $enrollment->amount_due - $paid).' FCFA restant à payer sur cette inscription.'],
             ['key' => 'level', 'label' => 'Niveau Master 2', 'met' => (int) $enrollment->study_level_id === 5 && (int) $student->study_level_id === 5,
                 'detail' => 'Le niveau de l’inscription et celui du dossier étudiant doivent être Master 2.'],
-            ['key' => 'internship', 'label' => 'Stage déclaré', 'met' => $stage !== null && $stage->starts_on->lte(today()),
-                'detail' => $stage ? 'Déclaration enregistrée ; le stage doit avoir commencé.' : 'Aucun stage déclaré pour cette inscription.'],
+            ['key' => 'internship', 'label' => 'Stage déclaré', 'met' => $stage !== null,
+                'detail' => $stage ? 'Déclaration de stage enregistrée.' : 'Aucun stage déclaré pour cette inscription.'],
         ];
         $result = $context && collect($criteria)->every(fn ($criterion) => $criterion['met']) ? 'eligible' : 'ineligible';
         $fingerprint = hash('sha256', json_encode([
@@ -32,7 +32,7 @@ class Eligibility
 
         return [
             'criteria' => $criteria, 'context_valid' => $context, 'computed_result' => $result,
-            'fingerprint' => $fingerprint, 'status' => $current ? $review->result : 'pending',
+            'fingerprint' => $fingerprint, 'status' => $result,
             'review' => $review ? [...$review->only('id', 'result', 'reason'), 'created_at' => $review->created_at->toIso8601String(), 'current' => (bool) $current] : null,
         ];
     }

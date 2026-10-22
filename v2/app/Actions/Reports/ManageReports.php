@@ -3,13 +3,16 @@ namespace App\Actions\Reports;
 
 use App\Models\Enrollment;
 use App\Models\Report;
-use App\Models\ReportDecision;
+use App\Models\ReportRound;
+use App\Models\ReportRoundMember;
+use App\Models\ReportVote;
 use App\Models\ReportVersion;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\UserGroup;
 use App\Services\Eligibility;
 use App\Services\ReportFiles;
+use App\Services\ReportAccess;
 use Closure;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +24,7 @@ use Throwable;
 
 class ManageReports
 {
-    public function __construct(private ReportFiles $files, private Eligibility $eligibility) {}
+    public function __construct(private ReportFiles $files, private Eligibility $eligibility, private ReportAccess $access) {}
 
     public function submit(User $actor, array $data, UploadedFile $file): Report
     {
@@ -55,10 +58,10 @@ class ManageReports
                 $this->files->store($file, $storedPath);
                 $version = new ReportVersion;
                 $version->forceFill(['report_id' => $report->id, 'enrollment_id' => $enrollment->id, 'submitted_by' => $actor->id,
-                    'eligibility_review_id' => $decision['review']['id'], 'number' => $number, 'title' => $data['title'],
+                    'eligibility_review_id' => null, 'eligibility_snapshot' => ['criteria' => $decision['criteria'], 'fingerprint' => $decision['fingerprint']], 'number' => $number, 'title' => $data['title'],
                     'storage_path' => $storedPath, 'size' => $file->getSize(), 'sha256' => $digest,
                     'operation_key' => $data['operation_key'], 'created_at' => now()])->save();
-                $this->audit($actor, $report, $version, 'report.submitted', ['number' => $number, 'eligibility_review_id' => $decision['review']['id']]);
+                $this->audit($actor, $report, $version, 'report.submitted', ['number' => $number, 'eligibility_fingerprint' => $decision['fingerprint']]);
                 return $report;
             });
         } catch (Throwable $error) {
@@ -68,24 +71,86 @@ class ManageReports
         }
     }
 
-    public function review(User $actor, Report $target, array $data): void
+    public function forward(User $actor, Report $target, array $data): ReportRound
     {
-        $this->locked($actor, 'reports.review', function () use ($actor, $target, $data) {
+        return $this->locked($actor, 'reports.forward', function () use ($actor, $target, $data) {
+            abort_unless($this->access->canForward($actor->fresh()), 403);
             $report = Report::whereKey($target->id)->lockForUpdate()->firstOrFail();
             $this->revision($report->revision, (int) $data['revision']);
-            if ($report->status !== 'submitted') { throw ValidationException::withMessages(['decision' => 'Cette version a déjà reçu une décision.']); }
-            $version = $report->latestVersion()->firstOrFail();
-            abort_if((int) $version->submitted_by === $actor->id || (int) $report->student->user_id === $actor->id, 403, 'Vous ne pouvez pas examiner votre propre dépôt.');
-            $eligibility = null;
-            if ($data['decision'] === 'approved') {
-                $eligibility = $this->requireEligibility($report->enrollment->fresh());
-                if (! $this->files->intact($version)) { throw ValidationException::withMessages(['document' => 'Le document est indisponible ou ne correspond plus au dépôt. L’approbation est bloquée.']); }
+            if (! in_array($report->status, ['submitted', 'under_review'], true)) {
+                throw ValidationException::withMessages(['report' => 'Seul un dépôt en attente peut être transmis. Une correction exige une nouvelle version.']);
             }
-            $decision = new ReportDecision;
-            $decision->forceFill(['report_id' => $report->id, 'report_version_id' => $version->id, 'reviewed_by' => $actor->id,
-                'eligibility_review_id' => $eligibility['review']['id'] ?? null, 'decision' => $data['decision'], 'comment' => $data['comment'], 'created_at' => now()])->save();
-            $report->forceFill(['status' => $data['decision'], 'revision' => $report->revision + 1])->save();
-            $this->audit($actor, $report, $version, 'report.reviewed', ['decision_id' => $decision->id, 'decision' => $data['decision']]);
+            $version = $report->latestVersion()->firstOrFail();
+            abort_if((int) $version->submitted_by === $actor->id || (int) $report->student->user_id === $actor->id, 403);
+            $roster = $this->access->roster();
+            if ($roster->isEmpty()) { throw ValidationException::withMessages(['committee' => 'Aucun membre actif et compatible dans le groupe Commission de validation.']); }
+            $fingerprint = $this->access->fingerprint($roster->modelKeys());
+            if (! hash_equals($fingerprint, $data['committee_fingerprint'])) {
+                throw ValidationException::withMessages(['committee' => 'La composition de la commission a changé. Rechargez le dossier.']);
+            }
+            // A temporary password cannot silently remove an expected voter; the member must
+            // personalize it before voting. Check the group's grants independently of that password.
+            foreach (['reports.assigned', 'reports.vote'] as $permission) {
+                if (! DB::table('group_permission')->where('user_group_id', 9)->where('permission_code', $permission)->exists()) {
+                    throw ValidationException::withMessages(['committee' => 'Rétablissez les droits de consultation et de vote du groupe Commission de validation.']);
+                }
+            }
+            if ($roster->contains(fn ($member) => $member->id === (int) $version->submitted_by || $member->id === (int) $report->student->user_id)) {
+                throw ValidationException::withMessages(['committee' => 'Un membre de la commission est le déposant ou le titulaire de ce dossier. Corrigez cette affectation avant transmission.']);
+            }
+            if (! $this->files->intact($version)) { throw ValidationException::withMessages(['document' => 'Le PDF est indisponible ou altéré. La transmission est bloquée.']); }
+            $previous = $version->latestRound()->first();
+            if ($report->status === 'under_review') {
+                if (! $previous || $previous->status !== 'open' || hash_equals($fingerprint, $this->access->fingerprint($previous->members()->pluck('user_id')->all()))) {
+                    throw ValidationException::withMessages(['committee' => 'Cette version a déjà été transmise à cette commission.']);
+                }
+                if (mb_strlen(trim($data['reason'] ?? '')) < 5) { throw ValidationException::withMessages(['reason' => 'Indiquez pourquoi la composition de la commission doit être actualisée.']); }
+                $previous->forceFill(['status' => 'superseded', 'closed_at' => now()])->save();
+            }
+            $round = new ReportRound;
+            $round->forceFill(['report_version_id' => $version->id, 'forwarded_by' => $actor->id, 'number' => ($previous?->number ?? 0) + 1,
+                'status' => 'open', 'reason' => $data['reason'] ?? null, 'created_at' => now()])->save();
+            foreach ($roster as $user) {
+                $member = new ReportRoundMember;
+                $member->forceFill(['report_round_id' => $round->id, 'user_id' => $user->id, 'name_snapshot' => $user->name])->save();
+            }
+            $report->forceFill(['status' => 'under_review', 'revision' => $report->revision + 1])->save();
+            $this->audit($actor, $report, $version, 'report.forwarded', ['round_id' => $round->id, 'member_ids' => $roster->modelKeys(), 'superseded_round_id' => $previous?->id]);
+            return $round;
+        });
+    }
+
+    public function vote(User $actor, Report $target, ReportRound $targetRound, array $data): void
+    {
+        $this->locked($actor, 'reports.vote', function () use ($actor, $target, $targetRound, $data) {
+            abort_unless($this->access->canVote($actor->fresh()), 403);
+            $report = Report::whereKey($target->id)->lockForUpdate()->firstOrFail();
+            $round = ReportRound::whereKey($targetRound->id)->whereHas('version', fn ($q) => $q->where('report_id', $report->id))->firstOrFail();
+            $version = $round->version;
+            $member = $round->members()->where('user_id', $actor->id)->firstOrFail();
+            abort_if((int) $version->submitted_by === $actor->id || (int) $report->student->user_id === $actor->id, 403);
+            $existing = $member->vote;
+            if ($existing) {
+                if ($existing->decision === $data['decision'] && $existing->comment === ($data['comment'] ?? null)) { return; }
+                throw ValidationException::withMessages(['decision' => 'Votre avis sur cette transmission est déjà enregistré.']);
+            }
+            if ($report->status !== 'under_review' || $round->status !== 'open' || $report->latestVersion()->value('report_versions.id') !== $version->id) {
+                throw ValidationException::withMessages(['round' => 'Cette transmission est clôturée ou remplacée. Rechargez le dossier.']);
+            }
+            if (! hash_equals($this->access->fingerprint($round->members()->pluck('user_id')->all()), $this->access->fingerprint($this->access->roster()->modelKeys()))) {
+                throw ValidationException::withMessages(['committee' => 'La composition de la commission a changé. Le chargé de communication doit relancer la transmission ; tous les avis seront redemandés.']);
+            }
+            if (! in_array($data['decision'], ['approved', 'changes_requested'], true)) { throw ValidationException::withMessages(['decision' => 'Choisissez une décision valide.']); }
+            if ($data['decision'] === 'changes_requested' && mb_strlen(trim($data['comment'] ?? '')) < 5) { throw ValidationException::withMessages(['comment' => 'Expliquez la correction demandée.']); }
+            if ($data['decision'] === 'approved' && ! $this->files->intact($version)) { throw ValidationException::withMessages(['document' => 'Le PDF est indisponible ou altéré. L’approbation est bloquée.']); }
+            $vote = new ReportVote;
+            $vote->forceFill(['report_round_member_id' => $member->id, 'decision' => $data['decision'], 'comment' => $data['comment'] ?? null, 'created_at' => now()])->save();
+            $status = 'under_review';
+            if ($data['decision'] === 'changes_requested') { $status = 'changes_requested'; }
+            elseif ($round->members()->exists() && ! $round->members()->whereDoesntHave('vote', fn ($q) => $q->where('decision', 'approved'))->exists()) { $status = 'accepted'; }
+            if ($status !== 'under_review') { $round->forceFill(['status' => $status === 'accepted' ? 'approved' : 'changes_requested', 'closed_at' => now()])->save(); }
+            $report->forceFill(['status' => $status, 'revision' => $report->revision + 1])->save();
+            $this->audit($actor, $report, $version, 'report.voted', ['round_id' => $round->id, 'vote_id' => $vote->id, 'decision' => $data['decision'], 'status' => $status]);
         });
     }
 
@@ -106,7 +171,7 @@ class ManageReports
     {
         $result = $this->eligibility->evaluate($enrollment);
         if ($result['status'] !== 'eligible' || ! $result['context_valid'] || $result['computed_result'] !== 'eligible') {
-            throw ValidationException::withMessages(['eligibility' => 'L’inscription doit avoir un examen d’éligibilité favorable et encore valide. Consultez le service de scolarité.']);
+            throw ValidationException::withMessages(['eligibility' => 'Les critères de dépôt doivent être remplis : scolarité soldée, niveau Master 2 et stage déclaré sur une inscription active.']);
         }
         return $result;
     }

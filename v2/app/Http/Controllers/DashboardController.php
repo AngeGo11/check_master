@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Student;
 use App\Models\Report;
+use App\Services\ReportAccess;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -13,14 +14,17 @@ class DashboardController extends Controller
     public function __invoke(Request $request): Response
     {
         $user = $request->user();
-        $canViewReports = $user->can('reports.view');
+        $access = app(ReportAccess::class);
+        $canViewReports = $user->can('reports.view') || $access->canReadAssigned($user);
+        $reports = $canViewReports ? $access->reports($user) : null;
         $ownReportAccess = $user->can('reports.self') && $user->types()->where('user_types.id', 1)->exists();
         $latestReport = $ownReportAccess
             ? Report::whereHas('student', fn ($q) => $q->where('user_id', $user->id))->first()
-            : ($canViewReports ? Report::orderByDesc('latest_submitted_at')->orderByDesc('id')->first() : null);
+            : ($canViewReports ? (clone $reports)->orderByDesc('latest_submitted_at')->orderByDesc('id')->first() : null);
         return Inertia::render('dashboard', [
-            'reportCount' => $canViewReports ? Report::count() : null,
-            'pendingReportCount' => $canViewReports ? Report::where('status', 'submitted')->count() : null,
+            'reportScope' => $canViewReports ? ($user->can('reports.view') ? 'global' : 'commission') : null,
+            'reportCount' => $canViewReports ? (clone $reports)->count() : null,
+            'pendingReportCount' => $canViewReports ? (clone $reports)->whereIn('status', ['submitted', 'under_review'])->count() : null,
             'latestReport' => $latestReport ? [...$latestReport->only('title', 'status', 'reference'), 'href' => $ownReportAccess ? '/my-reports' : '/reports/'.$latestReport->id] : null,
 
             'studentCount' => $request->user()->can('students.view') ? Student::where('is_archived', false)->count() : null,

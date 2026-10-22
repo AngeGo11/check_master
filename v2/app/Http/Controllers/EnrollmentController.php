@@ -112,12 +112,12 @@ class EnrollmentController extends Controller
     public function saveInternship(SaveInternshipRequest $request, Enrollment $enrollment, ManageEnrollments $action): RedirectResponse
     {
         $action->saveInternship($request->user(), $enrollment, $request->validated());
-        return to_route('enrollments.show', $enrollment)->with('success', 'Déclaration de stage enregistrée.');
+        return redirect('/my-enrollments/'.$enrollment->id)->with('success', 'Votre stage est déclaré. Votre éligibilité au dépôt est actualisée immédiatement.');
     }
     public function removeInternship(RemoveInternshipRequest $request, Enrollment $enrollment, ManageEnrollments $action): RedirectResponse
     {
         $action->removeInternship($request->user(), $enrollment, $request->validated());
-        return to_route('enrollments.show', $enrollment)->with('success', 'Déclaration retirée. L’éligibilité doit être réexaminée.');
+        return redirect('/my-enrollments/'.$enrollment->id)->with('success', 'Déclaration retirée. Votre éligibilité a été recalculée.');
     }
     public function review(ReviewEligibilityRequest $request, Enrollment $enrollment, ManageEnrollments $action): RedirectResponse
     {

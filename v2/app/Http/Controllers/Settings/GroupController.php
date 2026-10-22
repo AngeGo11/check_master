@@ -21,6 +21,7 @@ class GroupController extends Controller
                 'protected' => $group->code === UserGroup::ADMINISTRATOR,
                 'types' => $group->types->map(fn ($type) => $type->only('id', 'name')),
                 'permissions' => $group->permissions->pluck('code'),
+                'allowedPermissions' => array_values(array_filter(Permission::CODES, fn ($code) => Permission::allowedForGroup($code, $group->code))),
             ]),
             'permissions' => Permission::orderBy('code')->get(['code', 'name']),
         ]);

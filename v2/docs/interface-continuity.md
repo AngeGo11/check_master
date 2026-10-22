@@ -62,3 +62,7 @@ Les inscriptions, règlements et critères d’éligibilité du lot 4 sont dispo
 Les indicateurs « Rapports soumis », « Rapports en attente » et le panneau « Dernier rapport » utilisent maintenant les données réelles, selon les permissions. L’étudiant voit uniquement son dernier mémoire. Les soutenances et commissions restent indisponibles. L’approbation administrative est explicitement distinguée de la future validation par la commission.
 
 La comparaison visuelle sur Mac, notamment sur mobile, reste à effectuer avec le [scénario du lot 5](reports.md).
+
+## Correction du parcours stage et mémoire — 22 octobre 2026
+
+Les trois cartes de l’étudiant, les couleurs et les composants sont conservés. Le stage est désormais déclaré depuis l’espace étudiant. Le dépôt s’ouvre automatiquement lorsque les critères sont remplis. Le suivi indique « À transmettre », « En commission », « Correction demandée » ou « Accepté à l’unanimité ». Le chargé de communication voit la liste complète des destinataires et le bouton de transmission ; chaque membre reçoit un formulaire d’avis personnel et un suivi des approbations. Les compteurs et les listes de la commission sont limités aux versions transmises. L’ancienne approbation administrative ne donne plus accès à une acceptation.

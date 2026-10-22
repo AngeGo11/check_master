@@ -47,6 +47,12 @@ class User extends Authenticatable
         return $this->belongsToMany(UserGroup::class, 'group_user');
     }
 
+    public function belongsToCompatibleGroup(string $code): bool
+    {
+        $group = $this->groups()->where('code', $code)->first();
+        return $group && $this->types()->whereIn('user_types.id', $group->types()->pluck('user_types.id'))->exists();
+    }
+
     public function permissionCodes(): array
     {
         if (! $this->is_active || $this->must_change_password) {

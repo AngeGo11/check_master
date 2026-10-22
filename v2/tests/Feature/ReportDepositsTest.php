@@ -8,12 +8,16 @@ use App\Models\AcademicYear;
 use App\Models\Enrollment;
 use App\Models\Report;
 use App\Models\ReportVersion;
+use App\Models\ReportRound;
 use App\Models\Student;
 use App\Models\TuitionFee;
 use App\Models\User;
 use App\Models\UserGroup;
 use App\Services\Eligibility;
 use App\Services\ReportFiles;
+use App\Services\ReportAccess;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -32,6 +36,8 @@ class ReportDepositsTest extends TestCase
     use RefreshDatabase;
 
     private ?User $operator = null;
+    private ?User $sender = null;
+    private array $voters = [];
 
     protected function setUp(): void
     {
@@ -60,7 +66,7 @@ class ReportDepositsTest extends TestCase
     {
         return $this->actingAs($user->fresh())->withSession(['auth_version' => $user->fresh()->auth_version]);
     }
-    private function eligible(User $user, bool $reviewed = true): Enrollment
+    private function eligible(User $user, bool $reviewed = false): Enrollment
     {
         $year = AcademicYear::where('status', 'current')->first();
         if (! $year) {
@@ -77,7 +83,7 @@ class ReportDepositsTest extends TestCase
         $e = $action->create($this->admin(), ['card_number' => $student->card_number, 'academic_year_id' => $year->id, 'study_level_id' => 5, 'enrolled_on' => '2026-10-01']);
         $action->recordPayment($this->admin(), $e, ['amount' => 100000, 'method' => 'cash', 'cheque_number' => null,
             'purpose' => 'Scolarité fictive', 'paid_on' => '2026-10-20', 'operation_key' => (string) Str::uuid(), 'revision' => 1]);
-        $action->saveInternship($this->admin(), $e, ['company' => 'Entreprise fictive', 'title' => 'Stage de test',
+        $action->saveInternship($user, $e, ['company' => 'Entreprise fictive', 'title' => 'Stage de test',
             'starts_on' => '2026-10-01', 'ends_on' => '2027-01-31', 'evidence_reference' => 'Convention fictive', 'revision' => 2]);
         if ($reviewed) { $action->review($this->admin(), $e, ['reason' => 'Critères vérifiés pour le test.', 'revision' => 3]); }
         return $e->fresh();
@@ -106,10 +112,40 @@ class ReportDepositsTest extends TestCase
         $report = app(ManageReports::class)->submit($user, $this->data($e), $this->pdf());
         return [$user, $e, $report];
     }
-    private function reviewData(Report $report, array $overrides = []): array
+    private function communication(): User
     {
-        return [...['decision' => 'changes_requested', 'comment' => 'Précisez la méthode et les sources.', 'revision' => $report->fresh()->revision], ...$overrides];
+        if (! $this->sender) { $this->sender = User::factory()->create(); $this->sender->types()->attach(4); $this->sender->groups()->attach(2); }
+        return $this->sender;
     }
+    private function committee(): array
+    {
+        if (! $this->voters) {
+            for ($i = 0; $i < 2; $i++) { $user = User::factory()->create(); $user->types()->attach(2); $user->groups()->attach(9); $this->voters[] = $user; }
+        }
+        return $this->voters;
+    }
+    private function forwardData(Report $report, array $overrides = []): array
+    {
+        $access = app(ReportAccess::class);
+        return [...['revision' => $report->fresh()->revision, 'committee_fingerprint' => $access->fingerprint($access->roster()->modelKeys()), 'reason' => null], ...$overrides];
+    }
+    private function forward(Report $report): ReportRound
+    {
+        $this->committee(); return app(ManageReports::class)->forward($this->communication(), $report, $this->forwardData($report));
+    }
+    private function correction(Report $report): ReportRound
+    {
+        $round = $this->forward($report);
+        app(ManageReports::class)->vote($this->committee()[0], $report, $round, ['decision' => 'changes_requested', 'comment' => 'Précisez la méthode et les sources.']);
+        return $round;
+    }
+    private function accept(Report $report): ReportRound
+    {
+        $round = $this->forward($report);
+        foreach ($this->committee() as $voter) { app(ManageReports::class)->vote($voter, $report, $round, ['decision' => 'approved']); }
+        return $round;
+    }
+
     private function rejectSubmission(User $user, Enrollment $e, string $key): void
     {
         try { app(ManageReports::class)->submit($user, $this->data($e), $this->pdf()); $this->fail('An unavailable submission was accepted.'); }
@@ -120,8 +156,8 @@ class ReportDepositsTest extends TestCase
     {
         foreach (['student_reports', 'report_versions', 'report_decisions', 'report_audits'] as $table) { $this->assertDatabaseCount($table, 0); }
         $this->assertSame([], Storage::disk('reports')->allFiles());
-        foreach (['reports.view', 'reports.review', 'reports.self'] as $code) {
-            $this->assertSame([$code === 'reports.self' ? 1 : 8], DB::table('group_permission')->where('permission_code', $code)->pluck('user_group_id')->all());
+        foreach (['reports.forward', 'reports.vote', 'internships.self'] as $code) {
+            $this->assertSame([match ($code) { 'reports.forward' => 2, 'reports.vote' => 9, default => 1 }], DB::table('group_permission')->where('permission_code', $code)->pluck('user_group_id')->all());
         }
     }
 
@@ -131,16 +167,16 @@ class ReportDepositsTest extends TestCase
         foreach (['/reports', '/my-reports', '/reports/'.$r->id, '/my-reports/'.$r->id.'/versions/'.$v->id.'/download'] as $url) { $this->get($url)->assertRedirect('/login'); }
         $this->signIn($this->delegate(['students.view', 'enrollments.view', 'payments.manage', 'eligibility.review']));
         foreach (['/reports', '/my-reports', '/reports/'.$r->id, '/reports/'.$r->id.'/versions/'.$v->id.'/download'] as $url) { $this->get($url)->assertForbidden(); }
-        $this->post('/my-reports', [])->assertForbidden(); $this->post('/reports/'.$r->id.'/review', $this->reviewData($r))->assertForbidden();
+        $this->post('/my-reports', [])->assertForbidden(); $this->post('/reports/'.$r->id.'/forward', $this->forwardData($r))->assertForbidden();
     }
 
     public function test_report_reader_can_consult_and_download_but_cannot_review(): void
     {
         [, , $r] = $this->deposited(); $reader = $this->delegate(['reports.view']); $this->signIn($reader);
         $this->get('/reports')->assertOk();
-        $this->get('/reports/'.$r->id)->assertInertia(fn (Assert $page) => $page->where('canReview', false));
+        $this->get('/reports/'.$r->id)->assertInertia(fn (Assert $page) => $page->where('canForward', false)->where('canVote', false));
         $this->get('/reports/'.$r->id.'/versions/'.$r->latestVersion->id.'/download')->assertOk();
-        $this->post('/reports/'.$r->id.'/review', $this->reviewData($r))->assertForbidden();
+        $this->post('/reports/'.$r->id.'/forward', $this->forwardData($r))->assertForbidden();
         $this->assertDatabaseCount('report_decisions', 0);
     }
 
@@ -185,20 +221,20 @@ class ReportDepositsTest extends TestCase
         $this->assertDatabaseCount('student_reports', 0); $this->assertSame([], Storage::disk('reports')->allFiles());
     }
 
-    public function test_met_criteria_are_insufficient_without_an_explicit_favorable_review(): void
-    {
-        $user = $this->studentAccount(); $e = $this->eligible($user, reviewed: false);
-        $this->assertSame('eligible', app(Eligibility::class)->evaluate($e)['computed_result']);
-        $this->signIn($user)->get('/my-reports')->assertInertia(fn (Assert $page) => $page->where('enrollments.0.can_submit', false));
-        $this->post('/my-reports', [...$this->data($e), 'document' => $this->pdf()])->assertSessionHasErrors('eligibility');
-        $this->assertDatabaseCount('student_reports', 0);
-    }
-
-    public function test_stale_review_archival_level_status_cancellation_and_closed_year_block_submission(): void
+    public function test_met_criteria_allow_immediate_deposit_without_any_administrative_review(): void
     {
         $user = $this->studentAccount(); $e = $this->eligible($user);
-        $e->student->increment('revision'); $this->rejectSubmission($user, $e, 'eligibility');
-        $e->student->decrement('revision');
+        $e->student->increment('revision'); // An unrelated administrative edit cannot reintroduce a manual gate.
+        $this->signIn($user)->get('/my-reports')->assertInertia(fn (Assert $page) => $page->where('enrollments.0.can_submit', true));
+        $this->post('/my-reports', [...$this->data($e), 'document' => $this->pdf()])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('eligibility_reviews', 0);
+        $v = ReportVersion::sole(); $this->assertNull($v->eligibility_review_id); $this->assertCount(3, $v->eligibility_snapshot['criteria']);
+    }
+
+    public function test_archival_level_status_cancellation_and_closed_year_block_submission(): void
+    {
+        $user = $this->studentAccount(); $e = $this->eligible($user);
+        // Administrative review freshness is no longer a deposit gate.
         foreach (['is_archived' => true, 'study_level_id' => 4, 'student_status_id' => 2] as $key => $value) {
             $student = $e->student->fresh(); $original = $student->$key;
             $student->forceFill([$key => $value])->save(); $this->rejectSubmission($user, $e, 'eligibility');
@@ -231,10 +267,10 @@ class ReportDepositsTest extends TestCase
     {
         $user = $this->studentAccount(); $e = $this->eligible($user); $data = $this->data($e); $action = app(ManageReports::class);
         $r = $action->submit($user, $data, $this->pdf());
-        $action->review($this->admin(), $r, $this->reviewData($r));
+        $this->correction($r);
         $retried = $action->submit($user, $data, $this->pdf()); $this->assertSame($r->id, $retried->id);
         $this->assertSame('changes_requested', $retried->status); $this->assertDatabaseCount('report_versions', 1);
-        $this->assertCount(1, Storage::disk('reports')->allFiles()); $this->assertDatabaseCount('report_audits', 2);
+        $this->assertCount(1, Storage::disk('reports')->allFiles()); $this->assertDatabaseCount('report_audits', 3);
         foreach ([[$data, $this->pdf('Different content')], [[...$data, 'title' => 'Autre thème'], $this->pdf()]] as [$payload, $file]) {
             try { $action->submit($user, $payload, $file); $this->fail('Reused key was accepted for changed content.'); }
             catch (ValidationException $error) { $this->assertArrayHasKey('operation_key', $error->errors()); }
@@ -252,83 +288,87 @@ class ReportDepositsTest extends TestCase
         $this->assertDatabaseCount('report_versions', 1); $this->assertCount(1, Storage::disk('reports')->allFiles());
     }
 
-    public function test_correction_and_resubmission_preserve_old_documents_comments_and_titles(): void
+    public function test_correction_and_resubmission_preserve_old_documents_votes_and_titles(): void
     {
-        [$user, $e, $r] = $this->deposited(); $first = $r->latestVersion; $firstBytes = Storage::disk('reports')->get($first->storage_path);
-        $this->signIn($this->admin())->post('/reports/'.$r->id.'/review', $this->reviewData($r))->assertSessionHasNoErrors();
-        $this->signIn($user)->get('/my-reports')->assertInertia(fn (Assert $page) => $page->where('report.status', 'changes_requested')->where('versions.data.0.decision.comment', 'Précisez la méthode et les sources.'));
-        $this->post('/my-reports', [...$this->data($e, ['revision' => 2, 'title' => 'Thème corrigé']), 'document' => $this->pdf('Version corrigee')])->assertSessionHasNoErrors();
-        $this->assertSame('submitted', $r->fresh()->status); $this->assertSame(3, $r->fresh()->revision); $this->assertSame(2, $r->fresh()->version_count);
-        $this->assertSame('Mémoire de démonstration', $first->fresh()->title); $this->assertSame($firstBytes, Storage::disk('reports')->get($first->storage_path));
+        [$user, $e, $r] = $this->deposited(); $first = $r->latestVersion; $bytes = Storage::disk('reports')->get($first->storage_path);
+        $round = $this->correction($r);
+        $this->signIn($user)->get('/my-reports')->assertInertia(fn (Assert $page) => $page->where('report.status', 'changes_requested')->where('versions.data.0.rounds.0.members.0.comment', 'Précisez la méthode et les sources.'));
+        $this->post('/my-reports', [...$this->data($e, ['revision' => $r->fresh()->revision, 'title' => 'Thème corrigé']), 'document' => $this->pdf('Version corrigee')])->assertSessionHasNoErrors();
+        $this->assertSame('submitted', $r->fresh()->status); $this->assertSame(2, $r->fresh()->version_count);
+        $this->assertSame('Mémoire de démonstration', $first->fresh()->title);
         $this->assertDatabaseHas('report_versions', ['report_id' => $r->id, 'number' => 2, 'title' => 'Thème corrigé']);
-        $this->assertDatabaseHas('report_decisions', ['report_version_id' => $first->id, 'decision' => 'changes_requested']);
-        $this->get('/my-reports/'.$r->id.'/versions/'.$first->id.'/download')->assertOk()->assertStreamedContent($firstBytes);
-        $this->assertCount(2, Storage::disk('reports')->allFiles()); $this->assertDatabaseCount('report_audits', 3);
+        $this->assertSame('changes_requested', $round->fresh()->status);
+        $this->get('/my-reports/'.$r->id.'/versions/'.$first->id.'/download')->assertOk()->assertStreamedContent($bytes);
+        $this->assertCount(2, Storage::disk('reports')->allFiles()); $this->assertDatabaseCount('report_audits', 4);
     }
 
-    public function test_approval_records_the_reviewed_version_and_prevents_new_submissions(): void
+    public function test_only_unanimity_accepts_the_version_and_acceptance_prevents_new_submissions(): void
     {
-        [$user, $e, $r] = $this->deposited(); $data = $this->reviewData($r, ['decision' => 'approved', 'comment' => 'Document recevable administrativement.']);
-        $this->signIn($this->admin())->post('/reports/'.$r->id.'/review', $data)->assertSessionHasNoErrors();
-        $this->assertSame('approved', $r->fresh()->status);
-        $this->assertDatabaseHas('report_decisions', ['report_version_id' => $r->latestVersion->id, 'eligibility_review_id' => $e->latestReview->id, 'reviewed_by' => $this->admin()->id, 'decision' => 'approved']);
-        $this->post('/reports/'.$r->id.'/review', $data)->assertSessionHasErrors('revision');
-        $this->post('/reports/'.$r->id.'/review', $this->reviewData($r))->assertSessionHasErrors('decision');
-        $this->signIn($user)->post('/my-reports', [...$this->data($e, ['revision' => 2]), 'document' => $this->pdf()])->assertSessionHasErrors('document');
-        $this->assertDatabaseCount('report_decisions', 1); $this->assertDatabaseCount('report_versions', 1);
+        [$user, $e, $r] = $this->deposited(); $round = $this->forward($r); [$first, $second] = $this->committee();
+        $url = '/reports/'.$r->id.'/rounds/'.$round->id.'/vote';
+        $this->signIn($first)->get('/reports/'.$r->id)->assertInertia(fn (Assert $page) => $page->where('canVote', true)->where('currentRound.total', 2)->where('currentRound.approved', 0));
+        $this->signIn($second)->get('/reports/'.$r->id)->assertInertia(fn (Assert $page) => $page->where('canVote', true));
+        $this->signIn($first)->post($url, ['decision' => 'approved'])->assertSessionHasNoErrors();
+        $this->assertSame('under_review', $r->fresh()->status); $this->assertSame('open', $round->fresh()->status);
+        // Independently opened forms remain valid for different voters on the same transmission.
+        $this->signIn($second)->post($url, ['decision' => 'approved'])->assertSessionHasNoErrors();
+        $this->assertSame('accepted', $r->fresh()->status); $this->assertSame('approved', $round->fresh()->status);
+        $this->signIn($user)->post('/my-reports', [...$this->data($e, ['revision' => $r->fresh()->revision]), 'document' => $this->pdf()])->assertSessionHasErrors('document');
+        $this->assertDatabaseCount('report_votes', 2); $this->assertDatabaseCount('report_versions', 1); $this->assertDatabaseCount('report_decisions', 0);
     }
 
-    public function test_old_review_forms_cannot_review_a_new_version(): void
+    public function test_old_transmission_votes_do_not_carry_to_a_new_version(): void
     {
-        [$user, $e, $r] = $this->deposited(); $old = $this->reviewData($r); $action = app(ManageReports::class);
-        $action->review($this->admin(), $r, $old);
-        $action->submit($user, $this->data($e, ['revision' => 2]), $this->pdf('Second version'));
-        $this->signIn($this->admin())->post('/reports/'.$r->id.'/review', [...$old, 'decision' => 'approved'])->assertSessionHasErrors('revision');
-        $this->assertSame('submitted', $r->fresh()->status); $this->assertDatabaseCount('report_decisions', 1);
+        [$user, $e, $r] = $this->deposited(); $round = $this->correction($r);
+        app(ManageReports::class)->submit($user, $this->data($e, ['revision' => $r->fresh()->revision]), $this->pdf('Second version'));
+        $voter = $this->committee()[1];
+        $this->signIn($voter)->get('/reports/'.$r->id)->assertNotFound();
+        $this->post('/reports/'.$r->id.'/rounds/'.$round->id.'/vote', ['decision' => 'approved'])->assertSessionHasErrors('round');
+        $next = $this->forward($r); $this->assertSame(0, $next->members()->whereHas('vote')->count());
+        $this->post('/reports/'.$r->id.'/rounds/'.$next->id.'/vote', ['decision' => 'approved'])->assertSessionHasNoErrors();
+        $this->assertSame('under_review', $r->fresh()->status);
+        $this->signIn($this->committee()[0])->post('/reports/'.$r->id.'/rounds/'.$next->id.'/vote', ['decision' => 'approved'])->assertSessionHasNoErrors();
+        $this->assertSame('accepted', $r->fresh()->status);
     }
 
-    public function test_review_requires_an_explanatory_comment_and_cannot_choose_a_foreign_version(): void
+    public function test_correction_requires_a_comment_and_votes_cannot_impersonate_another_member(): void
     {
-        [, , $r] = $this->deposited(); $this->signIn($this->admin());
-        foreach (['', 'abc', str_repeat('x', 3001)] as $comment) { $this->post('/reports/'.$r->id.'/review', $this->reviewData($r, ['comment' => $comment]))->assertSessionHasErrors('comment'); }
-        $this->post('/reports/'.$r->id.'/review', $this->reviewData($r, ['decision' => 'validated', 'report_version_id' => 999, 'status' => 'approved']))->assertSessionHasErrors(['decision', 'report_version_id', 'status']);
-        $this->assertDatabaseCount('report_decisions', 0);
+        [, , $r] = $this->deposited(); $round = $this->forward($r); $this->signIn($this->committee()[0]); $url = '/reports/'.$r->id.'/rounds/'.$round->id.'/vote';
+        foreach (['', 'abc', str_repeat('x', 3001)] as $comment) { $this->post($url, ['decision' => 'changes_requested', 'comment' => $comment])->assertSessionHasErrors('comment'); }
+        $this->post($url, ['decision' => 'accepted', 'report_version_id' => 999, 'status' => 'accepted', 'user_id' => $this->committee()[1]->id])->assertSessionHasErrors(['decision', 'report_version_id', 'status', 'user_id']);
+        $this->assertDatabaseCount('report_votes', 0);
     }
 
-    public function test_submitter_and_current_owner_cannot_review_their_own_file_with_a_second_role(): void
+    public function test_self_membership_blocks_forwarding_instead_of_excluding_a_required_voter(): void
     {
-        [$owner, $e, $r] = $this->deposited(); $owner->types()->attach(3); $owner->groups()->attach(8);
-        $this->signIn($owner)->get('/reports/'.$r->id)->assertInertia(fn (Assert $page) => $page->where('canReview', false));
-        $this->post('/reports/'.$r->id.'/review', $this->reviewData($r))->assertForbidden();
-        $replacement = $this->studentAccount(); $replacement->types()->attach(3); $replacement->groups()->attach(8);
-        $e->student->forceFill(['user_id' => $replacement->id])->save();
-        $this->post('/reports/'.$r->id.'/review', $this->reviewData($r))->assertForbidden();
-        $this->signIn($replacement)->post('/reports/'.$r->id.'/review', $this->reviewData($r))->assertForbidden();
-        $this->assertDatabaseCount('report_decisions', 0);
+        [$owner, $e, $r] = $this->deposited(); $owner->types()->attach(2); $owner->groups()->attach(9); $this->committee();
+        $this->signIn($this->communication())->post('/reports/'.$r->id.'/forward', $this->forwardData($r))->assertSessionHasErrors('committee');
+        $replacement = $this->studentAccount(); $e->student->forceFill(['user_id' => $replacement->id])->save();
+        $this->post('/reports/'.$r->id.'/forward', $this->forwardData($r))->assertSessionHasErrors('committee');
+        $this->assertDatabaseCount('report_rounds', 0); $this->assertSame('submitted', $r->fresh()->status);
     }
 
-    public function test_approval_rechecks_eligibility_but_corrections_remain_possible(): void
+    public function test_student_must_meet_current_criteria_again_when_depositing_a_correction(): void
     {
-        [, $e, $r] = $this->deposited();
-        app(ManageEnrollments::class)->removeInternship($this->admin(), $e, ['revision' => $e->revision, 'reason' => 'Justificatif incorrect.']);
-        $this->signIn($this->admin())->post('/reports/'.$r->id.'/review', $this->reviewData($r, ['decision' => 'approved']))->assertSessionHasErrors('eligibility');
-        $this->assertDatabaseCount('report_decisions', 0);
-        $this->post('/reports/'.$r->id.'/review', $this->reviewData($r))->assertSessionHasNoErrors();
-        $this->assertSame('changes_requested', $r->fresh()->status);
+        [$user, $e, $r] = $this->deposited(); $this->correction($r);
+        app(ManageEnrollments::class)->removeInternship($user, $e, ['revision' => $e->fresh()->revision, 'reason' => 'Déclaration incorrecte.']);
+        $this->signIn($user)->post('/my-reports', [...$this->data($e, ['revision' => $r->fresh()->revision]), 'document' => $this->pdf()])->assertSessionHasErrors('eligibility');
+        $this->assertDatabaseCount('report_versions', 1);
     }
 
     public function test_missing_truncated_or_modified_files_cannot_be_downloaded_or_approved(): void
     {
         foreach (['missing', 'truncated', 'changed'] as $case) {
-            [$user, , $r] = $this->deposited(); $v = $r->latestVersion; $disk = Storage::disk('reports');
+            [$user, , $r] = $this->deposited(); $round = $this->forward($r); $v = $r->latestVersion; $disk = Storage::disk('reports');
             if ($case === 'missing') { $disk->delete($v->storage_path); }
             else { $bytes = $disk->get($v->storage_path); $disk->put($v->storage_path, $case === 'truncated' ? substr($bytes, 0, 30) : str_replace('Memoire', 'MemoirX', $bytes)); }
             $this->signIn($user)->get('/my-reports/'.$r->id.'/versions/'.$v->id.'/download')->assertNotFound();
-            $this->signIn($this->admin())->get('/reports/'.$r->id)->assertInertia(fn (Assert $page) => $page->where('documentAvailable', false));
-            $this->post('/reports/'.$r->id.'/review', $this->reviewData($r, ['decision' => 'approved']))->assertSessionHasErrors('document');
-            $this->post('/reports/'.$r->id.'/review', $this->reviewData($r))->assertSessionHasNoErrors();
+            $this->signIn($this->committee()[0])->get('/reports/'.$r->id)->assertInertia(fn (Assert $page) => $page->where('documentAvailable', false));
+            $url = '/reports/'.$r->id.'/rounds/'.$round->id.'/vote';
+            $this->post($url, ['decision' => 'approved'])->assertSessionHasErrors('document');
+            $this->post($url, ['decision' => 'changes_requested', 'comment' => 'Le document est indisponible.'])->assertSessionHasNoErrors();
         }
-        $this->assertSame(0, DB::table('report_decisions')->where('decision', 'approved')->count());
+        $this->assertSame(0, DB::table('report_votes')->where('decision', 'approved')->count());
     }
 
     public function test_database_failure_after_file_write_rolls_back_and_removes_only_the_new_file(): void
@@ -354,14 +394,14 @@ class ReportDepositsTest extends TestCase
 
     public function test_permissions_are_rechecked_inside_the_action_after_revocation(): void
     {
-        [$user, $e, $r] = $this->deposited(); $reader = $this->delegate(['reports.view', 'reports.review']);
-        UserGroup::findOrFail(4)->permissions()->sync(['reports.view']);
-        try { app(ManageReports::class)->review($reader, $r, $this->reviewData($r)); $this->fail('Revoked review permission accepted.'); }
-        catch (AuthorizationException) { $this->assertDatabaseCount('report_decisions', 0); }
+        [$user, $e, $r] = $this->deposited(); $round = $this->forward($r); $voter = $this->committee()[0];
+        UserGroup::findOrFail(9)->permissions()->detach('reports.vote');
+        try { app(ManageReports::class)->vote($voter, $r, $round, ['decision' => 'approved']); $this->fail('Revoked vote permission accepted.'); }
+        catch (AuthorizationException) { $this->assertDatabaseCount('report_votes', 0); }
         UserGroup::findOrFail(1)->permissions()->detach('reports.self');
         try { app(ManageReports::class)->submit($user, $this->data($e), $this->pdf()); $this->fail('Revoked submission permission accepted.'); }
         catch (AuthorizationException) { $this->assertDatabaseCount('report_versions', 1); }
-        $this->signIn($this->admin())->put('/settings/groups/4', ['permissions' => ['reports.review']])->assertSessionHasErrors('permissions');
+        $this->signIn($this->admin())->put('/settings/groups/4', ['permissions' => ['reports.vote', 'reports.assigned']])->assertSessionHasErrors('permissions');
     }
 
     public function test_authorized_downloads_are_attachments_with_integrity_and_private_cache_headers(): void
@@ -405,14 +445,14 @@ class ReportDepositsTest extends TestCase
     public function test_directory_filters_and_year_statistics_use_the_latest_report_state(): void
     {
         [, $e, $pending] = $this->deposited(); [, , $correction] = $this->deposited(); [, $oldEnrollment, $approved] = $this->deposited();
-        app(ManageReports::class)->review($this->admin(), $correction, $this->reviewData($correction));
-        app(ManageReports::class)->review($this->admin(), $approved, $this->reviewData($approved, ['decision' => 'approved']));
+        $this->correction($correction);
+        $this->accept($approved);
         $year = new AcademicYear; $year->forceFill(['name' => '2025-2026', 'starts_on' => '2025-09-01', 'ends_on' => '2026-08-31', 'status' => 'closed'])->save();
         $oldEnrollment->forceFill(['academic_year_id' => $year->id])->save();
-        $this->signIn($this->admin())->get('/reports')->assertInertia(fn (Assert $page) => $page->where('statistics', ['total' => 3, 'submitted' => 1, 'changes_requested' => 1, 'approved' => 1]));
+        $this->signIn($this->admin())->get('/reports')->assertInertia(fn (Assert $page) => $page->where('statistics', ['total' => 3, 'submitted' => 1, 'under_review' => 0, 'changes_requested' => 1, 'accepted' => 1]));
         $this->get('/reports?status=submitted&academic_year_id='.$e->academic_year_id)->assertInertia(fn (Assert $page) => $page->has('reports.data', 1)->where('reports.data.0.id', $pending->id)->where('statistics.total', 2));
         $this->get('/reports?search='.$e->student->card_number.'&submitted_on=2026-10-21')->assertInertia(fn (Assert $page) => $page->has('reports.data', 1)->where('reports.data.0.id', $pending->id));
-        $this->get('/reports?academic_year_id='.$year->id)->assertInertia(fn (Assert $page) => $page->has('reports.data', 1)->where('statistics.approved', 1));
+        $this->get('/reports?academic_year_id='.$year->id)->assertInertia(fn (Assert $page) => $page->has('reports.data', 1)->where('statistics.accepted', 1));
         $this->get('/reports?status=validated')->assertSessionHasErrors('status');
         $this->get('/reports?submitted_on=invalid&page=0')->assertSessionHasErrors(['submitted_on', 'page']);
     }
@@ -428,29 +468,30 @@ class ReportDepositsTest extends TestCase
     {
         [$user, $e, $r] = $this->deposited(); $action = app(ManageReports::class);
         for ($i = 2; $i <= 11; $i++) {
-            $action->review($this->admin(), $r, $this->reviewData($r));
+            $this->correction($r);
             $action->submit($user, $this->data($e, ['revision' => $r->fresh()->revision]), $this->pdf('Version '.$i));
         }
         $this->signIn($user)->get('/my-reports')->assertInertia(fn (Assert $page) => $page->has('versions.data', 10)->where('versions.total', 11)->where('versions.data.0.number', 11));
         $this->get('/my-reports?page=2')->assertInertia(fn (Assert $page) => $page->has('versions.data', 1)->where('versions.data.0.number', 1)->where('report.status', 'submitted')->where('report.version_count', 11));
-        $this->signIn($this->admin())->get('/reports/'.$r->id.'?page=2')->assertInertia(fn (Assert $page) => $page->where('canReview', true)->where('documentAvailable', true)->where('versions.data.0.number', 1));
+        $this->signIn($this->admin())->get('/reports/'.$r->id.'?page=2')->assertInertia(fn (Assert $page) => $page->where('canForward', false)->where('canVote', false)->where('documentAvailable', true)->where('versions.data.0.number', 1));
     }
 
     public function test_dashboard_counts_and_latest_report_follow_permissions_and_ownership(): void
     {
         [$owner, , $r] = $this->deposited(); [, , $other] = $this->deposited();
-        app(ManageReports::class)->review($this->admin(), $other, $this->reviewData($other));
+        $this->correction($other);
         $this->signIn($this->admin())->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('reportCount', 2)->where('pendingReportCount', 1)->where('latestReport.reference', $other->reference));
         $this->signIn($owner)->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('reportCount', null)->where('pendingReportCount', null)->where('latestReport.reference', $r->reference)->where('latestReport.href', '/my-reports'));
         $this->signIn($this->delegate(['students.view']))->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('reportCount', null)->where('pendingReportCount', null)->where('latestReport', null));
     }
 
-    public function test_submission_and_review_require_csrf_in_real_requests(): void
+    public function test_submission_forwarding_and_voting_require_csrf_in_real_requests(): void
     {
-        [$user, $e, $r] = $this->deposited(); $this->app->instance('env', 'local');
+        [$user, $e, $r] = $this->deposited(); $round = $this->forward($r); $this->app->instance('env', 'local');
         $this->signIn($user)->post('/my-reports', [...$this->data($e), 'document' => $this->pdf()])->assertStatus(419);
-        $this->signIn($this->admin())->post('/reports/'.$r->id.'/review', $this->reviewData($r))->assertStatus(419);
-        $this->assertDatabaseCount('report_versions', 1); $this->assertDatabaseCount('report_decisions', 0);
+        $this->signIn($this->communication())->post('/reports/'.$r->id.'/forward', $this->forwardData($r))->assertStatus(419);
+        $this->signIn($this->committee()[0])->post('/reports/'.$r->id.'/rounds/'.$round->id.'/vote', ['decision' => 'approved'])->assertStatus(419);
+        $this->assertDatabaseCount('report_versions', 1); $this->assertDatabaseCount('report_votes', 0);
     }
 
     public function test_upload_rate_limit_does_not_create_duplicate_versions(): void
@@ -460,4 +501,184 @@ class ReportDepositsTest extends TestCase
         $this->post('/my-reports', [...$data, 'document' => $this->pdf()])->assertStatus(429);
         $this->assertDatabaseCount('report_versions', 1); $this->assertCount(1, Storage::disk('reports')->allFiles());
     }
+
+    public function test_communication_alone_forwards_and_cannot_vote_or_pick_a_subset(): void
+    {
+        [, , $r] = $this->deposited(); $this->committee(); $payload = $this->forwardData($r);
+        $this->signIn($this->admin())->post('/reports/'.$r->id.'/forward', $payload)->assertForbidden();
+        $this->signIn($this->committee()[0])->post('/reports/'.$r->id.'/forward', $payload)->assertForbidden();
+        $this->signIn($this->communication())->post('/reports/'.$r->id.'/forward', [...$payload, 'member_ids' => [$this->committee()[0]->id]])->assertSessionHasErrors('member_ids');
+        $this->post('/reports/'.$r->id.'/forward', $payload)->assertSessionHasNoErrors();
+        $round = ReportRound::sole(); $this->assertSame(2, $round->members()->count());
+        $this->post('/reports/'.$r->id.'/rounds/'.$round->id.'/vote', ['decision' => 'approved'])->assertForbidden();
+        $this->signIn($this->admin())->post('/reports/'.$r->id.'/rounds/'.$round->id.'/vote', ['decision' => 'approved'])->assertForbidden();
+        $this->post('/reports/'.$r->id.'/review', ['decision' => 'approved'])->assertNotFound();
+        $this->assertSame('under_review', $r->fresh()->status);
+    }
+
+    public function test_empty_commission_and_stale_forward_forms_never_accept_or_duplicate_a_report(): void
+    {
+        [, , $r] = $this->deposited(); $this->signIn($this->communication()); $old = $this->forwardData($r);
+        $this->post('/reports/'.$r->id.'/forward', $old)->assertSessionHasErrors('committee');
+        $this->committee(); $this->post('/reports/'.$r->id.'/forward', $old)->assertSessionHasErrors('committee');
+        $valid = $this->forwardData($r); $this->post('/reports/'.$r->id.'/forward', $valid)->assertSessionHasNoErrors();
+        $this->post('/reports/'.$r->id.'/forward', $valid)->assertSessionHasErrors('revision');
+        $this->post('/reports/'.$r->id.'/forward', $this->forwardData($r))->assertSessionHasErrors('committee');
+        $this->assertDatabaseCount('report_rounds', 1); $this->assertSame('under_review', $r->fresh()->status);
+    }
+
+    public function test_committee_lists_documents_and_dashboard_are_scoped_to_transmitted_versions(): void
+    {
+        [, , $r] = $this->deposited(); [, , $notSent] = $this->deposited(); $voter = $this->committee()[0];
+        $this->signIn($voter)->get('/reports')->assertInertia(fn (Assert $page) => $page->has('reports.data', 0)->where('statistics.total', 0)->where('assignedOnly', true));
+        $this->get('/reports/'.$r->id)->assertNotFound();
+        $this->get('/reports/'.$r->id.'/versions/'.$r->latestVersion->id.'/download')->assertNotFound();
+        $this->forward($r);
+        $this->get('/reports')->assertInertia(fn (Assert $page) => $page->has('reports.data', 1)->where('reports.data.0.id', $r->id)->where('statistics.total', 1));
+        $this->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('reportCount', 1)->where('pendingReportCount', 1)->where('reportScope', 'commission')->where('latestReport.reference', $r->reference));
+        $this->get('/reports/'.$r->id.'/versions/'.$r->latestVersion->id.'/download')->assertOk();
+        $this->get('/reports/'.$notSent->id)->assertNotFound(); $this->get('/students')->assertForbidden();
+    }
+
+    public function test_each_member_has_one_personal_vote_and_identical_retries_are_harmless(): void
+    {
+        [, , $r] = $this->deposited(); $round = $this->forward($r); $this->signIn($this->committee()[0]); $url = '/reports/'.$r->id.'/rounds/'.$round->id.'/vote';
+        $this->post($url, ['decision' => 'approved'])->assertSessionHasNoErrors();
+        $this->post($url, ['decision' => 'approved'])->assertSessionHasNoErrors();
+        $this->post($url, ['decision' => 'changes_requested', 'comment' => 'Un avis différent.'])->assertSessionHasErrors('decision');
+        $this->assertDatabaseCount('report_votes', 1); $this->assertDatabaseCount('report_audits', 3);
+        $this->assertSame('under_review', $r->fresh()->status);
+    }
+
+    public function test_one_correction_prevents_acceptance_even_after_another_member_approved(): void
+    {
+        [, , $r] = $this->deposited(); $round = $this->forward($r); $action = app(ManageReports::class);
+        $action->vote($this->committee()[0], $r, $round, ['decision' => 'approved']);
+        $action->vote($this->committee()[1], $r, $round, ['decision' => 'changes_requested', 'comment' => 'Revoir la méthodologie.']);
+        $this->assertSame('changes_requested', $r->fresh()->status); $this->assertSame('changes_requested', $round->fresh()->status);
+        $this->assertDatabaseCount('report_votes', 2);
+    }
+
+    public function test_membership_changes_require_an_explicit_new_round_with_no_inherited_votes(): void
+    {
+        [, , $r] = $this->deposited(); $old = $this->forward($r); [$first, $second] = $this->committee();
+        app(ManageReports::class)->vote($first, $r, $old, ['decision' => 'approved']);
+        $new = User::factory()->create(); $new->types()->attach(3); $new->groups()->attach(9);
+        $this->signIn($second)->post('/reports/'.$r->id.'/rounds/'.$old->id.'/vote', ['decision' => 'approved'])->assertSessionHasErrors('committee');
+        $this->signIn($new)->get('/reports/'.$r->id)->assertNotFound();
+        $this->signIn($this->communication())->get('/reports/'.$r->id)->assertInertia(fn (Assert $page) => $page->where('rosterChanged', true)->where('canForward', true)->has('committee', 3));
+        $this->post('/reports/'.$r->id.'/forward', $this->forwardData($r))->assertSessionHasErrors('reason');
+        $this->post('/reports/'.$r->id.'/forward', $this->forwardData($r, ['reason' => 'Nouveau membre officiellement affecté.']))->assertSessionHasNoErrors();
+        $round = $r->latestVersion->latestRound()->first();
+        $this->assertSame(2, $round->number); $this->assertSame(3, $round->members()->count());
+        $this->assertSame(0, $round->members()->whereHas('vote')->count()); $this->assertSame('superseded', $old->fresh()->status);
+        foreach ([$first, $second] as $user) { app(ManageReports::class)->vote($user, $r, $round, ['decision' => 'approved']); }
+        $this->assertSame('under_review', $r->fresh()->status);
+        app(ManageReports::class)->vote($new, $r, $round, ['decision' => 'approved']); $this->assertSame('accepted', $r->fresh()->status);
+    }
+
+    public function test_deactivating_a_pending_member_does_not_silently_reduce_the_required_votes(): void
+    {
+        [, , $r] = $this->deposited(); $round = $this->forward($r); [$first, $second] = $this->committee();
+        $second->forceFill(['is_active' => false])->save();
+        $this->signIn($first)->post('/reports/'.$r->id.'/rounds/'.$round->id.'/vote', ['decision' => 'approved'])->assertSessionHasErrors('committee');
+        $this->assertSame(2, $round->members()->count()); $this->assertSame('under_review', $r->fresh()->status); $this->assertDatabaseCount('report_votes', 0);
+    }
+
+    public function test_temporary_password_does_not_exclude_a_member_from_unanimity(): void
+    {
+        [, , $r] = $this->deposited(); [$first, $second] = $this->committee(); $second->forceFill(['must_change_password' => true])->save();
+        $round = $this->forward($r); $this->assertSame(2, $round->members()->count());
+        app(ManageReports::class)->vote($first, $r, $round, ['decision' => 'approved']);
+        $this->assertSame('under_review', $r->fresh()->status);
+        $this->signIn($second)->post('/reports/'.$r->id.'/rounds/'.$round->id.'/vote', ['decision' => 'approved'])->assertRedirect('/password/change');
+        $this->assertDatabaseCount('report_votes', 1);
+    }
+
+    public function test_type_alone_or_an_incompatible_group_never_creates_a_commission_member(): void
+    {
+        [, , $r] = $this->deposited(); $teacher = User::factory()->create(); $teacher->types()->attach(2);
+        $incompatible = User::factory()->create(); $incompatible->types()->attach(4); $incompatible->groups()->attach(9);
+        $round = $this->forward($r); $this->assertSame(2, $round->members()->count());
+        foreach ([$teacher, $incompatible] as $user) {
+            $this->signIn($user)->get('/reports')->assertForbidden();
+            $this->post('/reports/'.$r->id.'/rounds/'.$round->id.'/vote', ['decision' => 'approved'])->assertForbidden();
+        }
+    }
+
+    public function test_a_new_member_cannot_see_an_old_unassigned_version_after_retransmission(): void
+    {
+        [$student, $e, $r] = $this->deposited(); $oldVersion = $r->latestVersion; $this->correction($r);
+        app(ManageReports::class)->submit($student, $this->data($e, ['revision' => $r->fresh()->revision]), $this->pdf('Version suivante'));
+        $new = User::factory()->create(); $new->types()->attach(2); $new->groups()->attach(9); $this->forward($r);
+        $this->signIn($new)->get('/reports/'.$r->id)->assertInertia(fn (Assert $page) => $page->has('versions.data', 1)->where('versions.data.0.number', 2));
+        $this->get('/reports/'.$r->id.'/versions/'.$oldVersion->id.'/download')->assertNotFound();
+        $this->get('/reports/'.$r->id.'/versions/'.$r->fresh()->latestVersion->id.'/download')->assertOk();
+    }
+
+    public function test_transmission_and_votes_cannot_be_mixed_between_reports(): void
+    {
+        [, , $first] = $this->deposited(); [, , $second] = $this->deposited(); $round = $this->forward($first); $this->forward($second);
+        $this->signIn($this->committee()[0])->post('/reports/'.$second->id.'/rounds/'.$round->id.'/vote', ['decision' => 'approved'])->assertNotFound();
+        $this->assertDatabaseCount('report_votes', 0);
+    }
+
+    public function test_removing_commission_membership_immediately_revokes_read_and_vote_access(): void
+    {
+        [, , $r] = $this->deposited(); $round = $this->forward($r); $user = $this->committee()[0]; $this->signIn($user)->get('/reports/'.$r->id)->assertOk();
+        $user->groups()->detach(9);
+        $this->get('/reports/'.$r->id)->assertForbidden();
+        $this->get('/reports/'.$r->id.'/versions/'.$r->latestVersion->id.'/download')->assertForbidden();
+        $this->post('/reports/'.$r->id.'/rounds/'.$round->id.'/vote', ['decision' => 'approved'])->assertForbidden();
+    }
+
+    public function test_database_failure_during_forwarding_leaves_no_partial_commission(): void
+    {
+        [, , $r] = $this->deposited(); $this->committee();
+        \App\Models\ReportRoundMember::creating(function () { throw new RuntimeException('Simulated membership failure'); });
+        try { app(ManageReports::class)->forward($this->communication(), $r, $this->forwardData($r)); $this->fail('Expected failure.'); }
+        catch (RuntimeException $error) { $this->assertSame('Simulated membership failure', $error->getMessage()); }
+        finally { \App\Models\ReportRoundMember::flushEventListeners(); }
+        $this->assertDatabaseCount('report_rounds', 0); $this->assertDatabaseCount('report_round_members', 0); $this->assertDatabaseCount('report_audits', 1);
+        $this->assertSame('submitted', $r->fresh()->status);
+    }
+
+    public function test_legacy_administrative_approval_is_preserved_but_must_go_through_commission(): void
+    {
+        // SQLite rebuilds referenced tables for column changes. Run DDL on a separate
+        // database, outside RefreshDatabase's rollback transaction, with FK checks restored.
+        $original = DB::getDefaultConnection();
+        config(['database.connections.workflow_upgrade' => [...config('database.connections.sqlite'), 'database' => ':memory:']]);
+        DB::setDefaultConnection('workflow_upgrade');
+        Schema::clearResolvedInstance('db.schema');
+        try {
+            $this->artisan('migrate', ['--database' => 'workflow_upgrade', '--force' => true])->assertExitCode(0);
+            [$user, $e, $r] = $this->deposited(); $version = $r->latestVersion;
+            app(ManageEnrollments::class)->review($this->admin(), $e, ['revision' => $e->revision, 'reason' => 'Ancien examen administratif.']);
+            $reviewId = $e->fresh()->latestReview->id;
+            $version->forceFill(['eligibility_review_id' => $reviewId])->save();
+            $r->forceFill(['status' => 'approved'])->save();
+            DB::table('report_decisions')->insert(['report_id' => $r->id, 'report_version_id' => $version->id, 'reviewed_by' => $this->admin()->id,
+                'decision' => 'approved', 'comment' => 'Ancien avis administratif.', 'created_at' => now()]);
+            foreach (['report_votes', 'report_round_members', 'report_rounds'] as $table) { Schema::drop($table); }
+            Schema::table('report_versions', function (Blueprint $table) {
+                $table->unsignedBigInteger('eligibility_review_id')->nullable(false)->change();
+                $table->dropColumn('eligibility_snapshot');
+            });
+            DB::table('permissions')->whereIn('code', ['internships.self', 'reports.forward', 'reports.assigned', 'reports.vote'])->delete();
+            $migration = require database_path('migrations/2026_10_22_000000_correct_report_workflow.php'); $migration->up();
+            $this->assertSame('submitted', $r->fresh()->status); $this->assertSame(2, $r->fresh()->revision);
+            $this->assertSame($reviewId, $version->fresh()->eligibility_review_id);
+            $this->assertSame(1, (int) DB::selectOne('PRAGMA foreign_keys')->foreign_keys);
+            $this->assertSame([], DB::select('PRAGMA foreign_key_check'));
+            $this->assertDatabaseCount('report_decisions', 1); $this->assertDatabaseCount('report_votes', 0); Storage::disk('reports')->assertExists($version->storage_path);
+            $this->signIn($user)->get('/my-reports')->assertInertia(fn (Assert $page) => $page->where('versions.data.0.legacy_decision.comment', 'Ancien avis administratif.'));
+            $this->accept($r); $this->assertSame('accepted', $r->fresh()->status);
+        } finally {
+            DB::setDefaultConnection($original);
+            Schema::clearResolvedInstance('db.schema');
+            DB::purge('workflow_upgrade');
+        }
+    }
+
 }

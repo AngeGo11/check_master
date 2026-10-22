@@ -1,5 +1,7 @@
 # Lot 4 — inscriptions, règlements et critères d’éligibilité
 
+**Règles corrigées le 22 octobre 2026 :** le stage est déclaré par l’étudiant et l’éligibilité est automatique. Le [guide du sprint correctif](report-workflow-corrections.md) remplace les règles d’examen obligatoire et de déclaration administrative décrites initialement dans ce lot.
+
 Ce lot reprend la gestion des inscriptions de Check Master : années académiques, tarifs par niveau, montant à payer, historique des règlements, reçus et examen des critères d’éligibilité. La structure de navigation, les logos, la palette, les quatre cartes de suivi et les tableaux restent ceux de l’interface existante.
 
 ## Origine des règles

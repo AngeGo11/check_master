@@ -79,7 +79,7 @@ class StudentRecordsTest extends TestCase
         $this->assertDatabaseHas('promotions', ['id' => 22, 'name' => '2024-2025']);
         $this->assertDatabaseHas('group_permission', ['user_group_id' => 1, 'permission_code' => 'students.self']);
         $this->assertDatabaseMissing('group_permission', ['user_group_id' => 1, 'permission_code' => 'students.view']);
-        $this->assertDatabaseCount('group_permission', 18);
+        $this->assertDatabaseCount('group_permission', 31);
     }
 
     public function test_guests_and_unprivileged_accounts_cannot_access_student_management(): void
@@ -336,8 +336,10 @@ class StudentRecordsTest extends TestCase
     public function test_new_permissions_are_delegable_but_management_requires_read_access(): void
     {
         $this->signIn($this->admin())->put('/settings/groups/4', ['permissions' => ['students.manage', 'academic.manage']])->assertSessionHasErrors('permissions');
-        $this->put('/settings/groups/4', ['permissions' => Permission::CODES])->assertSessionHasNoErrors();
-        $this->assertCount(count(Permission::CODES), UserGroup::findOrFail(4)->permissions);
+        $this->put('/settings/groups/4', ['permissions' => Permission::CODES])->assertSessionHasErrors('permissions');
+        $delegable = array_values(array_filter(Permission::CODES, fn ($code) => Permission::allowedForGroup($code, 'secretary')));
+        $this->put('/settings/groups/4', ['permissions' => $delegable])->assertSessionHasNoErrors();
+        $this->assertCount(count($delegable), UserGroup::findOrFail(4)->permissions);
     }
 
     public function test_revoked_actor_is_rechecked_inside_the_student_transaction(): void
