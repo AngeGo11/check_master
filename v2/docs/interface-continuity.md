@@ -72,3 +72,10 @@ Les trois cartes de l’étudiant, les couleurs et les composants sont conservé
 Les vues historiques de réunions et de messagerie restent la référence : menu bleu, mêmes logos et police Poppins, cartes de statut, filtres et tableaux. Les réunions disposent d'une liste et d'un calendrier mensuel ; la messagerie reprend les dossiers Réception, Non lus, Envoyés et Archives, complétés par Brouillons et Corbeille. Les droits déterminent les actions visibles. Les trois prochaines réunions accessibles alimentent le panneau de commission existant du tableau de bord.
 
 Les confirmations sont personnelles et les formulaires signalent les changements concurrents. L'ouverture d'un message conserve son état jusqu'à l'action explicite « Marquer comme lu ». L'annulation d'une réunion, le retrait d'un document et la corbeille conservent les historiques. La comparaison visuelle dans Safari/Chrome sur Mac et mobile reste à effectuer avec le [scénario du lot](meetings-messaging.md).
+
+
+## Ressources humaines
+
+La vue `app/Views/ressources_humaines.php` fournit les repères des onglets Enseignants et Personnel administratif. Les fiches, filtres, cartes et tableaux prolongent les composants existants. Les catalogues, l’historique daté des grades/fonctions, les spécialités multiples, les photos privées et le rattachement de compte se consultent dans le même cadre. L’archivage réversible conserve les fiches. Le quatrième indicateur du tableau de bord affiche désormais le nombre réel d’enseignants non archivés pour les personnes habilitées.
+
+La consultation personnelle utilise « Ma fiche professionnelle ». Les actions restent déterminées par les droits serveur. Le [guide RH](human-resources.md) décrit les différences avec les tables historiques, les limites et la recette visuelle sur Mac.

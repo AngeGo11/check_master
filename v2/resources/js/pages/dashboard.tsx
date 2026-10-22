@@ -35,7 +35,7 @@ function Unavailable({ children, compact = false }: PropsWithChildren<{ compact?
   );
 }
 
-export default function Dashboard({ studentCount, studentsByLevel, reportCount, pendingReportCount, latestReport, reportScope, upcomingMeetings }: { upcomingMeetings: { id: number; title: string; starts_at: string }[] | null; reportScope: 'global' | 'commission' | null; studentCount: number | null; studentsByLevel: { name: string; total: number }[] | null; reportCount: number | null; pendingReportCount: number | null; latestReport: { title: string; status: ReportStatus; reference: string; href: string } | null }) {
+export default function Dashboard({ studentCount, studentsByLevel, reportCount, pendingReportCount, latestReport, reportScope, upcomingMeetings, teacherCount }: { teacherCount: number | null; upcomingMeetings: { id: number; title: string; starts_at: string }[] | null; reportScope: 'global' | 'commission' | null; studentCount: number | null; studentsByLevel: { name: string; total: number }[] | null; reportCount: number | null; pendingReportCount: number | null; latestReport: { title: string; status: ReportStatus; reference: string; href: string } | null }) {
   const { auth } = usePage<SharedData>().props;
   return (
     <AppLayout>
@@ -49,8 +49,8 @@ export default function Dashboard({ studentCount, studentsByLevel, reportCount, 
         {indicators.map(({ label, icon, tone }, index) => (
           <article className={'stat-card stat-' + tone} key={label}>
             <div className="stat-heading"><h2>{label}</h2><span className="stat-icon"><Icon name={icon} /></span></div>
-            <p className="stat-value" aria-label={(index === 0 && studentCount !== null) || (index === 1 && reportCount !== null) ? undefined : 'Valeur indisponible'}>{index === 0 && studentCount !== null ? studentCount : index === 1 && reportCount !== null ? reportCount : '—'}</p>
-            <p className="stat-caption">{index === 0 && studentCount !== null ? 'Dossiers non archivés' : index === 1 && reportCount !== null ? reportScope === 'commission' ? 'Versions transmises à ma commission' : 'Mémoires déposés, toutes les années' : 'Données indisponibles'}</p>
+            <p className="stat-value" aria-label={(index === 0 && studentCount !== null) || (index === 1 && reportCount !== null) || (index === 3 && teacherCount !== null) ? undefined : 'Valeur indisponible'}>{index === 0 && studentCount !== null ? studentCount : index === 1 && reportCount !== null ? reportCount : index === 3 && teacherCount !== null ? teacherCount : '—'}</p>
+            <p className="stat-caption">{index === 0 && studentCount !== null ? 'Dossiers non archivés' : index === 1 && reportCount !== null ? reportScope === 'commission' ? 'Versions transmises à ma commission' : 'Mémoires déposés, toutes les années' : index === 3 && teacherCount !== null ? 'Fiches enseignants non archivées' : 'Données indisponibles'}</p>
           </article>
         ))}
       </section>

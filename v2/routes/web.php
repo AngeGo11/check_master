@@ -10,6 +10,7 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\StaffController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\Settings\SchoolingController;
 use Illuminate\Http\Request;
@@ -26,6 +27,25 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/my-staff-record', [StaffController::class, 'own'])->middleware('can:hr.self')->name('staff.own');
+    Route::get('/my-staff-record/photo', [StaffController::class, 'ownPhoto'])->middleware('can:hr.self')->name('staff.own.photo');
+    Route::middleware('can:hr.view')->group(function () {
+        Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
+        Route::get('/staff/catalogs', [StaffController::class, 'referenceIndex'])->name('staff.catalogs');
+        Route::post('/staff/catalogs', [StaffController::class, 'referenceStore'])->middleware('can:hr.catalogs.manage')->name('staff.catalogs.store');
+        Route::put('/staff/catalogs/{reference}', [StaffController::class, 'referenceUpdate'])->middleware('can:hr.catalogs.manage')->name('staff.catalogs.update');
+        Route::get('/staff/create', [StaffController::class, 'create'])->middleware('can:hr.manage')->name('staff.create');
+        Route::post('/staff', [StaffController::class, 'store'])->middleware(['can:hr.manage', 'throttle:20,1'])->name('staff.store');
+        Route::get('/staff/{staff}', [StaffController::class, 'show'])->whereNumber('staff')->name('staff.show');
+        Route::get('/staff/{staff}/edit', [StaffController::class, 'edit'])->middleware('can:hr.manage')->name('staff.edit');
+        Route::put('/staff/{staff}', [StaffController::class, 'update'])->middleware('can:hr.manage')->name('staff.update');
+        Route::patch('/staff/{staff}/archive', [StaffController::class, 'archive'])->middleware('can:hr.manage')->name('staff.archive');
+        Route::patch('/staff/{staff}/account', [StaffController::class, 'account'])->middleware(['can:hr.manage', 'can:users.manage'])->name('staff.account');
+        Route::post('/staff/{staff}/assignments', [StaffController::class, 'assignment'])->middleware('can:hr.manage')->name('staff.assignment');
+        Route::post('/staff/{staff}/photo', [StaffController::class, 'uploadPhoto'])->middleware(['can:hr.manage', 'throttle:6,1'])->name('staff.photo.store');
+        Route::delete('/staff/{staff}/photo', [StaffController::class, 'removePhoto'])->middleware('can:hr.manage')->name('staff.photo.remove');
+        Route::get('/staff/{staff}/photo', [StaffController::class, 'photo'])->name('staff.photo');
+    });
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
     Route::get('/password/change', [ProfileController::class, 'password'])->name('password.edit');
     Route::patch('/password', [ProfileController::class, 'updatePassword'])->middleware('throttle:10,1')->name('password.update');

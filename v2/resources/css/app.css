@@ -404,3 +404,8 @@ progress { display: block; width: 100%; accent-color: var(--primary-light); marg
 .meeting-documents details { flex-basis:100%; }
 .meeting-timeline li { border-left:2px solid #c9dce9; padding:.4rem 1rem 1rem; }
 @media (max-width:640px) { .collaboration-filters label { flex-basis:100%; } .contact-results, .check-options { grid-template-columns:1fr; } .selected-contacts li { width:100%; justify-content:space-between; } }
+
+.staff-heading { display:flex; align-items:center; gap:1rem; min-width:0; }
+.staff-heading h1 { overflow-wrap:anywhere; }
+.staff-portrait { width:80px; height:80px; flex:0 0 80px; object-fit:cover; border-radius:12px; border:1px solid var(--border); background:#eef4f9; }
+@media (max-width:640px) { .staff-heading { align-items:flex-start; } .staff-portrait { width:56px; height:56px; flex-basis:56px; } }
