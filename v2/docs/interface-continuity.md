@@ -66,3 +66,9 @@ La comparaison visuelle sur Mac, notamment sur mobile, reste à effectuer avec l
 ## Correction du parcours stage et mémoire — 22 octobre 2026
 
 Les trois cartes de l’étudiant, les couleurs et les composants sont conservés. Le stage est désormais déclaré depuis l’espace étudiant. Le dépôt s’ouvre automatiquement lorsque les critères sont remplis. Le suivi indique « À transmettre », « En commission », « Correction demandée » ou « Accepté à l’unanimité ». Le chargé de communication voit la liste complète des destinataires et le bouton de transmission ; chaque membre reçoit un formulaire d’avis personnel et un suivi des approbations. Les compteurs et les listes de la commission sont limités aux versions transmises. L’ancienne approbation administrative ne donne plus accès à une acceptation.
+
+## Lot demandé — Réunions et messagerie
+
+Les vues historiques de réunions et de messagerie restent la référence : menu bleu, mêmes logos et police Poppins, cartes de statut, filtres et tableaux. Les réunions disposent d'une liste et d'un calendrier mensuel ; la messagerie reprend les dossiers Réception, Non lus, Envoyés et Archives, complétés par Brouillons et Corbeille. Les droits déterminent les actions visibles. Les trois prochaines réunions accessibles alimentent le panneau de commission existant du tableau de bord.
+
+Les confirmations sont personnelles et les formulaires signalent les changements concurrents. L'ouverture d'un message conserve son état jusqu'à l'action explicite « Marquer comme lu ». L'annulation d'une réunion, le retrait d'un document et la corbeille conservent les historiques. La comparaison visuelle dans Safari/Chrome sur Mac et mobile reste à effectuer avec le [scénario du lot](meetings-messaging.md).

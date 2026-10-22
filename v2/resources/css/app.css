@@ -363,3 +363,44 @@ progress { display: block; width: 100%; accent-color: var(--primary-light); marg
 .commission-members .status-tag { margin-left: 12px; }
 .commission-members h4, .report-feedback h4 { margin: 0 0 8px; }
 .commission-roster { padding-left: 20px; line-height: 1.9; }
+
+/* Meetings and internal mail extend the existing blue/panel/table vocabulary. */
+.collaboration-tabs { display:flex; flex-wrap:wrap; gap:.5rem; margin:1.4rem 0; border-bottom:1px solid #dce5ed; padding-bottom:.7rem; }
+.collaboration-tabs a, .collaboration-tabs button { display:inline-flex; align-items:center; gap:.6rem; padding:.65rem .95rem; color:#39576c; border:1px solid transparent; border-radius:8px; background:transparent; font-weight:600; cursor:pointer; text-decoration:none; }
+.collaboration-tabs .is-current { background:#e9f1f8; color:#1a5276; border-color:#c4d9e9; }
+.collaboration-tabs span, .nav-count { border-radius:20px; padding:.1rem .45rem; font-size:.75rem; background:#1a5276; color:white; }
+.nav-count { margin-left:auto; }
+.collaboration-filters { display:flex; flex-wrap:wrap; gap:1rem; align-items:end; margin:1rem 0 1.5rem; }
+.collaboration-filters label { flex:1 1 160px; display:grid; gap:.4rem; font-size:.85rem; font-weight:600; }
+.collaboration-filters input, .collaboration-filters select, .recipient-picker input[type=search], .recipient-picker select { width:100%; border:1px solid #c9d5df; border-radius:8px; padding:.7rem .8rem; background:#fff; color:#243746; font:inherit; }
+.form-actions, .message-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; margin-top:1.2rem; }
+.form-actions .collaboration-tabs { margin:0; border:0; padding:0; }
+.message-unread { background:#f2f7fb; }
+.message-unread td:first-child { border-left:3px solid #2980b9; }
+.message-body { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.8; padding:1.2rem 0; margin:1rem 0; border-top:1px solid #e5ebf0; }
+.recipient-picker { border:1px solid #d8e2eb; border-radius:10px; padding:1rem; min-width:0; }
+.recipient-picker legend { padding:0 .4rem; font-weight:600; color:#1a5276; }
+.selected-contacts { display:flex; flex-wrap:wrap; gap:.65rem; margin:0 0 1rem; padding:0; list-style:none; }
+.selected-contacts li { display:flex; align-items:center; gap:.7rem; background:#eef4f9; border-radius:8px; padding:.5rem .7rem; max-width:100%; }
+.selected-contacts small, .contact-results small { display:block; color:#60778a; font-size:.75rem; overflow-wrap:anywhere; }
+.contact-results { max-height:240px; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:.5rem; margin:.75rem 0; }
+.contact-results button { border:1px solid #dae4ec; border-radius:8px; background:white; color:#243746; text-align:left; padding:.7rem; cursor:pointer; font:inherit; }
+.contact-results button:hover { border-color:#2980b9; background:#f3f8fc; }
+.contact-results button span { display:block; color:#1a5276; font-size:.75rem; margin-top:.3rem; }
+.check-options { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:.65rem; max-height:320px; overflow-y:auto; margin:.8rem 0; }
+.check-options label { display:flex; align-items:start; gap:.65rem; font-size:.9rem; }
+.check-options input { margin-top:.25rem; accent-color:#1a5276; }
+.meeting-calendar { display:grid; grid-template-columns:repeat(7,minmax(95px,1fr)); min-width:720px; border-left:1px solid #dce5ed; border-top:1px solid #dce5ed; }
+.calendar-day-name { padding:.8rem; background:#eef4f9; color:#1a5276; font-weight:600; text-align:center; border-right:1px solid #dce5ed; border-bottom:1px solid #dce5ed; }
+.calendar-cell { min-height:125px; padding:.5rem; border-right:1px solid #dce5ed; border-bottom:1px solid #dce5ed; }
+.calendar-cell time { font-size:.8rem; color:#60778a; }
+.outside-month { background:#f7f9fb; }
+.calendar-event { display:flex; flex-direction:column; gap:.2rem; padding:.45rem; margin-top:.4rem; background:#e9f1f8; border-left:3px solid #2980b9; border-radius:4px; color:#1a5276; text-decoration:none; overflow-wrap:anywhere; font-size:.75rem; }
+.calendar-event span, .calendar-event small { font-size:.7rem; }
+.calendar-event.is-cancelled { background:#f3eded; border-color:#b57373; color:#815555; }
+.meeting-agenda, .meeting-documents, .meeting-timeline { list-style:none; margin:1rem 0; padding:0; }
+.meeting-agenda li, .meeting-documents li { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.7rem; padding:1rem 0; border-bottom:1px solid #e5ebf0; }
+.meeting-agenda span, .meeting-timeline span { display:block; color:#60778a; font-size:.8rem; margin-top:.3rem; }
+.meeting-documents details { flex-basis:100%; }
+.meeting-timeline li { border-left:2px solid #c9dce9; padding:.4rem 1rem 1rem; }
+@media (max-width:640px) { .collaboration-filters label { flex-basis:100%; } .contact-results, .check-options { grid-template-columns:1fr; } .selected-contacts li { width:100%; justify-content:space-between; } }

@@ -21,6 +21,7 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
                 'permissions' => fn () => $request->user()?->permissionCodes() ?? [],
             ],
+            'unreadMessageCount' => fn () => $request->user() ? app(\App\Services\CollaborationAccess::class)->unread($request->user()) : 0,
             'flash' => ['success' => fn () => $request->session()->get('success')],
         ];
     }

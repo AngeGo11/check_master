@@ -2,6 +2,8 @@
 
 Ce sprint corrige les règles des lots 4 et 5 selon la demande du 22 octobre 2026. Il ne démarre aucun autre module. La déclaration du stage appartient à l’étudiant, l’éligibilité au dépôt est automatique, le chargé de communication transmet le document et chaque membre de la commission doit l’approuver.
 
+Les réunions et la messagerie ajoutées ensuite sont documentées dans [meetings-messaging.md](meetings-messaging.md). Elles complètent cette matrice de droits sans modifier le parcours du mémoire.
+
 ## Référence de la base
 
 Structure et catalogues examinés dans le fichier joint `check_master_db (8).sql`, empreinte SHA-256 `921bf93160eea570c2109d0852d1c5063883c4dbf70c0a8cb3b0ae4276c66454`. Le fichier joint reste inchangé et n’est pas ajouté au dépôt. Aucun compte, mot de passe, dossier ou commentaire réel n’est importé.
