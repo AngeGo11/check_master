@@ -3,6 +3,7 @@ import type { PropsWithChildren } from 'react';
 import Icon, { type IconName } from '../components/icon';
 import AppLayout from '../layouts/app-layout';
 import type { SharedData } from '../types';
+import { meetingDate } from '../types/collaboration';
 import { reportLabels, type ReportStatus } from '../types/reports';
 
 const indicators: { label: string; icon: IconName; tone: string }[] = [
@@ -34,7 +35,7 @@ function Unavailable({ children, compact = false }: PropsWithChildren<{ compact?
   );
 }
 
-export default function Dashboard({ studentCount, studentsByLevel, reportCount, pendingReportCount, latestReport, reportScope }: { reportScope: 'global' | 'commission' | null; studentCount: number | null; studentsByLevel: { name: string; total: number }[] | null; reportCount: number | null; pendingReportCount: number | null; latestReport: { title: string; status: ReportStatus; reference: string; href: string } | null }) {
+export default function Dashboard({ studentCount, studentsByLevel, reportCount, pendingReportCount, latestReport, reportScope, upcomingMeetings }: { upcomingMeetings: { id: number; title: string; starts_at: string }[] | null; reportScope: 'global' | 'commission' | null; studentCount: number | null; studentsByLevel: { name: string; total: number }[] | null; reportCount: number | null; pendingReportCount: number | null; latestReport: { title: string; status: ReportStatus; reference: string; href: string } | null }) {
   const { auth } = usePage<SharedData>().props;
   return (
     <AppLayout>
@@ -74,9 +75,7 @@ export default function Dashboard({ studentCount, studentsByLevel, reportCount, 
         <Panel title="Rapports en attente" icon="clock">
           {pendingReportCount !== null ? <div className="empty-state empty-state-compact"><h3>{pendingReportCount} mémoire(s) en attente</h3><p>{reportScope === 'commission' ? 'En cours d’examen par la commission' : 'À transmettre ou en cours d’examen'}</p><Link href="/reports" className="table-action">Consulter les dépôts</Link></div> : <Unavailable compact>Les rapports à examiner sont réservés aux personnes habilitées.</Unavailable>}
         </Panel>
-        <Panel title="Commission d’évaluation" icon="users">
-          <Unavailable compact>La composition de la commission sera disponible avec le service des évaluations.</Unavailable>
-        </Panel>
+        <Panel title="Prochaines réunions" icon="calendar">{upcomingMeetings === null ? <Unavailable compact>Les invitations sont réservées aux membres habilités de la commission.</Unavailable> : upcomingMeetings.length ? <ul className="meeting-agenda">{upcomingMeetings.map((m) => <li key={m.id}><Link href={'/meetings/' + m.id}>{m.title}</Link><span>{meetingDate(m.starts_at)} · Abidjan</span></li>)}</ul> : <div className="empty-state empty-state-compact"><h3>Aucune réunion à venir</h3><Link href="/meetings" className="table-action">Consulter le planning</Link></div>}</Panel>
       </div>
       <section id="mon-profil" className="panel profile-panel" aria-labelledby="profile-title" tabIndex={-1}>
         <span className="profile-icon"><Icon name="user" /></span>

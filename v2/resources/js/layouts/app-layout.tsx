@@ -5,7 +5,7 @@ import Icon from '../components/icon';
 import type { SharedData } from '../types';
 
 export default function AppLayout({ children, title = 'Tableau de bord', subtitle = 'Gestion de commission de validation' }: PropsWithChildren<{ title?: string; subtitle?: string }>) {
-  const { auth, flash } = usePage<SharedData>().props;
+  const { auth, flash, unreadMessageCount } = usePage<SharedData>().props;
   const path = usePage().url.split('?')[0];
   const settingsAllowed = auth.permissions.includes('users.view') || auth.permissions.includes('groups.view') || auth.permissions.includes('academic.view') || auth.permissions.includes('schooling.view');
   const ownStudentRecord = auth.permissions.includes('students.self') && auth.user?.types.some((type) => type.id === 1);
@@ -60,6 +60,8 @@ export default function AppLayout({ children, title = 'Tableau de bord', subtitl
           {ownStudentRecord && <Link href="/my-enrollments" className={'nav-item' + (path.startsWith('/my-enrollments') ? ' nav-active' : '')} aria-current={path.startsWith('/my-enrollments') ? 'page' : undefined} onClick={() => setMenuOpen(false)}><Icon name="graduate" /> Mes inscriptions et stage</Link>}
           {(auth.permissions.includes('reports.view') || (auth.permissions.includes('reports.assigned') && auth.user?.groups.some((group) => group.id === 9))) && <Link href="/reports" className={'nav-item' + (path.startsWith('/reports') ? ' nav-active' : '')} aria-current={path.startsWith('/reports') ? 'page' : undefined} onClick={() => setMenuOpen(false)}><Icon name="document" /> {auth.permissions.includes('reports.view') ? 'Rapports / Mémoires' : 'Rapports à examiner'}</Link>}
           {auth.permissions.includes('reports.self') && auth.user?.types.some((type) => type.id === 1) && <Link href="/my-reports" className={'nav-item' + (path === '/my-reports' ? ' nav-active' : '')} aria-current={path === '/my-reports' ? 'page' : undefined} onClick={() => setMenuOpen(false)}><Icon name="document" /> Mon rapport / Mémoire</Link>}
+          {auth.permissions.includes('meetings.view') && <Link href="/meetings" className={'nav-item' + (path.startsWith('/meetings') ? ' nav-active' : '')} aria-current={path.startsWith('/meetings') ? 'page' : undefined} onClick={() => setMenuOpen(false)}><Icon name="calendar" /> Réunions</Link>}
+          {auth.permissions.includes('messages.use') && <Link href="/messages" className={'nav-item' + (path.startsWith('/messages') ? ' nav-active' : '')} aria-current={path.startsWith('/messages') ? 'page' : undefined} onClick={() => setMenuOpen(false)}><Icon name="mail" /> Messagerie {unreadMessageCount > 0 && <span className="nav-count" aria-label={unreadMessageCount + ' messages non lus'}>{unreadMessageCount > 99 ? '99+' : unreadMessageCount}</span>}</Link>}
           {settingsAllowed && <Link href="/settings" className={'nav-item' + (path.startsWith('/settings') ? ' nav-active' : '')} aria-current={path.startsWith('/settings') ? 'page' : undefined} onClick={() => setMenuOpen(false)}><Icon name="settings" /> Paramètres généraux</Link>}
           <Link href="/profile" className={'nav-item' + (path === '/profile' ? ' nav-active' : '')} aria-current={path === '/profile' ? 'page' : undefined} onClick={() => setMenuOpen(false)}><Icon name="user" /> Mon profil</Link></>}
           <Link href="/logout" method="post" as="button" className="nav-item" onClick={() => setMenuOpen(false)}>
