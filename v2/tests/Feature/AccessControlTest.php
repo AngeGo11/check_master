@@ -78,7 +78,8 @@ class AccessControlTest extends TestCase
         $user->groups()->attach(6);
         $this->assertFalse($user->hasPermission('users.manage'));
         $this->signIn($user)->get('/settings/users')->assertForbidden();
-        $this->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('auth.permissions', []));
+        // The level-manager group has its own mailbox, never the administrator's powers.
+        $this->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('auth.permissions', ['messages.use']));
     }
 
     public function test_incompatible_group_membership_cannot_grant_a_permission_even_if_inserted_directly(): void
