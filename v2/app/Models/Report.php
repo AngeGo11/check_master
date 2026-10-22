@@ -10,7 +10,7 @@ class Report extends Model
 {
     protected $table = 'student_reports';
     protected $attributes = ['status' => 'submitted', 'revision' => 1, 'version_count' => 1];
-    public const STATUSES = ['submitted', 'changes_requested', 'approved'];
+    public const STATUSES = ['submitted', 'under_review', 'changes_requested', 'accepted'];
     protected function casts(): array { return ['revision' => 'integer', 'version_count' => 'integer', 'latest_submitted_at' => 'datetime']; }
     public function student(): BelongsTo { return $this->belongsTo(Student::class); }
     public function enrollment(): BelongsTo { return $this->belongsTo(Enrollment::class); }

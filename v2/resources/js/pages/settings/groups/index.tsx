@@ -5,7 +5,7 @@ import AppLayout from '../../../layouts/app-layout';
 import type { AccessOption, PermissionCode, SharedData } from '../../../types';
 
 type Permission = { code: PermissionCode; name: string };
-type Group = AccessOption & { users_count: number; protected: boolean; types: AccessOption[]; permissions: PermissionCode[] };
+type Group = AccessOption & { users_count: number; protected: boolean; types: AccessOption[]; permissions: PermissionCode[]; allowedPermissions: PermissionCode[] };
 
 function GroupRow({ group, permissions, canManage }: { group: Group; permissions: Permission[]; canManage: boolean }) {
   const form = useForm({ permissions: group.permissions });
@@ -17,8 +17,8 @@ function GroupRow({ group, permissions, canManage }: { group: Group; permissions
     {group.protected && <p className="field-hint">Les droits de ce groupe sont protégés pour conserver l’administration de la plateforme.</p>}
     {canManage && !group.protected && <details className="permission-editor"><summary>Modifier les permissions</summary><form onSubmit={submit}>
       <FormErrors errors={form.errors} /><fieldset><legend>Autorisations pour ce groupe</legend><div className="choice-grid">
-        {permissions.map((permission) => <label className="choice" key={permission.code}><input type="checkbox" checked={form.data.permissions.includes(permission.code)} onChange={() => form.setData('permissions', form.data.permissions.includes(permission.code) ? form.data.permissions.filter((code) => code !== permission.code) : [...form.data.permissions, permission.code])} /><span>{permission.name}</span></label>)}
-      </div></fieldset><p className="field-hint">La gestion des comptes permet aussi d’attribuer leurs groupes. La configuration des permissions permet de déléguer ces droits.</p><button type="submit" className="button-primary" disabled={form.processing} aria-busy={form.processing}>{form.processing ? 'Enregistrement…' : 'Enregistrer les permissions'}</button>
+        {permissions.filter((permission) => group.allowedPermissions.includes(permission.code)).map((permission) => <label className="choice" key={permission.code}><input type="checkbox" checked={form.data.permissions.includes(permission.code)} onChange={() => form.setData('permissions', form.data.permissions.includes(permission.code) ? form.data.permissions.filter((code) => code !== permission.code) : [...form.data.permissions, permission.code])} /><span>{permission.name}</span></label>)}
+      </div></fieldset><p className="field-hint">La gestion des comptes permet aussi d’attribuer leurs groupes. La déclaration de stage, la transmission et le vote restent réservés à leurs groupes métier.</p><button type="submit" className="button-primary" disabled={form.processing} aria-busy={form.processing}>{form.processing ? 'Enregistrement…' : 'Enregistrer les permissions'}</button>
     </form></details>}
   </section>;
 }

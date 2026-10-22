@@ -1,15 +1,16 @@
-# Check Master v2 — lot 5 : dépôt et suivi des mémoires
+# Check Master v2 — correction du parcours stage et mémoire
 
 Socle Laravel 13 / PHP 8.4, React 19 / TypeScript, Inertia 3, Tailwind 4 et Vite 8.
-Cette version comprend la connexion, les comptes, les types et groupes historiques, les permissions, les dossiers étudiants, les promotions, les années et tarifs, les inscriptions et règlements, les critères d’éligibilité, le dépôt privé de mémoires PDF avec versions, commentaires et approbation administrative, le profil personnel, le changement de mot de passe et MySQL 8.4.
+Cette version comprend la connexion, les comptes, les types et groupes historiques, les permissions, les dossiers étudiants, les promotions, les années et tarifs, les inscriptions et règlements, les critères d’éligibilité, le dépôt privé de mémoires PDF avec versions, commentaires, transmission et approbation unanime de la commission, le profil personnel, le changement de mot de passe et MySQL 8.4.
 
-Les décisions de commission, les notes, le parcours À cheval, l’éditeur de documents intégré et les données personnelles historiques ne sont pas encore migrés. Le tableau de bord utilise les effectifs réels des dossiers non archivés et des mémoires, selon les droits de consultation. Les indicateurs des modules restants sont indisponibles.
+Les soutenances, les notes, le parcours À cheval, l’éditeur de documents intégré et les données personnelles historiques ne sont pas encore migrés. Le tableau de bord utilise les effectifs réels des dossiers non archivés et des mémoires, selon les droits de consultation. Les indicateurs des modules restants sont indisponibles.
 
 Voir le [guide du lot 2](docs/access-control.md) pour les règles d’accès, les correspondances historiques et l’attribution explicite du premier administrateur.
 Le [guide du lot 3](docs/student-records.md) détaille les dossiers étudiants, leur rattachement à un compte, les promotions, les permissions et les limites métier.
 
 Le [guide du lot 4](docs/enrollments.md) décrit les règles de scolarité, les paiements, les critères d’éligibilité et un scénario complet de test sur Mac.
-Le [guide du lot 5](docs/reports.md) décrit le dépôt de PDF, les corrections, la conservation des versions, les permissions et le parcours de test avec deux comptes.
+Le [guide du sprint correctif](docs/report-workflow-corrections.md) précise la déclaration étudiante, l’éligibilité automatique, les rôles et l’unanimité de la commission.
+Le [guide du lot 5](docs/reports.md) décrit le dépôt de PDF, les corrections, la conservation des versions, les permissions et le suivi des avis de commission.
 
 ## Continuité de l’interface
 
@@ -26,7 +27,7 @@ Git et Docker Compose v2 sont les seuls outils nécessaires sur le Mac : PHP, Co
 Depuis un nouveau dossier de travail :
 
 ```bash
-git clone --branch refactor/v2-reports https://github.com/AngeGo11/check_master.git check-master-v2
+git clone --branch fix/v2-report-workflow https://github.com/AngeGo11/check_master.git check-master-v2
 cd check-master-v2/v2
 bash scripts/setup.sh
 docker compose exec app php artisan checkmaster:create-user
@@ -38,13 +39,13 @@ Si le dépôt existe déjà, enregistrer les modifications locales puis, à sa r
 
 ```bash
 git fetch origin
-git switch --track origin/refactor/v2-reports
+git switch --track origin/fix/v2-report-workflow
 cd v2
 bash scripts/setup.sh
 docker compose exec app php artisan checkmaster:create-user
 ```
 
-Si la branche locale existe déjà, utiliser `git switch refactor/v2-reports` puis `git pull --ff-only`. Pour une mise à jour, conserver le même dossier/projet Docker afin de réutiliser le volume existant ; ne pas recréer un compte qui existe déjà.
+Si la branche locale existe déjà, utiliser `git switch fix/v2-report-workflow` puis `git pull --ff-only`. Pour une mise à jour, conserver le même dossier/projet Docker afin de réutiliser le volume existant ; ne pas recréer un compte qui existe déjà.
 
 La création d’un compte n’accorde aucun droit d’administration. Pour le compte nominatif choisi, exécuter `docker compose exec app php artisan checkmaster:grant-admin responsable@example.com` en remplaçant l’adresse d’exemple. Confirmer l’identité affichée, puis se reconnecter. Les comptes créés depuis l’interface doivent personnaliser leur mot de passe temporaire avant d’accéder aux services.
 
@@ -68,10 +69,10 @@ Cette commande valide Composer, exécute les tests et vérifie la page servie pa
 La compilation TypeScript et Vite est vérifiée pendant `setup.sh`.
 Les tests utilisent une base SQLite en mémoire distincte de MySQL ; le démarrage et les migrations utilisent réellement MySQL.
 
-Les tests couvrent les accès, les comptes, les dossiers étudiants, la scolarité, l’éligibilité et les mémoires : isolation des documents, versions, corrections, approbation administrative, intégrité des fichiers, erreurs de stockage, filtres, pagination, CSRF et refus des formulaires devenus obsolètes.
+Les tests couvrent les accès, les comptes, les dossiers étudiants, la scolarité, l’éligibilité et les mémoires : isolation des documents, versions, corrections, transmission et approbation unanime de la commission, intégrité des fichiers, erreurs de stockage, filtres, pagination, CSRF et refus des formulaires devenus obsolètes.
 
 Le workflow [Check Master v2](../.github/workflows/v2-checks.yml) exécute la même installation sur GitHub Actions.
-Les cinq branches des lots 1 à 5 sont vérifiées. L’enregistrement automatique des fichiers de verrouillage est limité à la branche du lot 1 ; ceux-ci sont déjà présents dans les lots suivants. Le workflow ne fusionne aucune branche.
+Les branches des lots 1 à 5 et du sprint correctif sont vérifiées. L’enregistrement automatique des fichiers de verrouillage est limité à la branche du lot 1 ; ceux-ci sont déjà présents dans les lots suivants. Le workflow ne fusionne aucune branche.
 Les installations suivantes utilisent `composer.lock` et `package-lock.json`.
 Si les droits Actions interdisent l'enregistrement, les fichiers restent téléchargeables dans l'artefact `verified-v2-lockfiles` du workflow ; ils peuvent aussi être produits et commités depuis le Mac après vérification.
 
@@ -114,7 +115,7 @@ Si des tables de session sont absentes, exécuter les migrations ci-dessus.
 | `tests/Feature` | Tests des parcours critiques |
 | `docker`, `scripts` | Environnement et commandes d'installation |
 
-Les Actions d’accès, de gestion des étudiants, de scolarité et de mémoires portent les écritures transactionnelles. Le service Eligibility recalcule les trois critères et la validité du dernier examen ; ReportFiles gère les PDF privés et leur intégrité.
+Les Actions d’accès, de gestion des étudiants, de scolarité et de mémoires portent les écritures transactionnelles. Le service Eligibility recalcule les trois critères qui autorisent immédiatement le dépôt ; ReportFiles gère les PDF privés et leur intégrité.
 
 ## Sécurité et limites du lot
 
@@ -123,7 +124,7 @@ Les Actions d’accès, de gestion des étudiants, de scolarité et de mémoires
 - Limitation par couple adresse e-mail/IP et limitation globale par IP sur la connexion.
 - Aucun formulaire d'inscription public et aucun compte fourni avec un mot de passe par défaut.
 - Aucune reprise des mots de passe SHA-256 de l’ancienne application ; la migration des comptes historiques reste un lot distinct.
-- Types et groupes historiques, permissions distinctes par module, contrôles serveur et révocation des sessions. La consultation personnelle exige un rattachement explicite. L’approbation administrative des mémoires exige un droit dédié ; la validation par la commission reste à reprendre.
+- Types et groupes historiques, permissions distinctes par module, contrôles serveur et révocation des sessions. La consultation personnelle exige un rattachement explicite. Le chargé de communication transmet les rapports. L’acceptation exige l’avis favorable de chaque membre de la commission ; aucun rôle administratif ne peut s’y substituer.
 - Les PDF sont conservés dans `storage/app/private/reports`, sur le disque du projet monté dans le conteneur, et non dans le volume MySQL. Sauvegarder ensemble ce répertoire et la base pour conserver l’historique.
 - `.env`, journaux, dépendances et documents exclus du nouveau code versionné.
 - Les anciens fichiers sensibles déjà présents dans l'historique du dépôt ne sont pas nettoyés par l'ajout de `v2/`.

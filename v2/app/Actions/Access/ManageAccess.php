@@ -3,6 +3,7 @@
 namespace App\Actions\Access;
 
 use App\Models\User;
+use App\Models\Permission;
 use App\Models\UserGroup;
 use Closure;
 use Illuminate\Support\Facades\DB;
@@ -73,6 +74,9 @@ class ManageAccess
             Gate::forUser($actor->fresh())->authorize('groups.manage');
             if ($group->code === UserGroup::ADMINISTRATOR) {
                 throw ValidationException::withMessages(['permissions' => 'Les droits du groupe Administrateur plateforme sont protégés.']);
+            }
+            foreach ($permissions as $permission) {
+                if (! Permission::allowedForGroup($permission, $group->code)) { throw ValidationException::withMessages(['permissions' => 'Ce droit est réservé au groupe métier correspondant.']); }
             }
             $before = $group->permissions()->orderBy('code')->pluck('code')->all();
             $group->permissions()->sync($permissions);

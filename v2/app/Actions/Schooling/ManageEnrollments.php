@@ -107,13 +107,13 @@ class ManageEnrollments extends SchoolingAction
 
     public function saveInternship(User $actor, Enrollment $target, array $data): void
     {
-        $this->transact($actor, 'enrollments.manage', function () use ($actor, $target, $data) {
-            $enrollment = $this->lock($target);
+        $this->transact($actor, 'internships.self', function () use ($actor, $target, $data) {
+            $enrollment = $this->ownedInternship($actor, $target);
             $this->revision($enrollment->revision, (int) $data['revision']);
             $this->active($enrollment);
             $stage = $enrollment->internship ?? new EnrollmentInternship;
             $stage->forceFill([...Arr::only($data, ['company', 'title', 'starts_on', 'ends_on', 'evidence_reference']),
-                'enrollment_id' => $enrollment->id, 'recorded_by' => $actor->id])->save();
+                'evidence_reference' => $data['evidence_reference'] ?? '', 'enrollment_id' => $enrollment->id, 'recorded_by' => $actor->id])->save();
             $this->bump($enrollment);
             $this->audit($actor, 'internship.saved', $enrollment->id, ['internship_id' => $stage->id]);
         });
@@ -121,9 +121,10 @@ class ManageEnrollments extends SchoolingAction
 
     public function removeInternship(User $actor, Enrollment $target, array $data): void
     {
-        $this->transact($actor, 'enrollments.manage', function () use ($actor, $target, $data) {
-            $enrollment = $this->lock($target);
+        $this->transact($actor, 'internships.self', function () use ($actor, $target, $data) {
+            $enrollment = $this->ownedInternship($actor, $target);
             $this->revision($enrollment->revision, (int) $data['revision']);
+            $this->active($enrollment);
             $stage = $enrollment->internship()->firstOrFail();
             $this->audit($actor, 'internship.removed', $enrollment->id, ['internship_id' => $stage->id, 'reason' => $data['reason']]);
             $stage->delete();
@@ -145,6 +146,12 @@ class ManageEnrollments extends SchoolingAction
                 'reason' => $data['reason'], 'created_at' => now()])->save();
             $this->audit($actor, 'eligibility.reviewed', $enrollment->id, ['review_id' => $review->id, 'result' => $review->result]);
         });
+    }
+
+    private function ownedInternship(User $actor, Enrollment $target): Enrollment
+    {
+        abort_unless($actor->fresh()->belongsToCompatibleGroup('student'), 403);
+        return Enrollment::whereKey($target->id)->whereHas('student', fn ($q) => $q->where('user_id', $actor->id))->lockForUpdate()->firstOrFail();
     }
 
     private function lock(Enrollment $target): Enrollment { return Enrollment::whereKey($target->id)->lockForUpdate()->firstOrFail(); }

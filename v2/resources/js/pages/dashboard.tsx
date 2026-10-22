@@ -34,7 +34,7 @@ function Unavailable({ children, compact = false }: PropsWithChildren<{ compact?
   );
 }
 
-export default function Dashboard({ studentCount, studentsByLevel, reportCount, pendingReportCount, latestReport }: { studentCount: number | null; studentsByLevel: { name: string; total: number }[] | null; reportCount: number | null; pendingReportCount: number | null; latestReport: { title: string; status: ReportStatus; reference: string; href: string } | null }) {
+export default function Dashboard({ studentCount, studentsByLevel, reportCount, pendingReportCount, latestReport, reportScope }: { reportScope: 'global' | 'commission' | null; studentCount: number | null; studentsByLevel: { name: string; total: number }[] | null; reportCount: number | null; pendingReportCount: number | null; latestReport: { title: string; status: ReportStatus; reference: string; href: string } | null }) {
   const { auth } = usePage<SharedData>().props;
   return (
     <AppLayout>
@@ -49,7 +49,7 @@ export default function Dashboard({ studentCount, studentsByLevel, reportCount, 
           <article className={'stat-card stat-' + tone} key={label}>
             <div className="stat-heading"><h2>{label}</h2><span className="stat-icon"><Icon name={icon} /></span></div>
             <p className="stat-value" aria-label={(index === 0 && studentCount !== null) || (index === 1 && reportCount !== null) ? undefined : 'Valeur indisponible'}>{index === 0 && studentCount !== null ? studentCount : index === 1 && reportCount !== null ? reportCount : '—'}</p>
-            <p className="stat-caption">{index === 0 && studentCount !== null ? 'Dossiers non archivés' : index === 1 && reportCount !== null ? 'Mémoires déposés, toutes les années' : 'Données indisponibles'}</p>
+            <p className="stat-caption">{index === 0 && studentCount !== null ? 'Dossiers non archivés' : index === 1 && reportCount !== null ? reportScope === 'commission' ? 'Versions transmises à ma commission' : 'Mémoires déposés, toutes les années' : 'Données indisponibles'}</p>
           </article>
         ))}
       </section>
@@ -72,7 +72,7 @@ export default function Dashboard({ studentCount, studentsByLevel, reportCount, 
           <div className="empty-state empty-state-compact">{latestReport ? <><h3>{latestReport.title}</h3><p>{reportLabels[latestReport.status]}</p><Link href={latestReport.href} className="table-action">Consulter le mémoire</Link></> : <><h3>Aucun mémoire disponible</h3><p>Les dépôts accessibles à votre compte apparaîtront ici.</p></>}</div>
         </Panel>
         <Panel title="Rapports en attente" icon="clock">
-          {pendingReportCount !== null ? <div className="empty-state empty-state-compact"><h3>{pendingReportCount} mémoire(s) en attente</h3><p>Approbation administrative</p><Link href="/reports?status=submitted" className="table-action">Consulter les dépôts</Link></div> : <Unavailable compact>Les rapports à examiner sont réservés aux personnes habilitées.</Unavailable>}
+          {pendingReportCount !== null ? <div className="empty-state empty-state-compact"><h3>{pendingReportCount} mémoire(s) en attente</h3><p>{reportScope === 'commission' ? 'En cours d’examen par la commission' : 'À transmettre ou en cours d’examen'}</p><Link href="/reports" className="table-action">Consulter les dépôts</Link></div> : <Unavailable compact>Les rapports à examiner sont réservés aux personnes habilitées.</Unavailable>}
         </Panel>
         <Panel title="Commission d’évaluation" icon="users">
           <Unavailable compact>La composition de la commission sera disponible avec le service des évaluations.</Unavailable>
