@@ -23,6 +23,7 @@ class DashboardController extends Controller
             : ($canViewReports ? (clone $reports)->orderByDesc('latest_submitted_at')->orderByDesc('id')->first() : null);
         $collaboration = app(\App\Services\CollaborationAccess::class);
         return Inertia::render('dashboard', [
+            'teacherCount' => app(\App\Services\StaffAccess::class)->canView($user) ? \App\Models\StaffProfile::where('kind', 'teacher')->where('is_archived', false)->count() : null,
             'upcomingMeetings' => $user->can('meetings.view') ? $collaboration->meetings($user)->whereNull('cancelled_at')->where('ends_at', '>', now())->orderBy('starts_at')->limit(3)->get(['id', 'title', 'starts_at'])->map(fn ($m) => ['id' => $m->id, 'title' => $m->title, 'starts_at' => $m->starts_at->toIso8601String()]) : null,
             'reportScope' => $canViewReports ? ($user->can('reports.view') ? 'global' : 'commission') : null,
             'reportCount' => $canViewReports ? (clone $reports)->count() : null,

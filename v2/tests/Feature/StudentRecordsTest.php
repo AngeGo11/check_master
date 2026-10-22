@@ -79,7 +79,7 @@ class StudentRecordsTest extends TestCase
         $this->assertDatabaseHas('promotions', ['id' => 22, 'name' => '2024-2025']);
         $this->assertDatabaseHas('group_permission', ['user_group_id' => 1, 'permission_code' => 'students.self']);
         $this->assertDatabaseMissing('group_permission', ['user_group_id' => 1, 'permission_code' => 'students.view']);
-        $this->assertDatabaseCount('group_permission', 46);
+        $this->assertDatabaseCount('group_permission', 57);
     }
 
     public function test_guests_and_unprivileged_accounts_cannot_access_student_management(): void

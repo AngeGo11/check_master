@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Permission extends Model
 {
-    public const CODES = ['users.view', 'users.manage', 'groups.view', 'groups.manage', 'students.view', 'students.manage', 'students.self', 'academic.view', 'academic.manage', 'schooling.view', 'schooling.manage', 'enrollments.view', 'enrollments.manage', 'payments.manage', 'eligibility.review', 'reports.view', 'reports.self', 'internships.self', 'reports.forward', 'reports.assigned', 'reports.vote', 'messages.use', 'messages.broadcast', 'meetings.view', 'meetings.manage'];
+    public const CODES = ['users.view', 'users.manage', 'groups.view', 'groups.manage', 'students.view', 'students.manage', 'students.self', 'academic.view', 'academic.manage', 'schooling.view', 'schooling.manage', 'enrollments.view', 'enrollments.manage', 'payments.manage', 'eligibility.review', 'reports.view', 'reports.self', 'internships.self', 'reports.forward', 'reports.assigned', 'reports.vote', 'messages.use', 'messages.broadcast', 'meetings.view', 'meetings.manage', 'hr.view', 'hr.manage', 'hr.catalogs.manage', 'hr.self'];
 
     public static function allowedForGroup(string $permission, string $group): bool
     {
+        if (in_array($permission, ['hr.view', 'hr.manage', 'hr.catalogs.manage'], true)) { return $group === UserGroup::ADMINISTRATOR; }
+        if ($permission === 'hr.self') { return $group !== 'student'; }
         $restricted = ['internships.self' => 'student', 'reports.forward' => 'communications', 'reports.assigned' => 'validation-committee', 'reports.vote' => 'validation-committee'];
         if ($permission === 'meetings.manage') { return $group === 'validation-committee'; }
         if ($permission === 'meetings.view') { return in_array($group, ['validation-committee', UserGroup::ADMINISTRATOR], true); }

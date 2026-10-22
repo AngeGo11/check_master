@@ -29,6 +29,7 @@ return [
     */
 
     'disks' => [
+        'staff' => ['driver' => 'local', 'root' => storage_path('app/private/staff'), 'serve' => false, 'visibility' => 'private', 'throw' => true],
         'meetings' => ['driver' => 'local', 'root' => storage_path('app/private/meetings'), 'serve' => false, 'visibility' => 'private', 'throw' => true],
 
         // Dedicated private local disk: never follows FILESYSTEM_DISK or a public URL.
