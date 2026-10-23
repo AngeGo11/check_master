@@ -49,6 +49,7 @@ export default function OwnReport({ student, report, versions, enrollments, oper
     {report && <section className="panel schooling-section" id="report-status"><h2>État du mémoire</h2><span className={'status-tag ' + reportTone[report.status]}>{reportLabels[report.status]}</span><h3 className="report-title">{report.title}</h3><p className="field-hint">{report.reference} · Version {report.version_count} · {report.year.name} · Dépôt du {dateLabel(report.latest_submitted_at)}</p>
       <p className="report-status-help">{report.status === 'submitted' ? 'Votre document est déposé. Le chargé de communication doit le transmettre à la commission.' : report.status === 'under_review' ? 'Votre document a été transmis. L’approbation de chaque membre de la commission est nécessaire.' : report.status === 'changes_requested' ? 'Consultez le commentaire, corrigez votre document, puis soumettez une nouvelle version.' : 'Votre mémoire est accepté : tous les membres de la commission ont approuvé cette version.'}</p>
     </section>}
+    {report?.status === 'accepted' && auth.permissions.includes('defenses.self') && <p className="no-print"><Link className="button-primary" href="/defenses">Préparer ma soutenance</Link></p>}
     {editable && <DepositForm key={report?.revision ?? 0} report={report} enrollments={enrollments} operationKey={operationKey} />}
     {report && versions && <ReportVersions reportId={report.id} versions={versions} personal />}
   </AppLayout>;

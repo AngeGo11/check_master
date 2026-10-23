@@ -79,3 +79,7 @@ Les confirmations sont personnelles et les formulaires signalent les changements
 La vue `app/Views/ressources_humaines.php` fournit les repères des onglets Enseignants et Personnel administratif. Les fiches, filtres, cartes et tableaux prolongent les composants existants. Les catalogues, l’historique daté des grades/fonctions, les spécialités multiples, les photos privées et le rattachement de compte se consultent dans le même cadre. L’archivage réversible conserve les fiches. Le quatrième indicateur du tableau de bord affiche désormais le nombre réel d’enseignants non archivés pour les personnes habilitées.
 
 La consultation personnelle utilise « Ma fiche professionnelle ». Les actions restent déterminées par les droits serveur. Le [guide RH](human-resources.md) décrit les différences avec les tables historiques, les limites et la recette visuelle sur Mac.
+
+## Soutenances et notes
+
+Les écrans d’évaluations et de soutenances reprennent la structure historique : quatre cartes, filtres, tableaux et formulaires dans la navigation existante. Poppins, logos et palette restent identiques. Les améliorations ajoutent les états explicites (brouillon, publié, correction, jury), des moyennes justifiables et des versions conservées. Aucun résultat fictif n’est affiché dans le tableau de bord. Les bulletins et convocations disposent d’une feuille de style d’impression sans menus ni actions de gestion.

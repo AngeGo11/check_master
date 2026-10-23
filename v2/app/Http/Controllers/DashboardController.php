@@ -22,7 +22,11 @@ class DashboardController extends Controller
             ? Report::whereHas('student', fn ($q) => $q->where('user_id', $user->id))->first()
             : ($canViewReports ? (clone $reports)->orderByDesc('latest_submitted_at')->orderByDesc('id')->first() : null);
         $collaboration = app(\App\Services\CollaborationAccess::class);
+        $defenseAccess = app(\App\Services\DefenseAccess::class);
+        $defenses = $defenseAccess->canView($user) || $defenseAccess->assigned($user) || $defenseAccess->own($user) ? $defenseAccess->visible($user) : null;
         return Inertia::render('dashboard', [
+            'defenseCount' => $defenses ? (clone $defenses)->count() : null,
+            'upcomingDefenses' => $defenses ? (clone $defenses)->with('version')->where('status', 'scheduled')->where('ends_at', '>', now())->orderBy('starts_at')->limit(3)->get()->map(fn ($d) => ['id' => $d->id, 'title' => $d->version->title, 'starts_at' => $d->starts_at->toIso8601String(), 'location' => $d->location]) : null,
             'teacherCount' => app(\App\Services\StaffAccess::class)->canView($user) ? \App\Models\StaffProfile::where('kind', 'teacher')->where('is_archived', false)->count() : null,
             'upcomingMeetings' => $user->can('meetings.view') ? $collaboration->meetings($user)->whereNull('cancelled_at')->where('ends_at', '>', now())->orderBy('starts_at')->limit(3)->get(['id', 'title', 'starts_at'])->map(fn ($m) => ['id' => $m->id, 'title' => $m->title, 'starts_at' => $m->starts_at->toIso8601String()]) : null,
             'reportScope' => $canViewReports ? ($user->can('reports.view') ? 'global' : 'commission') : null,

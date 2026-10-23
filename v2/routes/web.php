@@ -27,6 +27,27 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/grades/programs', [\App\Http\Controllers\ProgramController::class, 'index'])->middleware('can:grades.view')->name('programs.index');
+    Route::post('/grades/programs', [\App\Http\Controllers\ProgramController::class, 'store'])->middleware('can:grades.catalogs.manage')->name('programs.store');
+    Route::get('/grades/programs/{program}', [\App\Http\Controllers\ProgramController::class, 'show'])->middleware('can:grades.view')->name('programs.show');
+    Route::put('/grades/programs/{program}', [\App\Http\Controllers\ProgramController::class, 'update'])->middleware('can:grades.catalogs.manage')->name('programs.update');
+    Route::post('/grades/programs/{program}/publish', [\App\Http\Controllers\ProgramController::class, 'publish'])->middleware('can:grades.catalogs.manage')->name('programs.publish');
+    Route::get('/grades', [\App\Http\Controllers\GradeController::class, 'index'])->middleware('can:grades.view')->name('grades.index');
+    Route::post('/grades', [\App\Http\Controllers\GradeController::class, 'store'])->middleware('can:grades.manage')->name('grades.store');
+    Route::get('/grades/{sheet}', [\App\Http\Controllers\GradeController::class, 'show'])->whereNumber('sheet')->middleware('can:grades.view')->name('grades.show');
+    Route::put('/grades/{sheet}', [\App\Http\Controllers\GradeController::class, 'update'])->middleware('can:grades.manage')->name('grades.update');
+    Route::post('/grades/{sheet}/publish', [\App\Http\Controllers\GradeController::class, 'publish'])->middleware('can:grades.manage')->name('grades.publish');
+    Route::post('/grades/{sheet}/reopen', [\App\Http\Controllers\GradeController::class, 'reopen'])->middleware('can:grades.manage')->name('grades.reopen');
+    Route::get('/my-grades', [\App\Http\Controllers\GradeController::class, 'own'])->middleware('can:grades.self')->name('grades.own');
+    Route::get('/my-grades/{sheet}', [\App\Http\Controllers\GradeController::class, 'ownShow'])->middleware('can:grades.self')->name('grades.own.show');
+    Route::get('/defenses', [\App\Http\Controllers\DefenseController::class, 'index'])->name('defenses.index');
+    Route::post('/defenses', [\App\Http\Controllers\DefenseController::class, 'store'])->middleware(['can:defenses.self', 'throttle:10,1'])->name('defenses.store');
+    Route::get('/defenses/{defense}', [\App\Http\Controllers\DefenseController::class, 'show'])->name('defenses.show');
+    Route::put('/defenses/{defense}/schedule', [\App\Http\Controllers\DefenseController::class, 'schedule'])->middleware('can:defenses.manage')->name('defenses.schedule');
+    Route::patch('/defenses/{defense}/cancel', [\App\Http\Controllers\DefenseController::class, 'cancel'])->name('defenses.cancel');
+    Route::post('/defenses/{defense}/result', [\App\Http\Controllers\DefenseController::class, 'result'])->middleware('can:defenses.assess')->name('defenses.result');
+    Route::get('/defenses/{defense}/report', [\App\Http\Controllers\DefenseController::class, 'report'])->name('defenses.report');
+
     Route::get('/my-staff-record', [StaffController::class, 'own'])->middleware('can:hr.self')->name('staff.own');
     Route::get('/my-staff-record/photo', [StaffController::class, 'ownPhoto'])->middleware('can:hr.self')->name('staff.own.photo');
     Route::middleware('can:hr.view')->group(function () {

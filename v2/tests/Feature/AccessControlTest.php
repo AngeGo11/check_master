@@ -60,7 +60,7 @@ class AccessControlTest extends TestCase
         $this->assertDatabaseCount('user_group_user_type', 10);
         $this->assertDatabaseCount('users', 0);
         $this->assertDatabaseHas('user_groups', ['id' => 9, 'name' => 'Commission de validation']);
-        $this->assertDatabaseCount('group_permission', 57);
+        $this->assertDatabaseCount('group_permission', 74);
     }
 
     public function test_guests_cannot_access_account_management(): void
@@ -79,7 +79,7 @@ class AccessControlTest extends TestCase
         $this->assertFalse($user->hasPermission('users.manage'));
         $this->signIn($user)->get('/settings/users')->assertForbidden();
         // The level-manager group has its own mailbox, never the administrator's powers.
-        $this->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('auth.permissions', fn ($codes) => collect($codes)->sort()->values()->all() === ['hr.self', 'messages.use']));
+        $this->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('auth.permissions', fn ($codes) => collect($codes)->sort()->values()->all() === ['defenses.assess', 'defenses.assigned', 'hr.self', 'messages.use']));
     }
 
     public function test_incompatible_group_membership_cannot_grant_a_permission_even_if_inserted_directly(): void
@@ -272,7 +272,7 @@ class AccessControlTest extends TestCase
         $this->signIn($this->administrator())->put('/settings/groups/8', ['permissions' => []])->assertSessionHasErrors('permissions');
         $this->put('/settings/groups/1', ['permissions' => ['super-admin']])->assertSessionHasErrors('permissions.0');
         $this->put('/settings/groups/1', ['permissions' => ['users.manage']])->assertSessionHasErrors('permissions');
-        $this->assertDatabaseCount('group_permission', 57);
+        $this->assertDatabaseCount('group_permission', 74);
         $this->assertDatabaseCount('access_audits', 0);
     }
 
