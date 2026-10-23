@@ -409,3 +409,18 @@ progress { display: block; width: 100%; accent-color: var(--primary-light); marg
 .staff-heading h1 { overflow-wrap:anywhere; }
 .staff-portrait { width:80px; height:80px; flex:0 0 80px; object-fit:cover; border-radius:12px; border:1px solid var(--border); background:#eef4f9; }
 @media (max-width:640px) { .staff-heading { align-items:flex-start; } .staff-portrait { width:56px; height:56px; flex-basis:56px; } }
+
+/* Grilles de notes et convocations, dans les composants Check Master existants. */
+.academic-unit { border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-block: 16px; }
+.academic-component { border-left: 3px solid var(--border); padding-left: 16px; margin-block: 14px; }
+.academic-unit-row { background: #eef5fb; font-weight: 600; }
+.grade-input { width: 100px; min-width: 80px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+@media print {
+  .academic-print { border: 0; box-shadow: none; padding: 0; }
+  .academic-print .table-scroll { overflow: visible; }
+  .academic-print table { min-width: 0; width: 100%; font-size: 10pt; }
+  .academic-print tr { break-inside: avoid; }
+  .academic-print h1, .academic-print h2 { break-after: avoid; }
+  .academic-print .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .academic-print button, .academic-print .form-actions { display: none; }
+}

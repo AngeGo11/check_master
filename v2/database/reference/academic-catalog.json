@@ -1,0 +1,880 @@
+{
+  "source_sha256": "921bf93160eea570c2109d0852d1c5063883c4dbf70c0a8cb3b0ae4276c66454",
+  "semesters": [
+    {
+      "id": 1,
+      "name": "Semestre 1",
+      "study_level_id": 1,
+      "units": [
+        {
+          "code": "1101",
+          "name": "Initiation à l'informatique",
+          "credits": 4,
+          "hours": 40,
+          "components": []
+        },
+        {
+          "code": "1103",
+          "name": "Outils bureautiques 1",
+          "credits": 2,
+          "hours": 20,
+          "components": []
+        },
+        {
+          "code": "1104",
+          "name": "Mathématiques 1",
+          "credits": 5,
+          "hours": 50,
+          "components": [
+            {
+              "code": "1105",
+              "name": "Suites et fonctions",
+              "credits": 3,
+              "hours": 30
+            },
+            {
+              "code": "1106",
+              "name": "Calcul intégral",
+              "credits": 2,
+              "hours": 20
+            }
+          ]
+        },
+        {
+          "code": "1105",
+          "name": "Mathématiques 2",
+          "credits": 5,
+          "hours": 50,
+          "components": [
+            {
+              "code": "1107",
+              "name": "Élements de logique",
+              "credits": 2,
+              "hours": 20
+            },
+            {
+              "code": "1108",
+              "name": "Structures algébriques",
+              "credits": 3,
+              "hours": 30
+            }
+          ]
+        },
+        {
+          "code": "1106",
+          "name": "Organisation des entreprises",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "1107",
+          "name": "Économie",
+          "credits": 5,
+          "hours": 50,
+          "components": [
+            {
+              "code": "1109",
+              "name": "Économie1",
+              "credits": 3,
+              "hours": 30
+            },
+            {
+              "code": "1110",
+              "name": "Économie2",
+              "credits": 2,
+              "hours": 20
+            }
+          ]
+        },
+        {
+          "code": "1108",
+          "name": "Électronique numérique",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Semestre 2",
+      "study_level_id": 1,
+      "units": [
+        {
+          "code": "1201",
+          "name": "Mathématiques 3",
+          "credits": 6,
+          "hours": 60,
+          "components": [
+            {
+              "code": "1111",
+              "name": "Géométrie",
+              "credits": 1,
+              "hours": 10
+            },
+            {
+              "code": "1112",
+              "name": "Calcul matriciel",
+              "credits": 2,
+              "hours": 20
+            },
+            {
+              "code": "1113",
+              "name": "Espaces vectoriels",
+              "credits": 3,
+              "hours": 30
+            }
+          ]
+        },
+        {
+          "code": "1202",
+          "name": "Probabilités et Statistique 1",
+          "credits": 4,
+          "hours": 40,
+          "components": [
+            {
+              "code": "1114",
+              "name": "Probabilités 1",
+              "credits": 2,
+              "hours": 20
+            },
+            {
+              "code": "1115",
+              "name": "Statistique 1",
+              "credits": 2,
+              "hours": 20
+            }
+          ]
+        },
+        {
+          "code": "1203",
+          "name": "Outils bureautiques 2",
+          "credits": 2,
+          "hours": 20,
+          "components": []
+        },
+        {
+          "code": "1204",
+          "name": "Algorithmique et Programmation",
+          "credits": 5,
+          "hours": 50,
+          "components": [
+            {
+              "code": "1116",
+              "name": "Algorithmique",
+              "credits": 3,
+              "hours": 30
+            },
+            {
+              "code": "1117",
+              "name": "Programmation Java",
+              "credits": 2,
+              "hours": 20
+            }
+          ]
+        },
+        {
+          "code": "1205",
+          "name": "Atelier de maintenance",
+          "credits": 1,
+          "hours": 10,
+          "components": []
+        },
+        {
+          "code": "1206",
+          "name": "Technique d'expression et méthodologie de travail",
+          "credits": 2,
+          "hours": 20,
+          "components": [
+            {
+              "code": "1118",
+              "name": "Méthodologie de travail",
+              "credits": 1,
+              "hours": 10
+            },
+            {
+              "code": "1119",
+              "name": "Technique d'expression",
+              "credits": 1,
+              "hours": 10
+            }
+          ]
+        },
+        {
+          "code": "1207",
+          "name": "Intelligence économique",
+          "credits": 2,
+          "hours": 20,
+          "components": []
+        },
+        {
+          "code": "1208",
+          "name": "Gestion des Ressources Humaines",
+          "credits": 2,
+          "hours": 20,
+          "components": []
+        },
+        {
+          "code": "1209",
+          "name": "Logiciel de traitement d'images ou de montage vidéo",
+          "credits": 2,
+          "hours": 20,
+          "components": []
+        },
+        {
+          "code": "1210",
+          "name": "Anglais",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "1211",
+          "name": "Initiation au langage R",
+          "credits": 1,
+          "hours": 10,
+          "components": []
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Semestre 3",
+      "study_level_id": 2,
+      "units": [
+        {
+          "code": "2301",
+          "name": "Programmation orientée objet",
+          "credits": 6,
+          "hours": 60,
+          "components": [
+            {
+              "code": "1136",
+              "name": "Fondamentaux de la POO",
+              "credits": 3,
+              "hours": 30
+            },
+            {
+              "code": "1137",
+              "name": "POO en Java",
+              "credits": 3,
+              "hours": 30
+            }
+          ]
+        },
+        {
+          "code": "2302",
+          "name": "Outils formels pour l'informatique",
+          "credits": 2,
+          "hours": 20,
+          "components": []
+        },
+        {
+          "code": "2303",
+          "name": "Probabilités et Statistique 2",
+          "credits": 4,
+          "hours": 40,
+          "components": [
+            {
+              "code": "1122",
+              "name": "Probabilités 2",
+              "credits": 2,
+              "hours": 20
+            },
+            {
+              "code": "1123",
+              "name": "Statistique 2",
+              "credits": 2,
+              "hours": 20
+            }
+          ]
+        },
+        {
+          "code": "2304",
+          "name": "Analyse de donées",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "2305",
+          "name": "Comptabilité générale",
+          "credits": 6,
+          "hours": 60,
+          "components": [
+            {
+              "code": "1124",
+              "name": "Modèle comptable",
+              "credits": 2,
+              "hours": 20
+            },
+            {
+              "code": "1125",
+              "name": "Opérations comptables",
+              "credits": 2,
+              "hours": 20
+            },
+            {
+              "code": "1126",
+              "name": "Opérations d'inventaires",
+              "credits": 2,
+              "hours": 20
+            }
+          ]
+        },
+        {
+          "code": "2306",
+          "name": "Anglais",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "2307",
+          "name": "Mathématiques 4",
+          "credits": 6,
+          "hours": 60,
+          "components": [
+            {
+              "code": "1120",
+              "name": "Analyse 2",
+              "credits": 3,
+              "hours": 30
+            },
+            {
+              "code": "1121",
+              "name": "Algèbre",
+              "credits": 3,
+              "hours": 30
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Semestre 4",
+      "study_level_id": 2,
+      "units": [
+        {
+          "code": "2401",
+          "name": "Mathématiques 5",
+          "credits": 2,
+          "hours": 20,
+          "components": [
+            {
+              "code": "1127",
+              "name": "Arithmétique",
+              "credits": 2,
+              "hours": 20
+            }
+          ]
+        },
+        {
+          "code": "2402",
+          "name": "Données semi-structurées et base de données",
+          "credits": 8,
+          "hours": 80,
+          "components": [
+            {
+              "code": "1128",
+              "name": "Base de données relationnelles",
+              "credits": 2,
+              "hours": 20
+            },
+            {
+              "code": "1129",
+              "name": "Données semi-structurées",
+              "credits": 2,
+              "hours": 20
+            },
+            {
+              "code": "1130",
+              "name": "Base de données et applications",
+              "credits": 3,
+              "hours": 30
+            }
+          ]
+        },
+        {
+          "code": "2403",
+          "name": "Programmation web",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "2404",
+          "name": "Génie logiciel",
+          "credits": 6,
+          "hours": 60,
+          "components": [
+            {
+              "code": "1131",
+              "name": "Initiation au langage SCALA",
+              "credits": 2,
+              "hours": 20
+            },
+            {
+              "code": "1132",
+              "name": "Atelier de génie logiciel",
+              "credits": 4,
+              "hours": 40
+            }
+          ]
+        },
+        {
+          "code": "2405",
+          "name": "Programmation sous windows",
+          "credits": 4,
+          "hours": 40,
+          "components": [
+            {
+              "code": "1133",
+              "name": "Programmation VBA",
+              "credits": 2,
+              "hours": 20
+            },
+            {
+              "code": "1134",
+              "name": "Programmation C#",
+              "credits": 2,
+              "hours": 20
+            }
+          ]
+        },
+        {
+          "code": "2406",
+          "name": "Contrôle budgétaire",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "2407",
+          "name": "Initiation Python",
+          "credits": 2,
+          "hours": 20,
+          "components": [
+            {
+              "code": "1135",
+              "name": "Application à la cryptographie",
+              "credits": 2,
+              "hours": 20
+            }
+          ]
+        },
+        {
+          "code": "2408",
+          "name": "Projet",
+          "credits": 2,
+          "hours": 20,
+          "components": []
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Semestre 5",
+      "study_level_id": 3,
+      "units": [
+        {
+          "code": "3501",
+          "name": "Analyse et conception à objet",
+          "credits": 6,
+          "hours": 60,
+          "components": []
+        },
+        {
+          "code": "3502",
+          "name": "Systèmes informatiques",
+          "credits": 6,
+          "hours": 60,
+          "components": [
+            {
+              "code": "1138",
+              "name": "Fondamentaux des systèmes d'exploitations",
+              "credits": 2,
+              "hours": 20
+            },
+            {
+              "code": "1139",
+              "name": "UNIX et langage C",
+              "credits": 4,
+              "hours": 40
+            }
+          ]
+        },
+        {
+          "code": "3503",
+          "name": "Base de modélisation par objets (UML)",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "3504",
+          "name": "Programmation",
+          "credits": 5,
+          "hours": 50,
+          "components": [
+            {
+              "code": "1140",
+              "name": "Algo avancé et Java",
+              "credits": 5,
+              "hours": 50
+            }
+          ]
+        },
+        {
+          "code": "3505",
+          "name": "Base de données avancées",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "3506",
+          "name": "Programmation de client web",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "3507",
+          "name": "Algorithmique des graphes",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "3508",
+          "name": "Comptabilité de gestion",
+          "credits": 4,
+          "hours": 40,
+          "components": [
+            {
+              "code": "1141",
+              "name": "Suivi des performances",
+              "credits": 2,
+              "hours": 20
+            },
+            {
+              "code": "1142",
+              "name": "Coûts complets et coûts partiels",
+              "credits": 2,
+              "hours": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Semestre 6",
+      "study_level_id": 3,
+      "units": [
+        {
+          "code": "3601",
+          "name": "Files d'attente et gestion de stock",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "3602",
+          "name": "Analyse de donées",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "3603",
+          "name": "Programmation d'application",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "3604",
+          "name": "Réseaux informatiques",
+          "credits": 5,
+          "hours": 50,
+          "components": [
+            {
+              "code": "1143",
+              "name": "Fondamentaux des réseaux",
+              "credits": 3,
+              "hours": 30
+            },
+            {
+              "code": "1144",
+              "name": "Internet/Intranet",
+              "credits": 2,
+              "hours": 20
+            }
+          ]
+        },
+        {
+          "code": "3605",
+          "name": "Théorie des langages",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "3606",
+          "name": "Gestion financière",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "3607",
+          "name": "Anglais",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "3608",
+          "name": "Projet",
+          "credits": 30,
+          "hours": 4,
+          "components": []
+        },
+        {
+          "code": "3609",
+          "name": "Environnement juridique",
+          "credits": 3,
+          "hours": 30,
+          "components": [
+            {
+              "code": "1146",
+              "name": "UML",
+              "credits": 3,
+              "hours": 30
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Semestre 7",
+      "study_level_id": 4,
+      "units": [
+        {
+          "code": "1701",
+          "name": "Modélisation système d'information",
+          "credits": 5,
+          "hours": 50,
+          "components": [
+            {
+              "code": "1145",
+              "name": "ISI",
+              "credits": 2,
+              "hours": 20
+            }
+          ]
+        },
+        {
+          "code": "1702",
+          "name": "Compléments de mathématiques",
+          "credits": 4,
+          "hours": 40,
+          "components": [
+            {
+              "code": "1147",
+              "name": "Files d'attente et gestion de stock",
+              "credits": 3,
+              "hours": 30
+            },
+            {
+              "code": "1149",
+              "name": "Régression linéaire",
+              "credits": 1,
+              "hours": 10
+            }
+          ]
+        },
+        {
+          "code": "1703",
+          "name": "Intelligence artificielle",
+          "credits": 2,
+          "hours": 20,
+          "components": []
+        },
+        {
+          "code": "1704",
+          "name": "Base de données avancées",
+          "credits": 4,
+          "hours": 40,
+          "components": []
+        },
+        {
+          "code": "1705",
+          "name": "Programmation avancée Java",
+          "credits": 4,
+          "hours": 40,
+          "components": []
+        },
+        {
+          "code": "1706",
+          "name": "Progiciel de comptabilité (SAGE)",
+          "credits": 2,
+          "hours": 20,
+          "components": []
+        },
+        {
+          "code": "1707",
+          "name": "Management des entreprises",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "1708",
+          "name": "Concurrence et coopération dans les systèmes et les réseaux",
+          "credits": 4,
+          "hours": 40,
+          "components": []
+        },
+        {
+          "code": "1709",
+          "name": "Internet/Intranet",
+          "credits": 2,
+          "hours": 20,
+          "components": []
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Semestre 8",
+      "study_level_id": 4,
+      "units": [
+        {
+          "code": "1801",
+          "name": "Base de données décisionnelles",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "1802",
+          "name": "Programmation impérative et developpement d'IHM",
+          "credits": 4,
+          "hours": 40,
+          "components": []
+        },
+        {
+          "code": "1803",
+          "name": "Systèmes d'information repartis",
+          "credits": 5,
+          "hours": 50,
+          "components": []
+        },
+        {
+          "code": "1804",
+          "name": "Contrôle de gestion",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "1805",
+          "name": "Comptabilité analytique",
+          "credits": 4,
+          "hours": 40,
+          "components": []
+        },
+        {
+          "code": "1806",
+          "name": "Marketing",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "1807",
+          "name": "Projet de developpement logiciel",
+          "credits": 5,
+          "hours": 50,
+          "components": []
+        },
+        {
+          "code": "1808",
+          "name": "Anglais",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Semestre 9",
+      "study_level_id": 5,
+      "units": [
+        {
+          "code": "2901",
+          "name": "Gestion financière",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "2902",
+          "name": "Management de projet et intégration d'application",
+          "credits": 6,
+          "hours": 60,
+          "components": []
+        },
+        {
+          "code": "2903",
+          "name": "Audit informatique",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "2904",
+          "name": "Entrepreunariat",
+          "credits": 2,
+          "hours": 20,
+          "components": []
+        },
+        {
+          "code": "2905",
+          "name": "Multimedia mobile",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "2906",
+          "name": "Ingenierie des exigences et veille technologique",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "2907",
+          "name": "Mathématiques financières",
+          "credits": 3,
+          "hours": 30,
+          "components": []
+        },
+        {
+          "code": "2908",
+          "name": "Anglais",
+          "credits": 2,
+          "hours": 20,
+          "components": []
+        }
+      ]
+    }
+  ]
+}

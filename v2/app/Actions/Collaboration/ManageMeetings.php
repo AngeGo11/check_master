@@ -95,6 +95,9 @@ class ManageMeetings
     }
     private function noConflict(array $ids, $start, $end, ?int $except): void
     {
+        if (\App\Models\Defense::where('status', 'scheduled')->where('starts_at', '<', $end)->where('ends_at', '>', $start)->whereHas('currentJurors', fn ($q) => $q->whereIn('user_id', $ids))->exists()) {
+            throw ValidationException::withMessages(['starts_at' => 'Un participant siège déjà à un jury de soutenance sur ce créneau.']);
+        }
         if (Meeting::whereNull('cancelled_at')->where('starts_at', '<', $end)->where('ends_at', '>', $start)
             ->when($except, fn ($q) => $q->where('id', '!=', $except))
             ->whereHas('participants', fn ($q) => $q->whereIn('user_id', $ids)->whereNull('removed_at')->where('response', '!=', 'declined'))->exists()) {
