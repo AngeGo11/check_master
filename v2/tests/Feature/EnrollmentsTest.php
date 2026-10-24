@@ -97,7 +97,7 @@ class EnrollmentsTest extends TestCase
     public function test_migration_adds_no_historical_financial_data_or_automatic_year(): void
     {
         foreach (['academic_years', 'tuition_fees', 'enrollments', 'tuition_payments', 'eligibility_reviews', 'enrollment_audits'] as $table) { $this->assertDatabaseCount($table, 0); }
-        $this->assertDatabaseCount('permissions', 38); $this->assertDatabaseCount('group_permission', 74);
+        $this->assertDatabaseCount('permissions', 42); $this->assertDatabaseCount('group_permission', 79);
         $this->assertDatabaseHas('group_permission', ['user_group_id' => 8, 'permission_code' => 'payments.manage']);
         $this->assertDatabaseMissing('group_permission', ['user_group_id' => 1, 'permission_code' => 'enrollments.view']);
     }

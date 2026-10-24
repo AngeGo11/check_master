@@ -6,10 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Permission extends Model
 {
-    public const CODES = ['users.view', 'users.manage', 'groups.view', 'groups.manage', 'students.view', 'students.manage', 'students.self', 'academic.view', 'academic.manage', 'schooling.view', 'schooling.manage', 'enrollments.view', 'enrollments.manage', 'payments.manage', 'eligibility.review', 'reports.view', 'reports.self', 'internships.self', 'reports.forward', 'reports.assigned', 'reports.vote', 'messages.use', 'messages.broadcast', 'meetings.view', 'meetings.manage', 'hr.view', 'hr.manage', 'hr.catalogs.manage', 'hr.self', 'grades.view', 'grades.manage', 'grades.self', 'grades.catalogs.manage', 'defenses.view', 'defenses.manage', 'defenses.self', 'defenses.assigned', 'defenses.assess'];
+    public const CODES = ['users.view', 'users.manage', 'groups.view', 'groups.manage', 'students.view', 'students.manage', 'students.self', 'academic.view', 'academic.manage', 'schooling.view', 'schooling.manage', 'enrollments.view', 'enrollments.manage', 'payments.manage', 'eligibility.review', 'reports.view', 'reports.self', 'internships.self', 'reports.forward', 'reports.assigned', 'reports.vote', 'messages.use', 'messages.broadcast', 'meetings.view', 'meetings.manage', 'hr.view', 'hr.manage', 'hr.catalogs.manage', 'hr.self', 'grades.view', 'grades.manage', 'grades.self', 'grades.catalogs.manage', 'defenses.view', 'defenses.manage', 'defenses.self', 'defenses.assigned', 'defenses.assess', 'claims.self', 'claims.view', 'claims.manage', 'claims.assigned'];
 
     public static function allowedForGroup(string $permission, string $group): bool
     {
+        if ($permission === 'claims.self') { return $group === 'student'; }
+        if ($permission === 'claims.assigned') { return $group === 'program-manager'; }
+        if (in_array($permission, ['claims.view', 'claims.manage'], true)) { return in_array($group, ['schooling', UserGroup::ADMINISTRATOR], true); }
         if (in_array($permission, ['grades.view', 'grades.manage', 'defenses.view', 'defenses.manage'], true)) { return in_array($group, ['schooling', UserGroup::ADMINISTRATOR], true); }
         if ($permission === 'grades.catalogs.manage') { return $group === UserGroup::ADMINISTRATOR; }
         if (in_array($permission, ['grades.self', 'defenses.self'], true)) { return $group === 'student'; }

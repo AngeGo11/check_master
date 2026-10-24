@@ -2,7 +2,7 @@ name: Check Master v2
 
 on:
   push:
-    branches: [refactor/v2-foundation, refactor/v2-access-control, refactor/v2-students, refactor/v2-enrollments, refactor/v2-reports, fix/v2-report-workflow, refactor/v2-meetings-messaging, refactor/v2-human-resources, refactor/v2-defenses-grades, refactor/v2-role-dashboards]
+    branches: [refactor/v2-foundation, refactor/v2-access-control, refactor/v2-students, refactor/v2-enrollments, refactor/v2-reports, fix/v2-report-workflow, refactor/v2-meetings-messaging, refactor/v2-human-resources, refactor/v2-defenses-grades, refactor/v2-role-dashboards, refactor/v2-student-claims]
     paths: ['v2/**', '.github/workflows/v2-checks.yml']
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -26,7 +26,7 @@ jobs:
           persist-credentials: false
       - name: Build and start the same Docker environment as on macOS
         run: bash v2/scripts/setup.sh
-      - name: Check access, schooling, reports, meetings, messaging, HR, grades, defenses, role dashboards and HTTP availability
+      - name: Check access, schooling, reports, meetings, messaging, HR, grades, defenses, role dashboards, student claims and HTTP availability
         run: bash v2/scripts/check.sh
       - name: Preserve the exact dependency versions that passed
         uses: actions/upload-artifact@v4

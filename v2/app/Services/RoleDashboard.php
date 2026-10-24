@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\{AcademicYear, Defense, Enrollment, GradeSheet, Report, StaffProfile, Student, User};
+use App\Models\{AcademicYear, Defense, Enrollment, GradeSheet, Report, StaffProfile, Student, StudentClaim, User};
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -50,6 +50,7 @@ class RoleDashboard
             'teacher', 'level-manager', 'program-manager' => $this->teaching($space),
             default => null,
         };
+        $this->claims($space);
         $this->mailbox();
         $this->action('profile', 'Mon profil', '/profile', 'user');
         return $this->data;
@@ -71,6 +72,22 @@ class RoleDashboard
     private function item(int|string $id, string $title, string $detail, ?string $href = null, ?string $date = null, int|string|null $value = null): array
     {
         return compact('id', 'title', 'detail', 'href', 'date', 'value');
+    }
+
+    private function claims(string $space): void
+    {
+        $access = app(ClaimAccess::class); $scope = null; $path = '/claims';
+        if ($space === 'student' && $access->personal($this->user)) { $scope = $access->query($this->user, 'personal'); $path = '/my-claims'; }
+        if (in_array($space, ['platform-administrator', 'schooling'], true) && $access->global($this->user)) { $scope = $access->query($this->user, 'service'); }
+        if ($space === 'program-manager' && $access->assigned($this->user)) { $scope = $access->query($this->user, 'assigned'); $path = '/claims?space=assigned'; }
+        if (! $scope) { return; }
+        $open = (clone $scope)->whereIn('status', StudentClaim::OPEN);
+        $this->card('claims', $space === 'student' ? 'Mes réclamations en cours' : 'Réclamations en cours', (clone $open)->count(), $space === 'program-manager' ? 'Dossiers qui vous sont transmis' : 'Toutes les années', $path, 'document', 'orange');
+        $rows = $space === 'student' ? $scope->orderByDesc('updated_at')->orderByDesc('id') : $open->oldest('created_at')->orderBy('id');
+        $this->panel('claims', $space === 'student' ? 'Suivi de mes réclamations' : 'Réclamations à suivre', $space === 'student' ? 'Dernières demandes et réponses.' : 'Les demandes les plus anciennes dans votre périmètre.',
+            $rows->limit(5)->get()->map(fn ($c) => $this->item($c->id, $c->subject, StudentClaim::STATUSES[$c->status], ($space === 'student' ? '/my-claims/' : '/claims/').$c->id, $c->updated_at->toIso8601String()))->all(),
+            'Aucune réclamation à afficher.', $path);
+        $this->action('claims', $space === 'student' ? 'Mes réclamations' : 'Suivre les réclamations', $path);
     }
 
     private function administrator(): void

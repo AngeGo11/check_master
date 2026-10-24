@@ -66,3 +66,8 @@ Si la branche locale existe déjà, utiliser `git switch refactor/v2-role-dashbo
 8. Vérifier les écrans vides, l’affichage mobile, le clavier et les liens d’accès rapide.
 
 Les tests automatisés couvrent ces périmètres et les régressions des lots précédents. La recette visuelle réelle sur Mac reste à effectuer par l’utilisateur. Aucune migration ni extension des permissions n’est nécessaire pour ce lot.
+
+
+## Complément : réclamations
+
+Le lot suivant ajoute un compteur de réclamations ouvertes et une liste de cinq dossiers aux espaces Étudiant, Scolarité, Administration et Responsable de filière. L’étudiant voit ses demandes et réponses récentes ; les services voient leurs demandes ouvertes les plus anciennes ; la filière reste limitée aux transmissions nominatives actuelles. Un compte multigroupe qui choisit l’espace étudiant ou filière ne récupère pas les statistiques globales de ses autres groupes. Les actions mènent aux listes correspondantes. Voir [Réclamations étudiantes](student-claims.md).
