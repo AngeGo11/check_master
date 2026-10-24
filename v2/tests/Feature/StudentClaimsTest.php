@@ -246,6 +246,22 @@ class StudentClaimsTest extends TestCase
         $this->assertSame('submitted', $c->fresh()->status);
     }
 
+    public function test_failed_history_write_rolls_back_the_claim_and_removes_its_stored_pdf(): void
+    {
+        [$owner, $e] = $this->enrollment();
+        ClaimEvent::creating(fn () => throw new \RuntimeException('Échec simulé de l’historique'));
+        try {
+            app(ManageClaims::class)->create($owner, $this->data($e), $this->pdf());
+            $this->fail('La transaction devait échouer.');
+        } catch (\RuntimeException $error) {
+            $this->assertSame('Échec simulé de l’historique', $error->getMessage());
+        } finally {
+            ClaimEvent::flushEventListeners();
+        }
+        $this->assertDatabaseCount('student_claims', 0); $this->assertDatabaseCount('claim_events', 0);
+        $this->assertCount(0, Storage::disk('claims')->allFiles());
+    }
+
     public function test_lists_filters_counts_and_history_pagination_stay_inside_the_role_scope(): void
     {
         [$owner, $c, $e] = $this->claim(); [, $other] = $this->claim(); $school = $this->person(3);
@@ -300,6 +316,18 @@ class StudentClaimsTest extends TestCase
         $this->signIn($owner)->post('/my-claims', $this->data($e))->assertStatus(419);
         $this->post('/claims/'.$c->id.'/actions', $this->action($c, 'comment'))->assertStatus(419);
         $this->assertDatabaseCount('student_claims', 1); $this->assertDatabaseCount('claim_events', 1);
+    }
+
+    public function test_claim_shortcut_on_bulletins_requires_an_active_student_record_and_permission(): void
+    {
+        [$school, $owner, $sheet] = $this->sheet(); $this->publishSheet($school, $sheet);
+        $this->signIn($owner)->get('/my-grades/'.$sheet->id)->assertInertia(fn (Assert $p) => $p->where('canClaim', true));
+        $sheet->enrollment->forceFill(['cancelled_at' => now()])->save();
+        $this->get('/my-grades/'.$sheet->id)->assertInertia(fn (Assert $p) => $p->where('canClaim', false));
+        $sheet->enrollment->forceFill(['cancelled_at' => null])->save(); $sheet->enrollment->student->forceFill(['is_archived' => true])->save();
+        $this->get('/my-grades/'.$sheet->id)->assertInertia(fn (Assert $p) => $p->where('canClaim', false));
+        $sheet->enrollment->student->forceFill(['is_archived' => false])->save(); UserGroup::findOrFail(1)->permissions()->detach('claims.self');
+        $this->signIn($owner)->get('/my-grades/'.$sheet->id)->assertInertia(fn (Assert $p) => $p->where('canClaim', false));
     }
 
 }

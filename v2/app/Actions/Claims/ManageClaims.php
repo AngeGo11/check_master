@@ -87,7 +87,7 @@ class ManageClaims
             };
             $claim->revision++;
             $claim->save();
-            $role = $access->own($actor, $claim) ? 'student' : ($access->staff($actor) ? 'schooling' : 'program-manager');
+            $role = $access->own($actor, $claim) ? 'student' : (($previous === 'escalated' && (int) $claim->assigned_to === $actor->id && $access->assigned($actor)) ? 'program-manager' : 'schooling');
             $this->event($actor, $claim, $action, $data['body'], $previous, $data['operation_key'], $hash, $role);
         });
     }

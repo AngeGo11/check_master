@@ -41,6 +41,7 @@ class GradeController extends Controller
         return Inertia::render('grades/show', ['sheet' => ['id' => $s->id, 'revision' => $personal ? null : $s->revision, 'status' => $s->status, 'semester' => $s->semester->name, 'program_number' => $s->program->number, 'enrollment' => $this->enrollment($s->enrollment)],
             'result' => $result, 'publication' => $publication ? $this->publication($publication) : null, 'publications' => $s->publications()->orderByDesc('number')->get()->map(fn ($p) => $this->publication($p)),
             'marks' => $canManage && $s->status === 'draft' ? collect($s->marks)->map(fn ($v) => $v === null ? '' : number_format($v / 100, 2, '.', '')) : null, 'personal' => $personal, 'canManage' => $canManage,
+            'canClaim' => $personal && app(\App\Services\ClaimAccess::class)->personal($r->user()) && ! $s->enrollment->cancelled_at && ! $s->enrollment->student->is_archived,
             'activity' => $personal ? [] : DB::table('academic_audits')->where('enrollment_id', $s->enrollment_id)->where('teaching_program_id', $s->teaching_program_id)->orderByDesc('id')->limit(30)->get(['id', 'action', 'created_at'])]);
     }
     public function store(GradeRequest $r, ManageGrades $a) { $s = $a->create($r->user(), $r->validated()); return to_route('grades.show', $s); }
