@@ -1,87 +1,56 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import type { PropsWithChildren } from 'react';
 import Icon, { type IconName } from '../components/icon';
 import AppLayout from '../layouts/app-layout';
 import type { SharedData } from '../types';
 import { meetingDate } from '../types/collaboration';
-import { reportLabels, type ReportStatus } from '../types/reports';
 
-const indicators: { label: string; icon: IconName; tone: string }[] = [
-  { label: 'Étudiants enregistrés', icon: 'graduate', tone: 'blue' },
-  { label: 'Rapports soumis', icon: 'document', tone: 'green' },
-  { label: 'Demandes de soutenance', icon: 'calendar', tone: 'orange' },
-  { label: 'Enseignants', icon: 'users', tone: 'blue' },
-];
-
-function Panel({ title, subtitle, icon, children }: PropsWithChildren<{ title: string; subtitle?: string; icon: IconName }>) {
-  return (
-    <section className="panel" aria-label={title}>
-      <div className="panel-heading">
-        <span className="panel-icon"><Icon name={icon} /></span>
-        <div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>
-      </div>
-      {children}
-    </section>
-  );
+type Card = { key: string; label: string; value: string | number; caption: string; href: string | null; icon: IconName; tone: string };
+type Item = { id: string | number; title: string; detail: string; href: string | null; date: string | null; value: string | number | null };
+type PanelData = { key: string; title: string; description: string; items: Item[]; empty: string; href: string | null; kind: 'list' | 'distribution' };
+type DashboardData = {
+  space: string; spaces: { key: string; label: string }[]; title: string; description: string;
+  cards: Record<string, Card>; actions: Record<string, { key: string; label: string; href: string; icon: IconName }>;
+  panels: Record<string, PanelData>;
+  journey: { title: string; eligible: boolean; context_valid: boolean; description: string; criteria: { key: string; label: string; met: boolean }[]; href: string; label: string } | null;
+};
+const priorities: Record<string, string[]> = {
+  'platform-administrator': ['accounts', 'groups', 'levels', 'reports', 'defenses', 'meetings', 'messages'],
+  schooling: ['defenses_requested', 'grade_drafts', 'tuition', 'defenses', 'messages'],
+  communications: ['to_forward', 'reports', 'messages'],
+  'validation-committee': ['votes_due', 'meetings', 'reports', 'results_due', 'defenses', 'messages'],
+  teacher: ['defenses', 'professional_profile', 'results_due', 'messages'],
+  'level-manager': ['results_due', 'defenses', 'messages', 'professional_profile'],
+  'program-manager': ['jury_outcomes', 'results_due', 'defenses', 'professional_profile', 'messages'],
+  secretary: ['students', 'messages', 'levels', 'professional_profile'],
+  student: ['my_report', 'my_grades', 'defenses', 'student_record', 'enrollment', 'messages'],
+};
+function Panel({ panel: p }: { panel: PanelData }) {
+  const maximum = Math.max(1, ...p.items.map((i) => typeof i.value === 'number' ? i.value : 0));
+  return <section className="panel role-dashboard-panel" aria-labelledby={'panel-' + p.key}>
+    <div className="panel-heading"><span className="panel-icon"><Icon name={p.kind === 'distribution' ? 'chart' : 'document'} /></span><div><h2 id={'panel-' + p.key}>{p.title}</h2><p>{p.description}</p></div></div>
+    {p.items.length ? <ul className={'dashboard-items' + (p.kind === 'distribution' ? ' dashboard-distribution' : '')}>{p.items.map((item) => <li key={item.id}>
+      <div className="dashboard-item-heading">{item.href ? <Link className="table-action" href={item.href}>{item.title}</Link> : <strong>{item.title}</strong>}{item.value !== null && <span className="dashboard-item-value">{item.value}</span>}</div>
+      <p>{item.detail}</p>{item.date && <time dateTime={item.date}>{meetingDate(item.date)} · Abidjan</time>}
+      {p.kind === 'distribution' && typeof item.value === 'number' && <div className="dashboard-bar" aria-hidden="true"><span style={{ width: (item.value / maximum * 100) + '%' }} /></div>}
+    </li>)}</ul> : <div className="empty-state empty-state-compact"><span className="empty-icon"><Icon name="check" /></span><p>{p.empty}</p></div>}
+    {p.href && <Link href={p.href} className="table-action dashboard-panel-link">Tout consulter <span aria-hidden="true">→</span></Link>}
+  </section>;
 }
-
-function Unavailable({ children, compact = false }: PropsWithChildren<{ compact?: boolean }>) {
-  return (
-    <div className={'empty-state' + (compact ? ' empty-state-compact' : '')}>
-      <span className="empty-icon"><Icon name="clock" /></span>
-      <h3>Données indisponibles</h3>
-      <p>{children}</p>
-    </div>
-  );
-}
-
-export default function Dashboard({ studentCount, studentsByLevel, reportCount, pendingReportCount, latestReport, reportScope, upcomingMeetings, teacherCount, defenseCount, upcomingDefenses }: { defenseCount: number | null; upcomingDefenses: { id: number; title: string; starts_at: string; location: string }[] | null; teacherCount: number | null; upcomingMeetings: { id: number; title: string; starts_at: string }[] | null; reportScope: 'global' | 'commission' | null; studentCount: number | null; studentsByLevel: { name: string; total: number }[] | null; reportCount: number | null; pendingReportCount: number | null; latestReport: { title: string; status: ReportStatus; reference: string; href: string } | null }) {
+export default function Dashboard({ dashboard: d }: { dashboard: DashboardData }) {
   const { auth } = usePage<SharedData>().props;
-  return (
-    <AppLayout>
-      <Head title="Tableau de bord" />
-      <p className="breadcrumb">Accueil <span aria-hidden="true">/</span> <strong>Tableau de bord</strong></p>
-      <div className="page-intro">
-        <div><h1>Bienvenue, {auth.user?.name} !</h1><p>Retrouvez le suivi de votre activité académique.</p></div>
-        <span className="badge"><Icon name="check" /> Compte connecté</span>
-      </div>
-      <section className="stats-grid" aria-label="Indicateurs généraux">
-        {indicators.map(({ label, icon, tone }, index) => (
-          <article className={'stat-card stat-' + tone} key={label}>
-            <div className="stat-heading"><h2>{label}</h2><span className="stat-icon"><Icon name={icon} /></span></div>
-            <p className="stat-value" aria-label={(index === 0 && studentCount !== null) || (index === 1 && reportCount !== null) || (index === 2 && defenseCount !== null) || (index === 3 && teacherCount !== null) ? undefined : 'Valeur indisponible'}>{index === 0 && studentCount !== null ? studentCount : index === 1 && reportCount !== null ? reportCount : index === 2 && defenseCount !== null ? defenseCount : index === 3 && teacherCount !== null ? teacherCount : '—'}</p>
-            <p className="stat-caption">{index === 0 && studentCount !== null ? 'Dossiers non archivés' : index === 1 && reportCount !== null ? reportScope === 'commission' ? 'Versions transmises à ma commission' : 'Mémoires déposés, toutes les années' : index === 2 && defenseCount !== null ? 'Demandes accessibles à votre compte' : index === 3 && teacherCount !== null ? 'Fiches enseignants non archivées' : 'Données indisponibles'}</p>
-          </article>
-        ))}
-      </section>
-      <p className="availability-note">Les indicateurs disponibles correspondent aux dossiers enregistrés et à vos droits de consultation.</p>
-      <div className="charts-grid">
-        <Panel title="Évolution des étudiants" subtitle="Effectifs actuels par niveau d’étude" icon="chart">
-          {studentsByLevel === null ? <Unavailable>Les effectifs sont réservés aux personnes habilitées à consulter les dossiers étudiants.</Unavailable> : studentsByLevel.length ? <><ul className="level-counts">{studentsByLevel.map((level) => <li key={level.name}><span>{level.name}</span><strong>{level.total}</strong></li>)}</ul><p className="field-hint">Situation actuelle des dossiers non archivés.</p><Link href="/students" className="table-action">Consulter les étudiants</Link></> : <div className="empty-state"><h3>Aucun dossier étudiant</h3><p>Les effectifs apparaîtront dès l’enregistrement des premiers dossiers.</p><Link href="/students" className="table-action">Consulter les étudiants</Link></div>}
-        </Panel>
-        <Panel title="Répartition" subtitle="Types d’utilisateurs" icon="pie">
-          <Unavailable>La répartition des utilisateurs sera disponible avec la gestion des rôles.</Unavailable>
-        </Panel>
-      </div>
-      <div className="dashboard-section">
-        <Panel title="Suivi des demandes de soutenance" subtitle="Prochaines soutenances accessibles" icon="calendar">
-          {upcomingDefenses === null ? <Unavailable>Les soutenances sont réservées à la scolarité, au candidat et à son jury.</Unavailable> : upcomingDefenses.length ? <ul className="meeting-agenda">{upcomingDefenses.map((d) => <li key={d.id}><Link href={'/defenses/' + d.id}>{d.title}</Link><span>{meetingDate(d.starts_at)} · {d.location}</span></li>)}</ul> : <div className="empty-state empty-state-compact"><h3>Aucune soutenance à venir</h3><Link href="/defenses" className="table-action">Consulter les demandes</Link></div>}
-        </Panel>
-      </div>
-      <div className="details-grid">
-        <Panel title="Dernier rapport" icon="document">
-          <div className="empty-state empty-state-compact">{latestReport ? <><h3>{latestReport.title}</h3><p>{reportLabels[latestReport.status]}</p><Link href={latestReport.href} className="table-action">Consulter le mémoire</Link></> : <><h3>Aucun mémoire disponible</h3><p>Les dépôts accessibles à votre compte apparaîtront ici.</p></>}</div>
-        </Panel>
-        <Panel title="Rapports en attente" icon="clock">
-          {pendingReportCount !== null ? <div className="empty-state empty-state-compact"><h3>{pendingReportCount} mémoire(s) en attente</h3><p>{reportScope === 'commission' ? 'En cours d’examen par la commission' : 'À transmettre ou en cours d’examen'}</p><Link href="/reports" className="table-action">Consulter les dépôts</Link></div> : <Unavailable compact>Les rapports à examiner sont réservés aux personnes habilitées.</Unavailable>}
-        </Panel>
-        <Panel title="Prochaines réunions" icon="calendar">{upcomingMeetings === null ? <Unavailable compact>Les invitations sont réservées aux membres habilités de la commission.</Unavailable> : upcomingMeetings.length ? <ul className="meeting-agenda">{upcomingMeetings.map((m) => <li key={m.id}><Link href={'/meetings/' + m.id}>{m.title}</Link><span>{meetingDate(m.starts_at)} · Abidjan</span></li>)}</ul> : <div className="empty-state empty-state-compact"><h3>Aucune réunion à venir</h3><Link href="/meetings" className="table-action">Consulter le planning</Link></div>}</Panel>
-      </div>
-      <section id="mon-profil" className="panel profile-panel" aria-labelledby="profile-title" tabIndex={-1}>
-        <span className="profile-icon"><Icon name="user" /></span>
-        <div><h2 id="profile-title">Mon profil</h2><p className="profile-name">{auth.user?.name}</p><p className="profile-email">{auth.user?.email}</p></div>
-        <span className="profile-status"><Icon name="check" /> Compte connecté</span>
-      </section>
-    </AppLayout>
-  );
+  const order = priorities[d.space] ?? [];
+  const panels = Object.values(d.panels).sort((a, b) => {
+    const position = (key: string) => order.includes(key) ? order.indexOf(key) : order.length;
+    return position(a.key) - position(b.key);
+  });
+  return <AppLayout title={d.title} subtitle="Tableau de bord Check Master"><Head title={d.title} />
+    <p className="breadcrumb">Accueil <span aria-hidden="true">/</span> <strong>{d.title}</strong></p>
+    <div className="page-intro"><div><h1>Bienvenue, {auth.user?.name} !</h1><p>{d.description}</p></div><span className="badge"><Icon name="user" /> {d.title}</span></div>
+    {d.spaces.length > 1 && <nav className="dashboard-spaces" aria-label="Choisir votre espace"><p>Mes espaces</p><div>{d.spaces.map((space) => <Link key={space.key} href={'/dashboard?space=' + encodeURIComponent(space.key)} aria-current={d.space === space.key ? 'page' : undefined} className={d.space === space.key ? 'button-primary' : 'button-secondary'}>{space.label}</Link>)}</div></nav>}
+    {Object.keys(d.cards).length > 0 && <section className="stats-grid role-dashboard-stats" aria-label={'Indicateurs — ' + d.title}>{Object.values(d.cards).map((c) => <article className={'stat-card stat-' + c.tone} key={c.key}><div className="stat-heading"><h2>{c.label}</h2><span className="stat-icon"><Icon name={c.icon} /></span></div><p className={'stat-value' + (typeof c.value === 'string' ? ' dashboard-value-text' : '')}>{c.value}</p><p className="stat-caption">{c.caption}</p>{c.href && <Link href={c.href} className="table-action dashboard-card-link" aria-label={c.label + ' — consulter'}>Consulter <span aria-hidden="true">→</span></Link>}</article>)}</section>}
+    <section className="panel dashboard-shortcuts" aria-labelledby="dashboard-shortcuts-title"><div className="panel-heading"><span className="panel-icon"><Icon name="arrow" /></span><div><h2 id="dashboard-shortcuts-title">Accès rapides</h2><p>Les actions utiles à votre espace.</p></div></div><div>{Object.values(d.actions).map((a) => <Link className="button-secondary" key={a.key} href={a.href}><Icon name={a.icon} /> {a.label}</Link>)}</div></section>
+    {d.journey && <section className="panel dashboard-journey" aria-labelledby="journey-title"><div className="panel-heading"><span className="panel-icon"><Icon name="graduate" /></span><div><h2 id="journey-title">{d.journey.title}</h2><p>{d.journey.description}</p></div></div><ul>{d.journey.criteria.map((c) => <li key={c.key} className={c.met ? 'criterion-met' : ''}><Icon name={c.met ? 'check' : 'clock'} /><span>{c.label}<small>{c.met ? 'Critère rempli' : 'À compléter'}</small></span></li>)}</ul>{!d.journey.context_valid && <p className="notice notice-neutral">Votre inscription ou votre dossier doit être régularisé auprès de la scolarité avant le dépôt.</p>}<div className="form-actions"><span className={'status-tag ' + (d.journey.eligible ? 'status-active' : 'status-inactive')}>{d.journey.eligible ? 'Critères réunis' : 'Dépôt non disponible'}</span><Link className="button-primary" href={d.journey.href}>{d.journey.label}</Link></div></section>}
+    {panels.length ? <div className="role-dashboard-grid">{panels.map((p) => <Panel key={p.key} panel={p} />)}</div> : <section className="panel"><div className="empty-state"><h2>Votre espace est prêt</h2><p>Les services s’afficheront selon les droits accordés à votre compte. Contactez l’administration si un accès attendu manque.</p></div></section>}
+    <section id="mon-profil" className="panel profile-panel" aria-labelledby="profile-title" tabIndex={-1}><span className="profile-icon"><Icon name="user" /></span><div><h2 id="profile-title">Mon profil</h2><p className="profile-name">{auth.user?.name}</p><p className="profile-email">{auth.user?.email}</p></div><Link href="/profile" className="table-action">Consulter mon profil</Link></section>
+  </AppLayout>;
 }

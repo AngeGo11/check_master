@@ -480,9 +480,9 @@ class ReportDepositsTest extends TestCase
     {
         [$owner, , $r] = $this->deposited(); [, , $other] = $this->deposited();
         $this->correction($other);
-        $this->signIn($this->admin())->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('reportCount', 2)->where('pendingReportCount', 1)->where('latestReport.reference', $other->reference));
-        $this->signIn($owner)->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('reportCount', null)->where('pendingReportCount', null)->where('latestReport.reference', $r->reference)->where('latestReport.href', '/my-reports'));
-        $this->signIn($this->delegate(['students.view']))->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('reportCount', null)->where('pendingReportCount', null)->where('latestReport', null));
+        $this->signIn($this->admin())->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('dashboard.cards.reports.value', 2)->where('dashboard.cards.reports_pending.value', 1)->where('dashboard.panels.reports.items.0.id', $other->id));
+        $this->signIn($owner)->get('/dashboard')->assertInertia(fn (Assert $page) => $page->missing('dashboard.cards.reports')->missing('dashboard.cards.reports_pending')->where('dashboard.panels.my_report.items.0.id', $r->id)->where('dashboard.panels.my_report.items.0.href', '/my-reports'));
+        $this->signIn($this->delegate(['students.view']))->get('/dashboard')->assertInertia(fn (Assert $page) => $page->missing('dashboard.cards.reports')->missing('dashboard.cards.reports_pending')->missing('dashboard.panels.reports'));
     }
 
     public function test_submission_forwarding_and_voting_require_csrf_in_real_requests(): void
@@ -535,7 +535,7 @@ class ReportDepositsTest extends TestCase
         $this->get('/reports/'.$r->id.'/versions/'.$r->latestVersion->id.'/download')->assertNotFound();
         $this->forward($r);
         $this->get('/reports')->assertInertia(fn (Assert $page) => $page->has('reports.data', 1)->where('reports.data.0.id', $r->id)->where('statistics.total', 1));
-        $this->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('reportCount', 1)->where('pendingReportCount', 1)->where('reportScope', 'commission')->where('latestReport.reference', $r->reference));
+        $this->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('dashboard.cards.reports.value', 1)->where('dashboard.cards.reports_pending.value', 1)->where('dashboard.space', 'validation-committee')->where('dashboard.panels.reports.items.0.id', $r->id));
         $this->get('/reports/'.$r->id.'/versions/'.$r->latestVersion->id.'/download')->assertOk();
         $this->get('/reports/'.$notSent->id)->assertNotFound(); $this->get('/students')->assertForbidden();
     }

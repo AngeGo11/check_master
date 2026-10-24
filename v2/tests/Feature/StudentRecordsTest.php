@@ -305,9 +305,9 @@ class StudentRecordsTest extends TestCase
         $this->record();
         $this->record(['card_number' => 'OLD', 'email' => 'old@example.test', 'is_archived' => true]);
         $this->signIn($this->admin())->get('/dashboard')->assertInertia(fn (Assert $page) => $page
-            ->where('studentCount', 1)->has('studentsByLevel', 1)->where('studentsByLevel.0.name', 'Master 2')->where('studentsByLevel.0.total', 1));
+            ->where('dashboard.cards.students.value', 1)->has('dashboard.panels.levels.items', 1)->where('dashboard.panels.levels.items.0.title', 'Master 2')->where('dashboard.panels.levels.items.0.value', 1));
         $this->signIn($this->studentAccount())->get('/dashboard')->assertInertia(fn (Assert $page) => $page
-            ->where('studentCount', null)->where('studentsByLevel', null));
+            ->missing('dashboard.cards.students')->missing('dashboard.panels.levels'));
     }
 
     public function test_promotions_can_be_created_and_renamed_without_detaching_students(): void

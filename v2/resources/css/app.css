@@ -424,3 +424,38 @@ progress { display: block; width: 100%; accent-color: var(--primary-light); marg
   .academic-print .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
   .academic-print button, .academic-print .form-actions { display: none; }
 }
+
+
+/* Tableaux de bord métier : composants et palette historiques conservés. */
+.dashboard-spaces { margin-bottom: 24px; }
+.dashboard-spaces > p { font-size: 12px; font-weight: 600; color: var(--muted); }
+.dashboard-spaces > div, .dashboard-shortcuts > div:last-child { display: flex; flex-wrap: wrap; gap: 10px; }
+.dashboard-spaces .button-primary, .dashboard-spaces .button-secondary { min-height: 42px; padding: 10px 14px; font-size: 12px; }
+.role-dashboard-stats { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.dashboard-value-text { font-size: 22px; line-height: 1.4; overflow-wrap: anywhere; }
+.dashboard-card-link { display: inline-block; margin-top: 10px; }
+.dashboard-shortcuts, .dashboard-journey { margin-bottom: 24px; }
+.dashboard-shortcuts .button-secondary { display: inline-flex; gap: 9px; align-items: center; }
+.role-dashboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-bottom: 24px; }
+.role-dashboard-panel { min-width: 0; display: flex; flex-direction: column; }
+.dashboard-items { list-style: none; padding: 0; margin: 0 0 18px; }
+.dashboard-items li { border-top: 1px solid var(--border); padding: 16px 0; }
+.dashboard-items li:first-child { border-top: 0; padding-top: 0; }
+.dashboard-item-heading { display: flex; gap: 12px; align-items: start; justify-content: space-between; font-size: 13px; }
+.dashboard-item-heading a, .dashboard-item-heading strong { overflow-wrap: anywhere; min-width: 0; }
+.dashboard-item-value { font-weight: 600; color: var(--primary); flex-shrink: 0; }
+.dashboard-items p, .dashboard-items time { display: block; font-size: 11px; line-height: 1.7; color: var(--muted); margin: 6px 0 0; }
+.dashboard-panel-link { margin-top: auto; align-self: start; }
+.dashboard-bar { height: 7px; border-radius: 5px; background: #edf4fa; overflow: hidden; margin-top: 10px; }
+.dashboard-bar span { display: block; height: 100%; background: var(--primary-light); border-radius: inherit; }
+.dashboard-journey ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; list-style: none; padding: 0; margin: 0 0 20px; }
+.dashboard-journey li { display: flex; gap: 10px; align-items: center; padding: 15px; border: 1px solid var(--border); border-radius: 9px; color: var(--muted); font-size: 13px; }
+.dashboard-journey li.criterion-met { border-color: #bce3c6; color: #226839; background: #f2faf4; }
+.dashboard-journey small { display: block; margin-top: 4px; font-size: 11px; }
+@media (max-width: 900px) { .role-dashboard-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .role-dashboard-stats { grid-template-columns: 1fr; }
+  .dashboard-journey ul { grid-template-columns: 1fr; }
+  .dashboard-spaces > div, .dashboard-shortcuts > div:last-child { flex-direction: column; }
+  .dashboard-item-heading { flex-wrap: wrap; }
+}
