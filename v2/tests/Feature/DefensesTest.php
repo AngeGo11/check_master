@@ -183,9 +183,9 @@ class DefensesTest extends TestCase
     public function test_dashboard_counts_and_upcoming_agenda_respect_defense_visibility(): void
     {
         [$school, $owner, $d, $p] = $this->defense(true);
-        foreach ([$school, $owner, $p] as $u) { $this->signIn($u)->get('/dashboard')->assertInertia(fn (Assert $v) => $v->where('defenseCount', 1)->has('upcomingDefenses', 1)->where('upcomingDefenses.0.id', $d->id)); }
-        $this->signIn($this->person(5))->get('/dashboard')->assertInertia(fn (Assert $v) => $v->where('defenseCount', 0)->has('upcomingDefenses', 0));
-        $this->signIn($this->person(2))->get('/dashboard')->assertInertia(fn (Assert $v) => $v->where('defenseCount', null)->where('upcomingDefenses', null));
+        foreach ([$school, $owner, $p] as $u) { $this->signIn($u)->get('/dashboard')->assertInertia(fn (Assert $v) => $v->has('dashboard.panels.defenses.items', 1)->where('dashboard.panels.defenses.items.0.id', $d->id)); }
+        $this->signIn($this->person(5))->get('/dashboard')->assertInertia(fn (Assert $v) => $v->where('dashboard.cards.jury_upcoming.value', 0)->has('dashboard.panels.defenses.items', 0));
+        $this->signIn($this->person(2))->get('/dashboard')->assertInertia(fn (Assert $v) => $v->missing('dashboard.panels.defenses')->missing('dashboard.cards.jury_upcoming'));
         $this->signIn($school)->get('/defenses?status=requested')->assertInertia(fn (Assert $v) => $v->where('defenses.total', 0)->where('statistics.scheduled', 1));
         $this->get('/defenses?search='.$d->reference)->assertInertia(fn (Assert $v) => $v->where('defenses.total', 1));
     }

@@ -83,3 +83,8 @@ La consultation personnelle utilise « Ma fiche professionnelle ». Les actions 
 ## Soutenances et notes
 
 Les écrans d’évaluations et de soutenances reprennent la structure historique : quatre cartes, filtres, tableaux et formulaires dans la navigation existante. Poppins, logos et palette restent identiques. Les améliorations ajoutent les états explicites (brouillon, publié, correction, jury), des moyennes justifiables et des versions conservées. Aucun résultat fictif n’est affiché dans le tableau de bord. Les bulletins et convocations disposent d’une feuille de style d’impression sans menus ni actions de gestion.
+
+
+## Tableaux de bord par groupe
+
+Le tableau de bord conserve la structure Check Master : titre d’accueil, cartes d’indicateurs, panneaux et profil. Les neuf vues adaptent les données, les accès rapides et l’ordre des tâches au métier du groupe. Les blocs non autorisés sont absents. Les effectifs et répartitions réels sont présentés en barres lisibles ; aucun graphique temporel n’est inventé. Un sélecteur d’espaces permet aux comptes multigroupes de garder des vues distinctes. Les critères de dépôt de l’étudiant restent visibles et les listes ouvrent les écrans métier déjà livrés.

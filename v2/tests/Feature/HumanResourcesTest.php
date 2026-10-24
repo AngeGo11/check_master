@@ -301,8 +301,8 @@ class HumanResourcesTest extends TestCase
         $this->signIn($admin)->get('/staff?search=Recherche&specialty_id='.$s->id)->assertInertia(fn (Assert $v) => $v->where('profiles.total', 21)->has('profiles.data', 20)->where('statistics.total', 21));
         $this->get('/staff?page=2')->assertInertia(fn (Assert $v) => $v->has('profiles.data', 1));
         $this->get('/staff?account=linked')->assertInertia(fn (Assert $v) => $v->where('profiles.total', 0));
-        $this->get('/dashboard')->assertInertia(fn (Assert $v) => $v->where('teacherCount', 21));
-        $this->signIn($this->person(9))->get('/dashboard')->assertInertia(fn (Assert $v) => $v->where('teacherCount', null));
+        $this->get('/dashboard')->assertInertia(fn (Assert $v) => $v->where('dashboard.cards.teachers.value', 21));
+        $this->signIn($this->person(9))->get('/dashboard')->assertInertia(fn (Assert $v) => $v->missing('dashboard.cards.teachers'));
     }
     public function test_staff_planning_only_contains_meetings_the_viewer_can_already_read(): void
     {

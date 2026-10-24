@@ -49,7 +49,7 @@ class MeetingsTest extends TestCase
         $this->assertSame('2026-10-23 10:00:00', $m->starts_at->format('Y-m-d H:i:s')); $this->assertSame('2026-10-23 11:00:00', $m->ends_at->format('Y-m-d H:i:s'));
         $notice = InternalMessage::firstOrFail(); $this->assertSame('meeting_invitation', $notice->kind);
         $this->signIn($guest)->get('/messages/'.$notice->id)->assertInertia(fn (Assert $p) => $p->where('message.meeting_link', '/meetings/'.$m->id)->where('message.can_reply', false));
-        $this->get('/dashboard')->assertInertia(fn (Assert $p) => $p->has('upcomingMeetings', 1)->where('unreadMessageCount', 1)); Mail::assertNothingSent();
+        $this->get('/dashboard')->assertInertia(fn (Assert $p) => $p->has('dashboard.panels.meetings.items', 1)->where('unreadMessageCount', 1)); Mail::assertNothingSent();
     }
     public function test_creation_retries_are_idempotent_and_reused_keys_cannot_create_different_meetings(): void
     {
@@ -277,7 +277,7 @@ class MeetingsTest extends TestCase
         $this->signIn($guest)->get('/meetings?month=2026-10&status=scheduled')->assertInertia(fn (Assert $p) => $p->where('meetings.total', 1)->where('statistics.scheduled', 1)->has('calendar', 1));
         $this->get('/meetings?month=2026-11')->assertInertia(fn (Assert $p) => $p->where('meetings.total', 1));
         $this->get('/meetings?search=Invisible')->assertInertia(fn (Assert $p) => $p->where('meetings.total', 0));
-        $this->get('/dashboard')->assertInertia(fn (Assert $p) => $p->has('upcomingMeetings', 2)); $this->assertDatabaseCount('collaboration_audits', $before);
+        $this->get('/dashboard')->assertInertia(fn (Assert $p) => $p->has('dashboard.panels.meetings.items', 2)); $this->assertDatabaseCount('collaboration_audits', $before);
     }
     public function test_meeting_payloads_exclude_private_storage_keys_and_other_response_revisions(): void
     {
