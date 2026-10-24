@@ -1,0 +1,5 @@
+export const claimStatuses: Record<string, string> = { submitted: 'En attente', in_review: 'En cours à la scolarité', escalated: 'Transmise à la filière', resolved: 'Traitée', withdrawn: 'Retirée par l’étudiant' };
+export const claimActions: Record<string, string> = { submitted: 'Dépôt', review: 'Prendre en charge', comment: 'Ajouter un complément', escalate: 'Transmettre à la filière', resolve: 'Enregistrer la réponse finale', reopen: 'Rouvrir à la scolarité', withdraw: 'Retirer ma demande' };
+export const claimEvents: Record<string, string> = { submitted: 'Réclamation déposée', review: 'Prise en charge', comment: 'Complément ajouté', escalate: 'Transmission à la filière', resolve: 'Réponse finale enregistrée', reopen: 'Réclamation rouverte', withdraw: 'Demande retirée' };
+export type ClaimSummary = { id: number; reference: string; subject: string; status: string; created_at: string; updated_at: string; student: string; card_number: string; year: string; level: string; assignee: string | null };
+export type ClaimSubject = { key: string; label: string };

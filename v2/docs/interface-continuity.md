@@ -88,3 +88,8 @@ Les écrans d’évaluations et de soutenances reprennent la structure historiqu
 ## Tableaux de bord par groupe
 
 Le tableau de bord conserve la structure Check Master : titre d’accueil, cartes d’indicateurs, panneaux et profil. Les neuf vues adaptent les données, les accès rapides et l’ordre des tâches au métier du groupe. Les blocs non autorisés sont absents. Les effectifs et répartitions réels sont présentés en barres lisibles ; aucun graphique temporel n’est inventé. Un sélecteur d’espaces permet aux comptes multigroupes de garder des vues distinctes. Les critères de dépôt de l’étudiant restent visibles et les listes ouvrent les écrans métier déjà livrés.
+
+
+## Réclamations étudiantes
+
+Les vues historiques de dépôt et de traitement sont reprises dans la même navigation : Mes réclamations pour l’étudiant, Réclamations étudiantes pour la scolarité, l’administration et la filière. Les cartes, filtres et tableaux utilisent les composants existants. L’historique présente les réponses successives, avec des états explicites distinguant transmission et traitement final. Les matières proviennent de la publication choisie quand la demande porte sur un bulletin ; un sujet libre reste disponible pour les autres demandes. Les tableaux de bord des quatre groupes concernés ouvrent ces listes avec leur périmètre propre. Voir le [guide de recette](student-claims.md).

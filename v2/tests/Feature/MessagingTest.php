@@ -19,7 +19,7 @@ class MessagingTest extends TestCase
 
     public function test_migration_grants_roles_but_imports_no_private_messages_or_accounts(): void
     {
-        $this->assertDatabaseCount('permissions', 38); $this->assertDatabaseCount('group_permission', 74);
+        $this->assertDatabaseCount('permissions', 42); $this->assertDatabaseCount('group_permission', 79);
         foreach (['internal_messages', 'message_recipients', 'meetings', 'users'] as $table) { $this->assertDatabaseCount($table, 0); }
         $this->assertSame(range(1, 9), DB::table('group_permission')->where('permission_code', 'messages.use')->orderBy('user_group_id')->pluck('user_group_id')->all());
         $this->assertSame([2, 8, 9], DB::table('group_permission')->where('permission_code', 'messages.broadcast')->orderBy('user_group_id')->pluck('user_group_id')->all());

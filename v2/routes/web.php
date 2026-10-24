@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ClaimController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Settings\UserController;
 use App\Http\Controllers\Settings\GroupController;
@@ -26,6 +27,15 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('/my-claims', [ClaimController::class, 'own'])->middleware('can:claims.self')->name('claims.own');
+    Route::get('/my-claims/create', [ClaimController::class, 'create'])->middleware('can:claims.self')->name('claims.create');
+    Route::post('/my-claims', [ClaimController::class, 'store'])->middleware(['can:claims.self', 'throttle:10,1'])->name('claims.store');
+    Route::get('/my-claims/{claim}', [ClaimController::class, 'ownShow'])->whereNumber('claim')->middleware('can:claims.self')->name('claims.own.show');
+    Route::get('/claims', [ClaimController::class, 'index'])->name('claims.index');
+    Route::get('/claims/{claim}', [ClaimController::class, 'show'])->whereNumber('claim')->name('claims.show');
+    Route::post('/claims/{claim}/actions', [ClaimController::class, 'act'])->whereNumber('claim')->middleware('throttle:20,1')->name('claims.act');
+    Route::get('/claims/{claim}/document', [ClaimController::class, 'document'])->whereNumber('claim')->name('claims.document');
+
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/grades/programs', [\App\Http\Controllers\ProgramController::class, 'index'])->middleware('can:grades.view')->name('programs.index');
     Route::post('/grades/programs', [\App\Http\Controllers\ProgramController::class, 'store'])->middleware('can:grades.catalogs.manage')->name('programs.store');
