@@ -123,7 +123,8 @@ class RoleDashboardTest extends TestCase
 
     public function test_communications_prioritizes_submitted_reports_and_cannot_approve_from_dashboard(): void
     {
-        $this->person(9); [$r] = $this->transmittedReport(); $r->forceFill(['status' => 'submitted'])->save();
+        $this->person(9); [$r] = $this->transmittedReport(); $r = $r->fresh(); $r->forceFill(['status' => 'submitted'])->save();
+        $this->assertDatabaseHas('student_reports', ['id' => $r->id, 'status' => 'submitted']);
         $u = $this->person(2); $this->signIn($u)->get('/dashboard')->assertInertia(fn (Assert $p) => $p->where('dashboard.cards.to_forward.value', 1)->where('dashboard.panels.to_forward.items.0.id', $r->id)->where('dashboard.actions.reports.label', 'Transmettre les mémoires')->missing('dashboard.cards.votes_due')->missing('dashboard.cards.grade_drafts'));
         UserGroup::findOrFail(2)->permissions()->detach('reports.forward');
         $this->signIn($u)->get('/dashboard')->assertInertia(fn (Assert $p) => $p->where('dashboard.actions.reports.label', 'Consulter les mémoires'));
