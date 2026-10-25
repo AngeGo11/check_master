@@ -27,6 +27,11 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::middleware('can:audit.view')->group(function () {
+        Route::get('/audit', [\App\Http\Controllers\AuditController::class, 'index'])->name('audit.index');
+        Route::get('/audit/export', [\App\Http\Controllers\AuditController::class, 'export'])->middleware(['can:audit.export', 'throttle:6,1'])->name('audit.export');
+        Route::get('/audit/{source}/{id}', [\App\Http\Controllers\AuditController::class, 'show'])->whereNumber('id')->name('audit.show');
+    });
     Route::get('/my-claims', [ClaimController::class, 'own'])->middleware('can:claims.self')->name('claims.own');
     Route::get('/my-claims/create', [ClaimController::class, 'create'])->middleware('can:claims.self')->name('claims.create');
     Route::post('/my-claims', [ClaimController::class, 'store'])->middleware(['can:claims.self', 'throttle:10,1'])->name('claims.store');
@@ -81,7 +86,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/password/change', [ProfileController::class, 'password'])->name('password.edit');
     Route::patch('/password', [ProfileController::class, 'updatePassword'])->middleware('throttle:10,1')->name('password.update');
     Route::get('/settings', function (Request $request) {
-        abort_unless($request->user()->can('users.view') || $request->user()->can('groups.view') || $request->user()->can('academic.view') || $request->user()->can('schooling.view'), 403);
+        abort_unless($request->user()->can('users.view') || $request->user()->can('groups.view') || $request->user()->can('academic.view') || $request->user()->can('schooling.view') || $request->user()->can('audit.view'), 403);
 
         return Inertia::render('settings/index');
     })->name('settings');

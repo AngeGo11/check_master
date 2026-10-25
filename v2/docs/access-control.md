@@ -98,3 +98,6 @@ Les droits sur les mémoires, soutenances, validations, réunions et autres trai
 Pas d’import des anciens utilisateurs ou de leurs empreintes SHA-256. La migration des comptes historiques devra produire un état de rapprochement des identités et un parcours de réinitialisation ; les mots de passe historiques ne doivent pas être réutilisés tels quels.
 
 La création/suppression de groupes, les affectations en masse, les fonctions/grades/spécialités des enseignants, l’envoi de liens de réinitialisation et l’écran de consultation de la piste d’audit restent à reprendre. Le tableau de bord métier et les écrans propres à chaque rôle seront adaptés avec leurs services et données.
+
+
+La consultation centralisée des actions est désormais disponible dans la [piste d’audit](audit-trail.md), réservée au groupe Administrateur plateforme. Les limites ci-dessus décrivent le périmètre du lot initial.

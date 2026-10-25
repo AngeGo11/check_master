@@ -97,3 +97,6 @@ Scénario avec des données fictives :
 ## Suite du parcours
 
 Le [lot 5](reports.md) utilise cet examen d’éligibilité pour le dépôt privé des mémoires PDF, leurs versions et leur approbation administrative. Son guide fournit la branche de mise à jour et le scénario de test suivant.
+
+
+La consultation centralisée des actions est désormais disponible dans la [piste d’audit](audit-trail.md), réservée au groupe Administrateur plateforme. Les limites ci-dessus décrivent le périmètre du lot initial.

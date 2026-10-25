@@ -82,3 +82,6 @@ Les tests applicatifs utilisent SQLite en mémoire. Le workflow démarre égalem
 À la fin du lot 3, les années, inscriptions, frais, règlements et critères d’éligibilité restaient à reprendre ; ils sont maintenant décrits dans le [lot 4](enrollments.md). Restent à reprendre : import des étudiants historiques, photo, export ou opérations en masse, matières à rattraper, notes et décisions de commission. Le dépôt de mémoire est désormais décrit dans le [lot 5](reports.md). Le statut « À cheval » est une information de dossier ; il ne déclenche aucun calcul de frais ni inscription à une matière. Le journal est stocké mais son écran de consultation reste à reprendre avec la piste d’audit.
 
 Le lot 4 complète cette dépendance avec les inscriptions et leurs règles avant la reprise du dépôt de mémoire.
+
+
+La consultation centralisée des actions est désormais disponible dans la [piste d’audit](audit-trail.md), réservée au groupe Administrateur plateforme. Les limites ci-dessus décrivent le périmètre du lot initial.
