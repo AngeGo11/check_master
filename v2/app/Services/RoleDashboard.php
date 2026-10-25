@@ -92,6 +92,7 @@ class RoleDashboard
 
     private function administrator(): void
     {
+        if ($this->can('audit.view')) { $this->action('audit', 'Consulter la piste d’audit', '/audit', 'clock'); }
         if ($this->can('users.view')) {
             $this->card('users', 'Comptes actifs', User::where('is_active', true)->count(), 'Tous les groupes', '/settings/users', 'users');
             $groups = DB::table('group_user as m')->join('user_groups as g', 'g.id', '=', 'm.user_group_id')

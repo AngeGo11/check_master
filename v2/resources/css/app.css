@@ -473,3 +473,16 @@ progress { display: block; width: 100%; accent-color: var(--primary-light); marg
 .claim-event-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem 1rem; }
 .claim-event-heading h3 { font-size: 1rem; color: #1a5276; margin: 0; }
 .claim-event-heading time { font-size: .85rem; color: #526579; }
+
+/* Audit: existing cards, filters and tables, with readable details on narrow screens. */
+.audit-filters { flex-wrap: wrap; }
+.audit-filters label { min-width: 10rem; }
+.audit-filters .audit-checkbox { display: flex; align-items: center; gap: .6rem; }
+.audit-checkbox input { width: auto; }
+.audit-last-date { font-size: 1.15rem; font-weight: 600; color: #1a5276; }
+.audit-code { overflow-wrap: anywhere; }
+.audit-details { margin: 0; }
+.audit-details > div { display: grid; grid-template-columns: minmax(10rem, 1fr) 3fr; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid #e6edf3; }
+.audit-details dt { font-weight: 600; }
+.audit-details dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 600px) { .audit-details > div { grid-template-columns: 1fr; gap: .4rem; } }

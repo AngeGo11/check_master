@@ -69,6 +69,8 @@ class User extends Authenticatable
             })
             ->where('membership.user_id', $this->id)
             ->whereIn('grant.permission_code', Permission::CODES)
+            ->where(fn ($q) => $q->whereNotIn('grant.permission_code', ['audit.view', 'audit.export'])
+                ->orWhere('grant.user_group_id', DB::table('user_groups')->select('id')->where('code', UserGroup::ADMINISTRATOR)))
             ->distinct()->pluck('grant.permission_code')->all();
     }
 

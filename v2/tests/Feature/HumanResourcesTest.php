@@ -36,7 +36,7 @@ class HumanResourcesTest extends TestCase
     private function photoData(StaffProfile $p, array $overrides = []): array { return [...['revision' => $p->fresh()->revision, 'operation_key' => (string) Str::uuid()], ...$overrides]; }
     public function test_migration_preserves_reference_catalogs_without_importing_people_or_passwords(): void
     {
-        $this->assertDatabaseCount('permissions', 42); $this->assertDatabaseCount('group_permission', 79); $this->assertDatabaseCount('staff_references', 16);
+        $this->assertDatabaseCount('permissions', 44); $this->assertDatabaseCount('group_permission', 81); $this->assertDatabaseCount('staff_references', 16);
         foreach (['staff_profiles', 'staff_assignments', 'staff_photos', 'users'] as $table) { $this->assertDatabaseCount($table, 0); }
         $this->assertSame("Professeur d'université", $this->reference('grade')->name); $this->assertSame('Enseignant vacataire', $this->reference('function', 4)->name); $this->assertSame('Big Data', $this->reference('specialty', 8)->name);
         $this->assertSame([8], DB::table('group_permission')->where('permission_code', 'hr.manage')->pluck('user_group_id')->all());
