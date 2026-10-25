@@ -26,7 +26,7 @@ Ces droits sont réservés à ce groupe. Une attribution incorrecte à un autre 
 
 Il s’agit des opérations métier conservées par les modules v2. Les connexions, tentatives refusées et anciennes entrées de l’application historique ne sont pas comptabilisées. Les consultations et exports du journal ne créent pas d’événement supplémentaire. Ce lot n’importe aucune donnée personnelle du SQL historique.
 
-Les événements ne sont ni copiés ni fusionnés en une nouvelle table : une lecture commune préserve les huit historiques. La migration ajoute les deux permissions et des index date/identifiant et auteur/date. Aucun événement n’est modifié ou supprimé par les routes d’audit. Le retour arrière de cette migration retire seulement les droits et index ajoutés ; les historiques restent en place. Ce journal n’est pas une archive cryptographique et reste administrable au niveau de la base de données.
+Les événements ne sont ni copiés ni fusionnés en une nouvelle table : une lecture commune préserve les huit historiques. La migration ajoute les deux permissions et des index date/identifiant et auteur/date. Aucun événement n’est modifié ou supprimé par les routes d’audit. Le retour arrière de cette migration retire les droits et index composés ajoutés, en préservant les index nécessaires aux clés étrangères ; les historiques restent en place. Deux cycles de retour arrière/réapplication sont vérifiés sur le MySQL jetable de la CI, sans exécuter ce contrôle destructif de schéma sur le Mac. Ce journal n’est pas une archive cryptographique et reste administrable au niveau de la base de données.
 
 ## Recherche et détail
 

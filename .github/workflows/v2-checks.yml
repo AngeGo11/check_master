@@ -26,6 +26,18 @@ jobs:
           persist-credentials: false
       - name: Build and start the same Docker environment as on macOS
         run: bash v2/scripts/setup.sh
+      - name: Check audit migration reversal on the disposable CI MySQL database
+        working-directory: v2
+        run: |
+          docker compose exec -T app php <<'PHP'
+          <?php
+          require 'vendor/autoload.php';
+          $app = require 'bootstrap/app.php';
+          $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+          $migration = require 'database/migrations/2026_10_25_000000_add_audit_trail_access.php';
+          for ($i = 0; $i < 2; $i++) { $migration->down(); $migration->up(); }
+          echo "Audit migration: two MySQL round trips completed.\n";
+          PHP
       - name: Check access, schooling, reports, meetings, messaging, HR, grades, defenses, role dashboards, student claims, audit trail and HTTP availability
         run: bash v2/scripts/check.sh
       - name: Preserve the exact dependency versions that passed

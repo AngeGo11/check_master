@@ -233,4 +233,19 @@ class AuditTrailTest extends TestCase
         $this->signIn($this->person(8)); for ($i = 0; $i < 6; $i++) { $this->get('/audit/export')->assertOk(); }
         $this->get('/audit/export')->assertStatus(429);
     }
+
+    public function test_migration_round_trips_preserve_existing_history_and_reinstate_permissions(): void
+    {
+        $u = $this->person(8); $id = $this->event(actor: $u); $before = DB::table('access_audits')->find($id);
+        $migration = require database_path('migrations/2026_10_25_000000_add_audit_trail_access.php');
+        for ($i = 0; $i < 2; $i++) {
+            $migration->down();
+            $this->assertDatabaseMissing('permissions', ['code' => 'audit.view']);
+            $this->assertEquals($before, DB::table('access_audits')->find($id));
+            $migration->up();
+            $this->assertDatabaseHas('group_permission', ['user_group_id' => 8, 'permission_code' => 'audit.export']);
+            $this->assertDatabaseCount('permissions', 44); $this->assertDatabaseCount('group_permission', 81);
+        }
+        $this->signIn($u)->get('/audit')->assertInertia(fn (Assert $p) => $p->where('events.total', 1));
+    }
 }
