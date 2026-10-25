@@ -184,7 +184,8 @@ class AuditTrailTest extends TestCase
     {
         [$school, , $sheet] = $this->sheet(); app(ManageGrades::class)->save($school, $sheet, ['revision' => 1, 'marks' => $this->marks($sheet, '17.25')]);
         $id = DB::table('academic_audits')->where('action', 'grades.saved')->value('id');
-        $this->assertStringContainsString('17.25', DB::table('academic_audits')->where('id', $id)->value('metadata'));
+        $metadata = json_decode(DB::table('academic_audits')->where('id', $id)->value('metadata'), true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame(1725, $metadata['after']['ecue:A1']); // Marks are stored in hundredths.
         $this->signIn($this->person(8))->get('/audit/academic/'.$id)->assertInertia(fn (Assert $p) => $p->has('event.details', 1)->where('event.details.0.label', 'Feuille de notes')->missing('event.before')->missing('event.after')->missing('event.marks'));
     }
 
