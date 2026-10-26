@@ -49,7 +49,7 @@ class AuditTrailTest extends TestCase
             foreach (['/audit', '/audit/access/'.$id, '/audit/export'] as $url) { $this->get($url)->assertForbidden(); }
         }
         $this->signIn($this->person(8))->get('/audit')->assertOk(); $this->get('/audit/access/'.$id)->assertOk(); $this->csv();
-        $this->assertDatabaseCount('permissions', 44); $this->assertDatabaseCount('group_permission', 81);
+        $this->assertDatabaseCount('permissions', 48); $this->assertDatabaseCount('group_permission', 86);
     }
 
     public function test_group_and_type_compatibility_cannot_be_bypassed_by_bad_direct_grants(): void
@@ -244,7 +244,7 @@ class AuditTrailTest extends TestCase
             $this->assertEquals($before, DB::table('access_audits')->find($id));
             $migration->up();
             $this->assertDatabaseHas('group_permission', ['user_group_id' => 8, 'permission_code' => 'audit.export']);
-            $this->assertDatabaseCount('permissions', 44); $this->assertDatabaseCount('group_permission', 81);
+            $this->assertDatabaseCount('permissions', 48); $this->assertDatabaseCount('group_permission', 86);
         }
         $this->signIn($u)->get('/audit')->assertInertia(fn (Assert $p) => $p->where('events.total', 1));
     }

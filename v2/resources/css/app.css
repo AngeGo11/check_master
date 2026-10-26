@@ -486,3 +486,7 @@ progress { display: block; width: 100%; accent-color: var(--primary-light); marg
 .audit-details dt { font-weight: 600; }
 .audit-details dd { margin: 0; overflow-wrap: anywhere; }
 @media (max-width: 600px) { .audit-details > div { grid-template-columns: 1fr; gap: .4rem; } }
+
+.progression-checkbox { display: flex !important; align-items: start; gap: .6rem; }
+.progression-checkbox input { width: auto; flex-shrink: 0; margin-top: .3rem; }
+.progression-stat { font-size: clamp(1.1rem, 2vw, 1.8rem); overflow-wrap: anywhere; }

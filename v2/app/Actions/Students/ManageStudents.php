@@ -25,6 +25,10 @@ class ManageStudents
                     throw ValidationException::withMessages([$field => 'Cette valeur appartient déjà à un dossier étudiant, éventuellement archivé.']);
                 }
             }
+            if ($target && ((int) $student->study_level_id !== (int) $data['study_level_id'] || (int) $student->student_status_id !== (int) $data['student_status_id'])
+                && \App\Models\AnnualDecision::whereHas('enrollment', fn ($q) => $q->where('student_id', $student->id))->exists()) {
+                throw ValidationException::withMessages(['study_level_id' => 'Le niveau et le statut sont désormais suivis par les décisions annuelles et les réinscriptions.']);
+            }
             $student->forceFill(Arr::only($data, Student::FIELDS));
             $changed = array_keys($student->getDirty());
             if ($target) { $student->revision++; }

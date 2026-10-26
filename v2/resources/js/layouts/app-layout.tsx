@@ -7,7 +7,7 @@ import type { SharedData } from '../types';
 export default function AppLayout({ children, title = 'Tableau de bord', subtitle = 'Gestion de commission de validation' }: PropsWithChildren<{ title?: string; subtitle?: string }>) {
   const { auth, flash, unreadMessageCount } = usePage<SharedData>().props;
   const path = usePage().url.split('?')[0];
-  const settingsAllowed = auth.permissions.includes('users.view') || auth.permissions.includes('groups.view') || auth.permissions.includes('academic.view') || auth.permissions.includes('schooling.view') || auth.permissions.includes('audit.view');
+  const settingsAllowed = auth.permissions.includes('users.view') || auth.permissions.includes('groups.view') || auth.permissions.includes('academic.view') || auth.permissions.includes('schooling.view') || auth.permissions.includes('audit.view') || auth.permissions.includes('progression.fees');
   const ownStudentRecord = auth.permissions.includes('students.self') && auth.user?.types.some((type) => type.id === 1);
   const needsPassword = auth.user?.must_change_password;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -54,6 +54,8 @@ export default function AppLayout({ children, title = 'Tableau de bord', subtitl
           {!needsPassword && <><Link href="/dashboard" className={'nav-item' + (path === '/dashboard' ? ' nav-active' : '')} aria-current={path === '/dashboard' ? 'page' : undefined} onClick={() => setMenuOpen(false)}>
             <Icon name="dashboard" /> Tableau de bord
           </Link>
+          {auth.permissions.includes('progression.view') && <Link className={'nav-item' + (path.startsWith('/progression') ? ' nav-active' : '')} href="/progression" onClick={() => setMenuOpen(false)}><Icon name="graduate" /> Parcours annuels</Link>}
+          {auth.permissions.includes('progression.self') && auth.permissions.includes('grades.self') && <Link className={'nav-item' + (path.startsWith('/my-progression') ? ' nav-active' : '')} href="/my-progression" onClick={() => setMenuOpen(false)}><Icon name="graduate" /> Mon parcours annuel</Link>}
           {auth.permissions.includes('grades.view') && <Link href="/grades" className={'nav-item' + (path.startsWith('/grades') ? ' nav-active' : '')} onClick={() => setMenuOpen(false)}><Icon name="document" /> Évaluations des étudiants</Link>}
           {auth.permissions.includes('grades.self') && <Link href="/my-grades" className={'nav-item' + (path.startsWith('/my-grades') ? ' nav-active' : '')} onClick={() => setMenuOpen(false)}><Icon name="document" /> Mes notes et bulletins</Link>}
           {auth.permissions.some((p) => ['defenses.view', 'defenses.self', 'defenses.assigned'].includes(p)) && <Link href="/defenses" className={'nav-item' + (path.startsWith('/defenses') ? ' nav-active' : '')} onClick={() => setMenuOpen(false)}><Icon name="graduate" /> Soutenances</Link>}

@@ -94,3 +94,6 @@ Recette avec des comptes fictifs, actifs et explicitement rattachés :
 7. **Régression** : vérifier qu’un étudiant éligible sans bulletin peut toujours déposer son mémoire immédiatement ; consulter réunions, messagerie et fiches RH.
 
 Les tests automatisés utilisent des données fictives et des fichiers privés simulés. La CI Docker vérifie compilation TypeScript/Vite, suite PHP, migrations MySQL et page HTTP. La recette visuelle réelle dans Docker Desktop sur Mac reste à effectuer par l’utilisateur ; aucune connexion au Mac n’est disponible depuis cette session.
+
+
+Le [parcours annuel et À cheval](annual-progression.md) complète désormais ce lot avec les décisions explicites du jury, les réinscriptions et les matières à reprendre.
