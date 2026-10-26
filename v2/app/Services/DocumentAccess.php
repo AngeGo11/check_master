@@ -6,7 +6,7 @@ class DocumentAccess
 {
     public function personal(User $u): bool { return $u->can('documents.self') && $u->can('reports.self') && $u->belongsToCompatibleGroup('student'); }
     public function writer(User $u): bool { return $u->can('documents.minutes') && app(ReportAccess::class)->canReadAssigned($u); }
-    public function reader(User $u): bool { return $u->can('documents.view') && $u->can('reports.view') && collect(['communications', 'schooling', 'platform-administrator'])->contains(fn ($g) => $u->belongsToCompatibleGroup($g)); }
+    public function reader(User $u): bool { return $u->can('documents.view') && collect(['communications', 'schooling', 'platform-administrator'])->contains(fn ($g) => $u->belongsToCompatibleGroup($g)); }
     public function archive(User $u): bool { return $u->can('documents.archive'); }
     public function enter(User $u): bool { return $this->personal($u) || $this->writer($u) || $this->reader($u); }
     public function reportVersions(User $u): Builder
@@ -25,7 +25,12 @@ class DocumentAccess
             if ($this->personal($u)) {
                 $q->orWhereHas('document', fn ($q) => $q->where('kind', 'personal')->where('owner_user_id', $u->id)->whereHas('student', fn ($q) => $q->where('user_id', $u->id)));
             }
-            if ($this->writer($u) || $this->reader($u)) {
+            // Publication explicitly shares the minutes with authorized services. It does not
+            // grant access to the source PDFs or to the author's unpublished working versions.
+            if ($this->reader($u)) {
+                $q->orWhere(fn ($q) => $q->whereHas('document', fn ($q) => $q->where('kind', 'minutes'))->whereHas('entries')->whereNotNull('published_at'));
+            }
+            if ($this->writer($u)) {
                 $q->orWhere(function ($q) use ($u) {
                     $q->whereHas('document', fn ($q) => $q->where('kind', 'minutes'))->whereHas('entries')
                         ->whereDoesntHave('entries', fn ($q) => $q->whereNotIn('report_version_id', $this->reportVersions($u)->select('id')))

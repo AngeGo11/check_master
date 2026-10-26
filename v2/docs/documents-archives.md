@@ -17,12 +17,12 @@ Branche : `refactor/v2-documents`, issue du parcours annuel. Ce lot prolonge les
 | --- | --- |
 | Étudiant (1) | Documents personnels, dépôt si éligible, extraits publiés de son rapport, archives personnelles |
 | Chargé de communication (2) | Comptes rendus publiés, rapports accessibles, archives personnelles |
-| Scolarité (3) | Comptes rendus publiés, rapports accessibles, archives personnelles |
+| Scolarité (3) | Comptes rendus publiés et archives personnelles ; la consultation des rapports déposés conserve ses droits distincts |
 | Responsable filière (4), enseignant (5), directeur (6), personnel administratif (7) | Archives personnelles ; seules les sources déjà autorisées peuvent y être ajoutées |
 | Administrateur (8) | Comptes rendus publiés, rapports accessibles, audit des opérations ; aucun accès aux brouillons privés des étudiants |
 | Commission (9) | Rédaction/publication de ses comptes rendus, consultation selon les rapports effectivement attribués, archives personnelles |
 
-Permissions ajoutées : `documents.self` exige `reports.self`, `documents.minutes` exige `reports.assigned`, `documents.view` exige `reports.view`, `documents.archive` conserve le périmètre des sources. Le catalogue comporte 52 permissions et 100 attributions initiales. Le type compatible et le groupe réel restent nécessaires. Les changements de droits sont pris en compte par les routes, pas seulement par le menu. Les tableaux de bord présentent les accès et compteurs correspondants à l’espace sélectionné.
+Permissions ajoutées : `documents.self` exige `reports.self`, `documents.minutes` exige `reports.assigned`, `documents.view` autorise les comptes rendus publiés des services compatibles, `documents.archive` conserve le périmètre des sources. La permission de consultation des comptes rendus n’accorde pas `reports.view` et ne permet pas de télécharger les mémoires sources. Le catalogue comporte 52 permissions et 100 attributions initiales. Le type compatible et le groupe réel restent nécessaires. Les changements de droits sont pris en compte par les routes, pas seulement par le menu. Les tableaux de bord présentent les accès et compteurs correspondants à l’espace sélectionné.
 
 ## Données et PDF
 

@@ -165,6 +165,20 @@ class DocumentsTest extends TestCase
         $published = $d->fresh()->latestVersion; $this->assertNotNull($published->published_at); $this->assertSame(2, $published->number);
         $this->signIn($this->person(8))->get('/documents/'.$d->id)->assertInertia(fn (Assert $p) => $p->where('version.id', $published->id)->where('canEdit', false)->where('history.total', 1));
     }
+    public function test_schooling_reads_publications_without_receiving_private_source_report_access(): void
+    {
+        [$writer, $d, $student, $round] = $this->minutes(); $draft = $d->latestVersion; $school = $this->person(3);
+        $this->assertFalse($school->can('reports.view')); $this->signIn($school)->get('/documents/'.$d->id)->assertNotFound();
+        $published = app(ManageDocuments::class)->publish($writer, $d, $this->publication($d));
+        $this->get('/documents/'.$d->id)->assertInertia(fn (Assert $p) => $p->where('version.id', $published->id)->where('canEdit', false)->where('history.total', 1));
+        $this->get('/documents/versions/'.$published->id.'/download')->assertOk()->assertDownload();
+        $this->get('/documents/versions/'.$draft->id.'/download')->assertNotFound();
+        $this->get('/documents/report-versions/'.$round->report_version_id.'/download')->assertNotFound();
+        $this->post('/my-archives', $this->bookmark('document', $published->id))->assertSessionHasNoErrors();
+        UserGroup::findOrFail(3)->permissions()->detach('documents.view');
+        $this->get('/documents/versions/'.$published->id.'/download')->assertNotFound();
+        $this->get('/my-archives')->assertInertia(fn (Assert $p) => $p->where('archives.total', 0));
+    }
     public function test_student_extract_never_contains_another_report_or_common_notes_or_internal_title(): void
     {
         [$writer, $d, $student, $round, , $second] = $this->minutes(true); $v = app(ManageDocuments::class)->publish($writer, $d, $this->publication($d));
