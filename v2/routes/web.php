@@ -27,6 +27,16 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('/progression', [\App\Http\Controllers\ProgressionController::class, 'index'])->name('progression.index');
+    Route::get('/my-progression', [\App\Http\Controllers\ProgressionController::class, 'own'])->name('progression.own');
+    Route::get('/my-progression/{enrollment}', [\App\Http\Controllers\ProgressionController::class, 'ownShow'])->whereNumber('enrollment');
+    Route::get('/settings/retake-fees', [\App\Http\Controllers\ProgressionController::class, 'fees'])->name('progression.fees');
+    Route::post('/settings/retake-fees', [\App\Http\Controllers\ProgressionController::class, 'saveFee'])->name('progression.fees.save');
+    Route::get('/progression/{enrollment}', [\App\Http\Controllers\ProgressionController::class, 'show'])->whereNumber('enrollment')->name('progression.show');
+    Route::post('/progression/{enrollment}/decisions', [\App\Http\Controllers\ProgressionController::class, 'publish'])->whereNumber('enrollment')->middleware('throttle:20,1')->name('progression.publish');
+    Route::post('/progression/decisions/{decision}/register', [\App\Http\Controllers\ProgressionController::class, 'register'])->middleware('throttle:10,1')->name('progression.register');
+    Route::post('/progression/{enrollment}/retakes/{subject}', [\App\Http\Controllers\ProgressionController::class, 'retake'])->whereNumber(['enrollment', 'subject'])->middleware('throttle:30,1')->name('progression.retake');
+
     Route::middleware('can:audit.view')->group(function () {
         Route::get('/audit', [\App\Http\Controllers\AuditController::class, 'index'])->name('audit.index');
         Route::get('/audit/export', [\App\Http\Controllers\AuditController::class, 'export'])->middleware(['can:audit.export', 'throttle:6,1'])->name('audit.export');
@@ -86,7 +96,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/password/change', [ProfileController::class, 'password'])->name('password.edit');
     Route::patch('/password', [ProfileController::class, 'updatePassword'])->middleware('throttle:10,1')->name('password.update');
     Route::get('/settings', function (Request $request) {
-        abort_unless($request->user()->can('users.view') || $request->user()->can('groups.view') || $request->user()->can('academic.view') || $request->user()->can('schooling.view') || $request->user()->can('audit.view'), 403);
+        abort_unless($request->user()->can('users.view') || $request->user()->can('groups.view') || $request->user()->can('academic.view') || $request->user()->can('schooling.view') || $request->user()->can('audit.view') || $request->user()->can('progression.fees'), 403);
 
         return Inertia::render('settings/index');
     })->name('settings');

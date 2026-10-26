@@ -50,6 +50,7 @@ class RoleDashboard
             'teacher', 'level-manager', 'program-manager' => $this->teaching($space),
             default => null,
         };
+        $this->progression($space);
         $this->claims($space);
         $this->mailbox();
         $this->action('profile', 'Mon profil', '/profile', 'user');
@@ -72,6 +73,19 @@ class RoleDashboard
     private function item(int|string $id, string $title, string $detail, ?string $href = null, ?string $date = null, int|string|null $value = null): array
     {
         return compact('id', 'title', 'detail', 'href', 'date', 'value');
+    }
+
+    private function progression(string $space): void
+    {
+        $access = app(ProgressionAccess::class); $personal = $space === 'student';
+        if ($personal ? ! $access->personal($this->user) : (! in_array($space, ['schooling', 'platform-administrator'], true) || ! $access->view($this->user))) { return; }
+        $path = $personal ? '/my-progression' : '/progression'; $q = $access->query($this->user, $personal);
+        $this->action('progression', $personal ? 'Mon parcours annuel' : 'Bilans annuels et rattrapages', $path, 'graduate');
+        $pending = (clone $q)->whereHas('retakes', fn ($q) => $q->where('status', '!=', 'validated'))->whereHas('academicYear', fn ($q) => $q->where('status', 'current'))->whereNull('cancelled_at');
+        $this->card('retakes', $personal ? 'Mes inscriptions avec rattrapage' : 'Inscriptions avec rattrapage', $pending->count(), 'Année en cours · matières restant à valider', $path, 'graduate', 'orange');
+        $recent = $q->with(['student', 'academicYear', 'latestAnnualDecision'])->whereHas('annualDecisions')->orderByDesc('academic_year_id')->orderByDesc('id')->limit(5)->get();
+        $this->panel('progression', 'Décisions annuelles', 'Dernières années disposant d’une décision publiée.', $recent->map(fn ($e) => $this->item($e->id, $personal ? $e->academicYear->name : $e->student->last_name.' '.$e->student->first_name,
+            \App\Models\AnnualDecision::OUTCOMES[$e->latestAnnualDecision->outcome], $path.'/'.$e->id, $e->latestAnnualDecision->created_at->toIso8601String()))->all(), 'Aucune décision publiée.', $path);
     }
 
     private function claims(string $space): void

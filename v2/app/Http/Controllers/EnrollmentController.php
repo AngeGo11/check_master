@@ -153,6 +153,7 @@ class EnrollmentController extends Controller
         $stage = $enrollment->internship;
         return Inertia::render('enrollments/show', [
             'enrollment' => [...$this->summary($enrollment), ...$enrollment->only('revision', 'cancellation_reason'),
+                'progression' => $enrollment->source_annual_decision_id !== null,
                 'editable' => $eligibility['context_valid'] && (int) $enrollment->study_level_id === (int) $enrollment->student->study_level_id],
             'payments' => $enrollment->payments()->orderByDesc('id')->get()->map(fn ($p) => $this->paymentData($p)),
             'internship' => $stage ? [...$stage->only('company', 'title', 'evidence_reference'), 'starts_on' => $stage->starts_on->format('Y-m-d'), 'ends_on' => $stage->ends_on->format('Y-m-d')] : null,

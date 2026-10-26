@@ -14,7 +14,7 @@ class Eligibility
         $stage = $enrollment->internship;
         $paid = $enrollment->paidAmount();
         $context = ! $student->is_archived && ! $enrollment->cancelled_at && $year->status === 'current'
-            && (int) $student->student_status_id !== 2 && (int) $enrollment->student_status_id !== 2;
+            && ($enrollment->source_annual_decision_id !== null || ((int) $student->student_status_id !== 2 && (int) $enrollment->student_status_id !== 2));
         $criteria = [
             ['key' => 'tuition', 'label' => 'Scolarité à jour', 'met' => $paid >= $enrollment->amount_due,
                 'detail' => max(0, $enrollment->amount_due - $paid).' FCFA restant à payer sur cette inscription.'],

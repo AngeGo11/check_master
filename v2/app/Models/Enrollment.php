@@ -11,7 +11,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Enrollment extends Model
 {
     protected $attributes = ['revision' => 1];
-    protected function casts(): array { return ['amount_due' => 'integer', 'revision' => 'integer', 'enrolled_on' => 'date', 'cancelled_at' => 'datetime']; }
+    protected function casts(): array { return ['progression_data' => 'array', 'amount_due' => 'integer', 'revision' => 'integer', 'enrolled_on' => 'date', 'cancelled_at' => 'datetime']; }
+    public function annualDecisions() { return $this->hasMany(AnnualDecision::class); }
+    public function latestAnnualDecision() { return $this->hasOne(AnnualDecision::class)->latestOfMany(); }
+    public function sourceAnnualDecision() { return $this->belongsTo(AnnualDecision::class, 'source_annual_decision_id'); }
+    public function retakes() { return $this->belongsToMany(RetakeSubject::class, 'enrollment_retake')->withPivot('amount'); }
     public function student(): BelongsTo { return $this->belongsTo(Student::class); }
     public function academicYear(): BelongsTo { return $this->belongsTo(AcademicYear::class); }
     public function studyLevel(): BelongsTo { return $this->belongsTo(StudyLevel::class); }

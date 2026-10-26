@@ -38,7 +38,7 @@ class SaveGroupPermissionsRequest extends FormRequest
                 $validator->errors()->add('permissions', 'La consultation des inscriptions est nécessaire pour les règlements et l’examen d’éligibilité.');
             }
             $permissions = $this->input('permissions', []);
-            foreach (['audit.export' => 'audit.view', 'reports.forward' => 'reports.view', 'reports.vote' => 'reports.assigned', 'internships.self' => 'students.self', 'meetings.manage' => 'meetings.view', 'messages.broadcast' => 'messages.use', 'hr.manage' => 'hr.view', 'hr.catalogs.manage' => 'hr.view', 'claims.manage' => 'claims.view', 'grades.manage' => 'grades.view', 'grades.catalogs.manage' => 'grades.view', 'defenses.manage' => 'defenses.view', 'defenses.assess' => 'defenses.assigned'] as $write => $read) {
+            foreach (['progression.manage' => 'progression.view', 'progression.self' => 'grades.self', 'audit.export' => 'audit.view', 'reports.forward' => 'reports.view', 'reports.vote' => 'reports.assigned', 'internships.self' => 'students.self', 'meetings.manage' => 'meetings.view', 'messages.broadcast' => 'messages.use', 'hr.manage' => 'hr.view', 'hr.catalogs.manage' => 'hr.view', 'claims.manage' => 'claims.view', 'grades.manage' => 'grades.view', 'grades.catalogs.manage' => 'grades.view', 'defenses.manage' => 'defenses.view', 'defenses.assess' => 'defenses.assigned'] as $write => $read) {
                 if (in_array($write, $permissions, true) && ! in_array($read, $permissions, true)) { $validator->errors()->add('permissions', 'Le droit de consultation correspondant est nécessaire.'); }
             }
             foreach ($permissions as $permission) {

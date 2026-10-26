@@ -100,3 +100,6 @@ Le [lot 5](reports.md) utilise cet examen d’éligibilité pour le dépôt priv
 
 
 La consultation centralisée des actions est désormais disponible dans la [piste d’audit](audit-trail.md), réservée au groupe Administrateur plateforme. Les limites ci-dessus décrivent le périmètre du lot initial.
+
+
+Le [parcours annuel et À cheval](annual-progression.md) complète désormais ce lot avec les décisions explicites du jury, les réinscriptions et les matières à reprendre.

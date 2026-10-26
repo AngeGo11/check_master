@@ -27,6 +27,7 @@ export default function Settings() {
       </section>}
       {auth.permissions.includes('schooling.view') && <section className="panel settings-card"><span className="panel-icon"><Icon name="graduate" /></span><h2>Années et tarifs</h2><p>Définissez l’année en cours et les frais de scolarité par niveau.</p><Link href="/settings/schooling" className="button-primary">Accéder aux paramètres</Link></section>}
       {auth.permissions.includes('audit.view') && <section className="panel settings-card"><span className="panel-icon"><Icon name="clock" /></span><h2>Piste d’audit</h2><p>Retrouvez les actions enregistrées, leurs auteurs et les dossiers concernés.</p><Link href="/audit" className="button-primary">Consulter le journal</Link></section>}
+      {auth.permissions.includes('progression.fees') && <section className="panel settings-card"><span className="panel-icon"><Icon name="graduate" /></span><h2>Tarifs de rattrapage</h2><p>Configurez le supplément par matière à reprendre, par année et niveau.</p><Link href="/settings/retake-fees" className="button-primary">Configurer les tarifs</Link></section>}
     </div>
   </AppLayout>;
 }

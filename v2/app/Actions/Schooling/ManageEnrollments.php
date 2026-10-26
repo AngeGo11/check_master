@@ -22,6 +22,7 @@ class ManageEnrollments extends SchoolingAction
     {
         return $this->transact($actor, 'enrollments.manage', function () use ($actor, $data) {
             $student = Student::where('card_number', $data['card_number'])->lockForUpdate()->firstOrFail();
+            if (\App\Models\AnnualDecision::whereHas('enrollment', fn ($q) => $q->where('student_id', $student->id))->exists()) { throw ValidationException::withMessages(['card_number' => 'Utilisez la réinscription depuis la dernière décision du parcours annuel.']); }
             $year = AcademicYear::findOrFail($data['academic_year_id']);
             $this->available($student, $year, (int) $data['study_level_id']);
             $date = Carbon::parse($data['enrolled_on']);
@@ -98,7 +99,7 @@ class ManageEnrollments extends SchoolingAction
             if ($data['cancelled'] && $enrollment->paidAmount() > 0) {
                 throw ValidationException::withMessages(['cancelled' => 'Annulez les écritures erronées avant d’annuler une inscription. Aucun remboursement n’est effectué ici.']);
             }
-            if (! $data['cancelled']) { $this->available($enrollment->student, $enrollment->academicYear, (int) $enrollment->study_level_id); }
+            if (! $data['cancelled']) { $this->available($enrollment->student, $enrollment->academicYear, (int) $enrollment->study_level_id, $enrollment->source_annual_decision_id !== null); }
             $enrollment->forceFill(['cancelled_at' => $data['cancelled'] ? now() : null, 'cancellation_reason' => $data['cancelled'] ? $data['reason'] : null]);
             $this->bump($enrollment);
             $this->audit($actor, $data['cancelled'] ? 'enrollment.cancelled' : 'enrollment.restored', $enrollment->id, ['reason' => $data['reason']]);
@@ -159,14 +160,14 @@ class ManageEnrollments extends SchoolingAction
     private function active(Enrollment $enrollment): void
     {
         if ($enrollment->cancelled_at) { throw ValidationException::withMessages(['revision' => 'Cette inscription est annulée.']); }
-        $this->available($enrollment->student, $enrollment->academicYear, (int) $enrollment->study_level_id);
-        if ((int) $enrollment->student_status_id === 2) { throw ValidationException::withMessages(['revision' => 'Les inscriptions À cheval nécessitent le module de rattrapage.']); }
+        $this->available($enrollment->student, $enrollment->academicYear, (int) $enrollment->study_level_id, $enrollment->source_annual_decision_id !== null);
+        if ((int) $enrollment->student_status_id === 2 && ! $enrollment->source_annual_decision_id) { throw ValidationException::withMessages(['revision' => 'Les inscriptions À cheval nécessitent le module de rattrapage.']); }
     }
-    private function available(Student $student, AcademicYear $year, int $level): void
+    private function available(Student $student, AcademicYear $year, int $level, bool $managed = false): void
     {
         if ($year->status !== 'current') { throw ValidationException::withMessages(['academic_year_id' => 'L’année académique doit être en cours.']); }
         if ($student->is_archived) { throw ValidationException::withMessages(['card_number' => 'Le dossier étudiant est archivé.']); }
-        if ((int) $student->student_status_id === 2) { throw ValidationException::withMessages(['card_number' => 'Le tarif À cheval dépend des matières à rattraper. Ce parcours n’est pas encore disponible.']); }
+        if ((int) $student->student_status_id === 2 && ! $managed) { throw ValidationException::withMessages(['card_number' => 'Le tarif À cheval dépend des matières à reprendre. Utilisez une décision du parcours annuel pour la réinscription.']); }
         if ((int) $student->study_level_id !== $level) { throw ValidationException::withMessages(['study_level_id' => 'Le niveau doit correspondre au dossier étudiant.']); }
     }
 }

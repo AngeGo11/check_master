@@ -42,7 +42,7 @@ class StudentClaimsTest extends TestCase
 
     public function test_access_catalog_and_distinct_personal_service_assigned_routes(): void
     {
-        $this->assertDatabaseCount('permissions', 44); $this->assertDatabaseCount('group_permission', 81);
+        $this->assertDatabaseCount('permissions', 48); $this->assertDatabaseCount('group_permission', 86);
         $this->get('/my-claims')->assertRedirect('/login'); $this->get('/claims')->assertRedirect('/login');
         foreach ([2, 4, 5, 6, 9] as $g) { $this->signIn($this->person($g))->get('/claims')->assertForbidden(); $this->get('/my-claims')->assertForbidden(); }
         foreach ([3, 8] as $g) { $this->signIn($this->person($g))->get('/claims')->assertOk(); $this->get('/my-claims/create')->assertForbidden(); }
