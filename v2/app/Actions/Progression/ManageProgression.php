@@ -8,7 +8,15 @@ use Illuminate\Validation\ValidationException;
 class ManageProgression
 {
     private function fail(string $field, string $message): never { throw ValidationException::withMessages([$field => $message]); }
-    private function hash(array $data): string { return hash('sha256', json_encode($data, JSON_THROW_ON_ERROR)); }
+    private function hash(array $data): string
+    {
+        // HTTP validation may reorder fields or keep numeric form values as strings.
+        foreach (['revision', 'academic_year_id'] as $field) { if (isset($data[$field])) { $data[$field] = (int) $data[$field]; } }
+        if (array_key_exists('partial_confirmed', $data)) { $data['partial_confirmed'] = (bool) $data['partial_confirmed']; }
+        if (array_key_exists('score', $data)) { $data['score'] = GradeCalculator::score($data['score']); }
+        ksort($data);
+        return hash('sha256', json_encode($data, JSON_THROW_ON_ERROR));
+    }
     private function editable(User $actor, Enrollment $e): void { abort_unless(app(ProgressionAccess::class)->canEdit($actor, $e), 403); }
 
     public function publish(User $actor, Enrollment $target, array $data): AnnualDecision

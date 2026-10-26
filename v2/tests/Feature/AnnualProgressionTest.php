@@ -154,6 +154,8 @@ class AnnualProgressionTest extends TestCase
         $this->assertSame(2, (int) $new->student->student_status_id);
         $this->assertDatabaseCount('retake_subjects', 1); $this->assertDatabaseCount('enrollment_retake', 1); $this->assertDatabaseCount('tuition_payments', 0);
         $this->signIn($school)->post('/progression/decisions/'.$d->id.'/register', $data)->assertRedirect('/enrollments/'.$new->id);
+        $this->post('/progression/decisions/'.$d->id.'/register', array_reverse([...$data, 'revision' => (string) $data['revision'], 'academic_year_id' => (string) $data['academic_year_id']], true))->assertRedirect('/enrollments/'.$new->id);
+        $this->assertDatabaseCount('enrollments', 2);
         $this->post('/progression/decisions/'.$d->id.'/register', [...$data, 'operation_key' => (string) Str::uuid()])->assertSessionHasErrors('operation_key');
         $admin = $this->person(8); $a = app(ManageEnrollments::class);
         $a->recordPayment($admin, $new, ['revision' => 1, 'operation_key' => (string) Str::uuid(), 'amount' => 225000, 'method' => 'cash', 'cheque_number' => null, 'purpose' => 'Scolarité et rattrapage', 'paid_on' => today()->format('Y-m-d')]);
