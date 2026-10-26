@@ -57,7 +57,7 @@ class ManageProgression
             if (! hash_equals($d->source_fingerprint, $snapshot['fingerprint']) || ! $snapshot['known_ready']) { $this->fail('decision', 'Le bilan a changé depuis cette décision. Publiez une décision actualisée.'); }
             $year = AcademicYear::findOrFail($data['academic_year_id']); $student = $e->student()->lockForUpdate()->firstOrFail();
             if ($year->status !== 'current' || ! $year->starts_on->gt($e->academicYear->ends_on)) { $this->fail('academic_year_id', 'Choisissez une année en cours commençant après la fin de l’année d’origine.'); }
-            if (Enrollment::where('student_id', $student->id)->whereHas('academicYear', fn ($q) => $q->where('starts_on', '>', $e->academicYear->starts_on->format('Y-m-d')))->exists()) { $this->fail('decision', 'Une inscription plus récente existe déjà. Reprenez le dernier parcours de cet étudiant.'); }
+            if (Enrollment::where('student_id', $student->id)->where('id', '!=', $e->id)->whereHas('academicYear', fn ($q) => $q->whereDate('starts_on', '>', $e->academicYear->starts_on->format('Y-m-d')))->exists()) { $this->fail('decision', 'Une inscription plus récente existe déjà. Reprenez le dernier parcours de cet étudiant.'); }
             if ((int) $student->study_level_id !== (int) $e->study_level_id) { $this->fail('student', 'Le niveau actuel du dossier a changé. Vérifiez son parcours avant de réinscrire.'); }
             if (Enrollment::where('student_id', $student->id)->where('academic_year_id', $year->id)->exists()) { $this->fail('academic_year_id', 'Une inscription existe déjà pour cet étudiant et cette année, éventuellement annulée.'); }
             $date = Carbon::parse($data['enrolled_on']);

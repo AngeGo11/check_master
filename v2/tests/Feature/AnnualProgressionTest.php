@@ -93,6 +93,26 @@ class AnnualProgressionTest extends TestCase
         $this->signIn($student)->get('/my-progression/'.$e->id)->assertInertia(fn (Assert $p) => $p->where('summary.complete', false)->where('summary.available_average', 12)->where('summary.subjects.0.score', 12)->missing('summary.fingerprint'));
         $this->signIn($school)->post('/progression/'.$e->id.'/decisions', $this->decisionData($e))->assertSessionHasErrors('decision');
     }
+    public function test_annual_average_weights_real_semester_credits_before_rounding(): void
+    {
+        [$student, $e] = $this->enrollment(); $school = $this->person(3);
+        foreach ([1 => [1, 2], 2 => [1]] as $semester => $credits) {
+            $units = []; $marks = [];
+            foreach ($credits as $index => $credit) {
+                $code = 'S'.$semester.'U'.$index;
+                $units[] = ['code' => $code, 'name' => 'Matière fictive '.$code, 'credits' => $credit, 'hours' => 10, 'components' => []];
+                $marks['ue:'.$code] = $index === 0 ? '10.01' : '10.00';
+            }
+            $this->program(semester: $semester, units: $units);
+            $a = app(ManageGrades::class); $s = $a->create($school, ['enrollment_id' => $e->id, 'semester_id' => $semester]);
+            $a->save($school, $s, ['revision' => $s->revision, 'marks' => $marks]);
+            $a->publish($school, $s, ['revision' => $s->fresh()->revision, 'decision' => 'pending', 'reason' => 'Publication fictive pour vérifier les arrondis']);
+        }
+        // 40.02 points pondérés / 4 crédits = 10.005, soit 10.01 après un seul arrondi.
+        $summary = app(AnnualProgression::class)->build($e);
+        $this->assertSame(4, $summary['credits']); $this->assertSame(10.01, $summary['average']);
+        $this->assertEquals([10, 10.01], array_column($summary['semesters'], 'average'));
+    }
     public function test_missing_known_semester_is_never_replaced_by_zero_or_overridden_by_acknowledgement(): void
     {
         [$school, $student, $s] = $this->sheet(); $this->publishSheet($school, $s); $e = $s->enrollment;
@@ -282,6 +302,15 @@ class AnnualProgressionTest extends TestCase
         UserGroup::findOrFail(3)->permissions()->detach('enrollments.manage');
         $this->post('/progression/decisions/'.$d->id.'/register', $data)->assertForbidden();
         $this->assertDatabaseCount('enrollments', 1);
+    }
+    public function test_an_existing_later_enrollment_blocks_reusing_an_old_decision(): void
+    {
+        [$school, $student, $e] = $this->annual(); $d = $this->decide($school, $e, 'repeat'); $year = $this->newYear($e, 1);
+        $existing = new Enrollment; $existing->forceFill(['reference' => 'REG-'.Str::ulid(), 'student_id' => $e->student_id, 'academic_year_id' => $year->id,
+            'study_level_id' => 1, 'tuition_fee_id' => TuitionFee::where('academic_year_id', $year->id)->firstOrFail()->id,
+            'student_status_id' => 3, 'amount_due' => 200000, 'enrolled_on' => today()->format('Y-m-d')])->save();
+        $this->signIn($school)->post('/progression/decisions/'.$d->id.'/register', $this->registerData($d, $year))->assertSessionHasErrors('decision');
+        $this->assertDatabaseCount('enrollments', 2); $this->assertNull($d->fresh()->nextEnrollment);
     }
     public function test_archived_cancelled_and_inactive_accounts_cannot_publish_decisions(): void
     {
