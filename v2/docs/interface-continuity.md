@@ -93,3 +93,8 @@ Le tableau de bord conserve la structure Check Master : titre d’accueil, carte
 ## Réclamations étudiantes
 
 Les vues historiques de dépôt et de traitement sont reprises dans la même navigation : Mes réclamations pour l’étudiant, Réclamations étudiantes pour la scolarité, l’administration et la filière. Les cartes, filtres et tableaux utilisent les composants existants. L’historique présente les réponses successives, avec des états explicites distinguant transmission et traitement final. Les matières proviennent de la publication choisie quand la demande porte sur un bulletin ; un sujet libre reste disponible pour les autres demandes. Les tableaux de bord des quatre groupes concernés ouvrent ces listes avec leur périmètre propre. Voir le [guide de recette](student-claims.md).
+
+
+## Documents et archives
+
+Les vues historiques `archivage_documents.php`, `archives.php` et `redaction_compte_rendu.php` restent les repères de navigation : titre, cartes, recherche, tableau des versions et actions de consultation. L’éditeur ajoute des sections structurées dans les formulaires existants, un aperçu du texte, des notes de version et un téléchargement PDF privé. La publication et les extraits individuels rendent les destinataires explicites. Les archives personnelles distinguent les versions conservées et les références retirées. Les logos, la palette, Poppins et le cadre général restent inchangés. Voir le [guide du lot](documents-archives.md) pour la recette et les limites.

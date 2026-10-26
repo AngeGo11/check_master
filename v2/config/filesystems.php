@@ -29,6 +29,7 @@ return [
     */
 
     'disks' => [
+        'documents' => ['driver' => 'local', 'root' => storage_path('app/private/documents'), 'serve' => false, 'visibility' => 'private', 'throw' => true],
         'claims' => ['driver' => 'local', 'root' => storage_path('app/private/claims'), 'serve' => false, 'visibility' => 'private', 'throw' => true],
         'staff' => ['driver' => 'local', 'root' => storage_path('app/private/staff'), 'serve' => false, 'visibility' => 'private', 'throw' => true],
         'meetings' => ['driver' => 'local', 'root' => storage_path('app/private/meetings'), 'serve' => false, 'visibility' => 'private', 'throw' => true],

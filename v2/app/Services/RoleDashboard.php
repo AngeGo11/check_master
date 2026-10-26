@@ -50,6 +50,7 @@ class RoleDashboard
             'teacher', 'level-manager', 'program-manager' => $this->teaching($space),
             default => null,
         };
+        $this->documents($space);
         $this->progression($space);
         $this->claims($space);
         $this->mailbox();
@@ -73,6 +74,24 @@ class RoleDashboard
     private function item(int|string $id, string $title, string $detail, ?string $href = null, ?string $date = null, int|string|null $value = null): array
     {
         return compact('id', 'title', 'detail', 'href', 'date', 'value');
+    }
+
+    private function documents(string $space): void
+    {
+        $a = app(DocumentAccess::class); $q = $a->fullVersions($this->user);
+        if ($a->archive($this->user)) { $this->action('archives', 'Mes archives', '/my-archives', 'document'); }
+        if ($space === 'student' && $a->personal($this->user)) {
+            $this->action('documents', 'Rédiger mon mémoire', '/documents?kind=personal', 'document');
+            $this->card('minute_extracts', 'Mes extraits de comptes rendus', $a->ownEntries($this->user)->count(), 'Versions publiées qui concernent votre rapport', '/documents/extracts', 'document');
+            return;
+        }
+        if ($space === 'validation-committee' && $a->writer($this->user)) {
+            $q->whereDoesntHave('entries', fn ($q) => $q->whereNotIn('report_version_id', \App\Models\ReportVersion::whereHas('rounds.members', fn ($q) => $q->where('user_id', $this->user->id))->select('id')));
+        } elseif (in_array($space, ['communications', 'schooling', 'platform-administrator'], true) && $a->reader($this->user)) { $q->whereNotNull('published_at'); }
+        else { return; }
+        $q->whereHas('document', fn ($q) => $q->where('kind', 'minutes'));
+        $this->action('documents', 'Comptes rendus et documents', '/documents?kind=minutes', 'document');
+        $this->card('minutes', 'Comptes rendus accessibles', $q->distinct()->count('work_document_id'), 'Selon vos droits sur les rapports concernés', '/documents?kind=minutes', 'document');
     }
 
     private function progression(string $space): void

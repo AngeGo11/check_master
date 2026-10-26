@@ -70,4 +70,7 @@ Ouvrir **http://localhost:8085** et se connecter avec le compte administrateur d
 6. Se connecter en étudiant, scolarité ou membre de commission. Le menu d’audit doit être absent et les URL `/audit`, `/audit/export` et les détails doivent être refusés.
 7. Vérifier la navigation au clavier et l’affichage sur écran étroit : filtres lisibles, tableau défilable et détail sur une colonne.
 
-Les tests automatisés couvrent les droits, les huit sources, les dates, les filtres combinés, l’ordre/pagination, les redactions, le CSV et sa limite, l’absence de routes de modification et la limitation des téléchargements. `scripts/check.sh` exécute aussi les requêtes d’audit en lecture seule sur le MySQL de Docker, en complément des tests fonctionnels SQLite, puis le contrôle HTTP Nginx/PHP/connexion. La recette visuelle réelle sur Mac reste à effectuer.
+Les tests automatisés couvrent les droits, les neuf sources, les dates, les filtres combinés, l’ordre/pagination, les redactions, le CSV et sa limite, l’absence de routes de modification et la limitation des téléchargements. `scripts/check.sh` exécute aussi les requêtes d’audit en lecture seule sur le MySQL de Docker, en complément des tests fonctionnels SQLite, puis le contrôle HTTP Nginx/PHP/connexion. La recette visuelle réelle sur Mac reste à effectuer.
+
+
+Le lot Documents ajoute la source `documents` (`document_events`) : création, nouvelle version, publication et archivage personnel. Seules les références et métadonnées autorisées sont exposées ; aucun texte, synthèse, PDF ou chemin de stockage ne figure dans le journal.
