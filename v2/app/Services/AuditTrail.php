@@ -12,6 +12,7 @@ class AuditTrail
     public const EXPORT_LIMIT = 10000;
     // Table and column identifiers are exclusively server-owned, never request values.
     public const SOURCES = [
+        'documents' => ['table' => 'document_events', 'label' => 'Documents et archives', 'targets' => ['work_document_id' => 'Document', 'work_document_version_id' => 'Version', 'personal_archive_id' => 'Archive personnelle']],
         'access' => ['table' => 'access_audits', 'label' => 'Comptes et accès', 'targets' => ['target_user_id' => 'Compte', 'target_group_id' => 'Groupe']],
         'students' => ['table' => 'student_audits', 'label' => 'Dossiers étudiants', 'targets' => ['student_id' => 'Étudiant', 'promotion_id' => 'Promotion']],
         'schooling' => ['table' => 'enrollment_audits', 'label' => 'Inscriptions et règlements', 'targets' => ['enrollment_id' => 'Inscription']],
@@ -22,6 +23,7 @@ class AuditTrail
         'claims' => ['table' => 'claim_events', 'label' => 'Réclamations', 'targets' => ['student_claim_id' => 'Réclamation']],
     ];
     private const ACTIONS = [
+        'document.created' => 'Document créé', 'document.saved' => 'Version de document enregistrée', 'document.published' => 'Compte rendu publié', 'document.archive_changed' => 'Archive personnelle modifiée',
         'annual.published' => 'Décision annuelle publiée', 'annual.corrected' => 'Décision annuelle corrigée', 'progression.enrolled' => 'Réinscription après délibération', 'retake.result_recorded' => 'Résultat de rattrapage consigné', 'retake.fee_updated' => 'Tarif de rattrapage modifié',
         'user.created' => 'Compte créé', 'user.updated' => 'Compte modifié', 'user.password.changed' => 'Mot de passe modifié',
         'group.permissions.updated' => 'Permissions modifiées', 'administrator.granted.from.console' => 'Administration accordée depuis la console',
@@ -110,7 +112,7 @@ class AuditTrail
         $metadata = is_array($metadata) ? $metadata : [];
         $details = [];
         $add = function (string $label, string $value) use (&$details) { $details[] = compact('label', 'value'); };
-        foreach (['annual_decision_id' => 'Décision annuelle', 'source_enrollment_id' => 'Inscription d’origine', 'retake_subject_id' => 'Matière à reprendre', 'retake_event_id' => 'Résultat de rattrapage', 'retake_fee_id' => 'Tarif de rattrapage', 'year_id' => 'Année', 'fee_id' => 'Tarif', 'payment_id' => 'Règlement', 'internship_id' => 'Stage', 'review_id' => 'Examen',
+        foreach (['work_document_version_id' => 'Version du document de travail', 'annual_decision_id' => 'Décision annuelle', 'source_enrollment_id' => 'Inscription d’origine', 'retake_subject_id' => 'Matière à reprendre', 'retake_event_id' => 'Résultat de rattrapage', 'retake_fee_id' => 'Tarif de rattrapage', 'year_id' => 'Année', 'fee_id' => 'Tarif', 'payment_id' => 'Règlement', 'internship_id' => 'Stage', 'review_id' => 'Examen',
             'round_id' => 'Commission', 'vote_id' => 'Avis', 'document_id' => 'Document', 'photo_id' => 'Photo', 'sheet_id' => 'Feuille de notes',
             'publication_id' => 'Publication', 'reference_id' => 'Référentiel', 'user_id' => 'Compte rattaché', 'previous_user_id' => 'Ancien compte'] as $key => $label) {
             if (isset($metadata[$key]) && is_numeric($metadata[$key]) && (int) $metadata[$key] > 0) { $add($label, '#'.(int) $metadata[$key]); }

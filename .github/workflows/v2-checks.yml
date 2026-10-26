@@ -2,7 +2,7 @@ name: Check Master v2
 
 on:
   push:
-    branches: [refactor/v2-foundation, refactor/v2-access-control, refactor/v2-students, refactor/v2-enrollments, refactor/v2-reports, fix/v2-report-workflow, refactor/v2-meetings-messaging, refactor/v2-human-resources, refactor/v2-defenses-grades, refactor/v2-role-dashboards, refactor/v2-student-claims, refactor/v2-audit-trail, refactor/v2-annual-progression]
+    branches: [refactor/v2-foundation, refactor/v2-access-control, refactor/v2-students, refactor/v2-enrollments, refactor/v2-reports, fix/v2-report-workflow, refactor/v2-meetings-messaging, refactor/v2-human-resources, refactor/v2-defenses-grades, refactor/v2-role-dashboards, refactor/v2-student-claims, refactor/v2-audit-trail, refactor/v2-annual-progression, refactor/v2-documents]
     paths: ['v2/**', '.github/workflows/v2-checks.yml']
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -38,8 +38,18 @@ jobs:
           for ($i = 0; $i < 2; $i++) { $migration->down(); $migration->up(); }
           echo "Audit migration: two MySQL round trips completed.\n";
           PHP
-      - name: Check access, schooling, reports, meetings, messaging, HR, grades, defenses, role dashboards, student claims, audit trail, annual progression and HTTP availability
+      - name: Check all business modules, documents and HTTP availability
         run: bash v2/scripts/check.sh
+      - name: Generate synthetic PDF visual samples
+        working-directory: v2
+        run: docker compose exec -T app php scripts/sample-document-pdf.php
+      - name: Preserve synthetic PDF samples
+        uses: actions/upload-artifact@v4
+        with:
+          name: document-pdf-samples
+          path: v2/storage/app/private/document-samples/*.pdf
+          if-no-files-found: error
+          retention-days: 7
       - name: Preserve the exact dependency versions that passed
         uses: actions/upload-artifact@v4
         with:

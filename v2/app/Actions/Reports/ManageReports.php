@@ -26,14 +26,20 @@ class ManageReports
 {
     public function __construct(private ReportFiles $files, private Eligibility $eligibility, private ReportAccess $access) {}
 
-    public function submit(User $actor, array $data, UploadedFile $file): Report
+    public function submit(User $actor, array $data, UploadedFile $file, ?int $sourceDocumentVersion = null): Report
     {
         $digest = $this->files->fingerprint($file);
         $storedPath = null;
         try {
-            return $this->locked($actor, 'reports.self', function () use ($actor, $data, $file, $digest, &$storedPath) {
+            return $this->locked($actor, 'reports.self', function () use ($actor, $data, $file, $digest, $sourceDocumentVersion, &$storedPath) {
                 abort_unless($actor->fresh()->types()->where('user_types.id', 1)->exists(), 403);
                 $student = Student::where('user_id', $actor->id)->lockForUpdate()->firstOrFail();
+                if ($sourceDocumentVersion !== null) {
+                    $access = app(\App\Services\DocumentAccess::class); $fresh = $actor->fresh();
+                    abort_unless($access->personal($fresh), 403);
+                    $source = $access->fullVersions($fresh)->whereHas('document', fn ($q) => $q->where('kind', 'personal')->where('student_id', $student->id))->findOrFail($sourceDocumentVersion);
+                    abort_unless(hash_equals($source->sha256, $digest), 422);
+                }
                 $enrollment = Enrollment::where('student_id', $student->id)->whereKey($data['enrollment_id'])->lockForUpdate()->firstOrFail();
                 $existing = ReportVersion::where('operation_key', $data['operation_key'])->first();
                 if ($existing) {
@@ -61,7 +67,7 @@ class ManageReports
                     'eligibility_review_id' => null, 'eligibility_snapshot' => ['criteria' => $decision['criteria'], 'fingerprint' => $decision['fingerprint']], 'number' => $number, 'title' => $data['title'],
                     'storage_path' => $storedPath, 'size' => $file->getSize(), 'sha256' => $digest,
                     'operation_key' => $data['operation_key'], 'created_at' => now()])->save();
-                $this->audit($actor, $report, $version, 'report.submitted', ['number' => $number, 'eligibility_fingerprint' => $decision['fingerprint']]);
+                $this->audit($actor, $report, $version, 'report.submitted', ['number' => $number, 'eligibility_fingerprint' => $decision['fingerprint'], 'work_document_version_id' => $sourceDocumentVersion]);
                 return $report;
             });
         } catch (Throwable $error) {

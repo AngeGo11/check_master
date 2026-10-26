@@ -72,7 +72,7 @@ class AnnualProgressionTest extends TestCase
         $this->signIn($this->person(1))->get('/my-progression/'.$e->id)->assertNotFound();
         $admin = $this->person(8); $this->signIn($admin)->get('/progression/'.$e->id)->assertOk()->assertInertia(fn (Assert $p) => $p->where('canDecide', false));
         $this->post('/progression/'.$e->id.'/decisions', $this->decisionData($e))->assertForbidden(); $this->get('/settings/retake-fees')->assertOk();
-        $this->assertDatabaseCount('permissions', 48); $this->assertDatabaseCount('group_permission', 86);
+        $this->assertDatabaseCount('permissions', 52); $this->assertDatabaseCount('group_permission', 100);
     }
     public function test_incompatible_groups_bad_grants_revoked_access_and_self_assessment_are_rejected(): void
     {

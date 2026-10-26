@@ -1,0 +1,9 @@
+export type Section = { heading: string; body: string; style: string };
+export type SourceSnapshot = { report_reference: string; report_title: string; report_number: number; student: string; card_number: string; year: string; round_number: number; status: string; closed_at: string; members: number; approved: number };
+export type Source = { round_id: number; source_fingerprint: string; snapshot: SourceSnapshot };
+export type EntryDraft = Source & { body: string };
+export type Bookmark = { source_type: string; source_id: number; revision: number; active: boolean; operation_key: string };
+export type DocumentSummary = { id: number; document_id: number; reference: string; kind: string; format: string; number: number; title: string; actor_name: string; size: number; published: boolean; created_at: string };
+export type DocumentVersion = DocumentSummary & { sections: Section[]; entries: { id: number; body: string; snapshot: SourceSnapshot }[]; reason: string; publication_reference: string | null };
+export type DocumentDraft = { id: number; reference: string; kind: string; format: string; revision: number; title: string; sections: Section[]; entries: EntryDraft[] };
+export type Extract = { id: number; reference: string; number: number; body: string; snapshot: SourceSnapshot; actor_name: string; publication_reference: string; created_at: string };

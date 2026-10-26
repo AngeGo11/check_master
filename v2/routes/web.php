@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ClaimController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Settings\UserController;
@@ -27,6 +28,24 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('/documents', [DocumentController::class, 'index']);
+    Route::get('/documents/create', [DocumentController::class, 'create']);
+    Route::get('/documents/sources', [DocumentController::class, 'sources']);
+    Route::get('/documents/reports', [DocumentController::class, 'reports']);
+    Route::get('/documents/extracts', [DocumentController::class, 'extracts']);
+    Route::get('/documents/extracts/{entry}', [DocumentController::class, 'extractShow'])->whereNumber('entry');
+    Route::get('/documents/extracts/{entry}/download', [DocumentController::class, 'extractDownload'])->whereNumber('entry')->middleware('throttle:30,1');
+    Route::get('/documents/versions/{version}/download', [DocumentController::class, 'download'])->whereNumber('version');
+    Route::get('/documents/report-versions/{version}/download', [DocumentController::class, 'reportDownload'])->whereNumber('version');
+    Route::get('/my-archives', [DocumentController::class, 'archives']);
+    Route::post('/my-archives', [DocumentController::class, 'archive'])->middleware('throttle:30,1')->name('documents.archive');
+    Route::post('/documents', [DocumentController::class, 'store'])->middleware('throttle:10,1')->name('documents.store');
+    Route::get('/documents/{document}', [DocumentController::class, 'show'])->whereNumber('document');
+    Route::get('/documents/{document}/edit', [DocumentController::class, 'edit'])->whereNumber('document');
+    Route::post('/documents/{document}/versions', [DocumentController::class, 'save'])->whereNumber('document')->middleware('throttle:20,1')->name('documents.save');
+    Route::post('/documents/{document}/publish', [DocumentController::class, 'publish'])->whereNumber('document')->middleware('throttle:10,1')->name('documents.publish');
+    Route::post('/documents/versions/{version}/deposit', [DocumentController::class, 'deposit'])->whereNumber('version')->middleware('throttle:10,1')->name('documents.deposit');
+
     Route::get('/progression', [\App\Http\Controllers\ProgressionController::class, 'index'])->name('progression.index');
     Route::get('/my-progression', [\App\Http\Controllers\ProgressionController::class, 'own'])->name('progression.own');
     Route::get('/my-progression/{enrollment}', [\App\Http\Controllers\ProgressionController::class, 'ownShow'])->whereNumber('enrollment');

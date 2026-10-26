@@ -49,7 +49,7 @@ class AuditTrailTest extends TestCase
             foreach (['/audit', '/audit/access/'.$id, '/audit/export'] as $url) { $this->get($url)->assertForbidden(); }
         }
         $this->signIn($this->person(8))->get('/audit')->assertOk(); $this->get('/audit/access/'.$id)->assertOk(); $this->csv();
-        $this->assertDatabaseCount('permissions', 48); $this->assertDatabaseCount('group_permission', 86);
+        $this->assertDatabaseCount('permissions', 52); $this->assertDatabaseCount('group_permission', 100);
     }
 
     public function test_group_and_type_compatibility_cannot_be_bypassed_by_bad_direct_grants(): void
@@ -90,16 +90,16 @@ class AuditTrailTest extends TestCase
         $this->assertArrayNotHasKey('audit', app(RoleDashboard::class)->build($u)['actions']);
     }
 
-    public function test_all_eight_sources_are_present_without_copying_or_overwriting_events(): void
+    public function test_all_nine_sources_are_present_without_copying_or_overwriting_events(): void
     {
         $admin = $this->person(8); $this->person(9);
         [$report] = $this->transmittedReport(); [$student, $e] = $this->enrollment();
         $this->event(actor: $admin); $this->event('students', $admin, 'student.created', columns: ['student_id' => $e->student_id]);
-        $this->event('staff', $admin, 'staff.created'); $this->event('academic', $admin, 'program.created'); $this->messageFixture();
+        $this->event('documents', $admin, 'document.created'); $this->event('staff', $admin, 'staff.created'); $this->event('academic', $admin, 'program.created'); $this->messageFixture();
         $claim = app(ManageClaims::class)->create($student, ['enrollment_id' => $e->id, 'subject' => 'Objet confidentiel', 'body' => 'Réclamation privée test', 'grade_publication_id' => null, 'subject_keys' => [], 'operation_key' => (string) Str::uuid()], null);
         $before = collect(AuditTrail::SOURCES)->mapWithKeys(fn ($d, $s) => [$s => DB::table($d['table'])->count()])->all();
-        $this->signIn($admin)->get('/audit')->assertInertia(fn (Assert $p) => $p->component('audit/index')->where('statistics.modules', 8)->where('statistics.total', array_sum($before))->where('events.total', array_sum($before))->has('modules', 8));
-        $rows = app(AuditTrail::class)->query()->get(); $this->assertCount(8, $rows->pluck('source')->unique());
+        $this->signIn($admin)->get('/audit')->assertInertia(fn (Assert $p) => $p->component('audit/index')->where('statistics.modules', 9)->where('statistics.total', array_sum($before))->where('events.total', array_sum($before))->has('modules', 9));
+        $rows = app(AuditTrail::class)->query()->get(); $this->assertCount(9, $rows->pluck('source')->unique());
         foreach ($rows as $row) {
             $this->get('/audit/'.$row->source.'/'.$row->event_id)->assertOk()->assertInertia(fn (Assert $p) => $p->component('audit/show')->where('event.key', $row->source.':'.$row->event_id)->missing('event.metadata')->missing('event.body'));
         }
@@ -244,7 +244,7 @@ class AuditTrailTest extends TestCase
             $this->assertEquals($before, DB::table('access_audits')->find($id));
             $migration->up();
             $this->assertDatabaseHas('group_permission', ['user_group_id' => 8, 'permission_code' => 'audit.export']);
-            $this->assertDatabaseCount('permissions', 48); $this->assertDatabaseCount('group_permission', 86);
+            $this->assertDatabaseCount('permissions', 52); $this->assertDatabaseCount('group_permission', 100);
         }
         $this->signIn($u)->get('/audit')->assertInertia(fn (Assert $p) => $p->where('events.total', 1));
     }
