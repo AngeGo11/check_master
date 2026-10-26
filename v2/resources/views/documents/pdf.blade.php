@@ -14,7 +14,10 @@ h2 { color: #1a5276; font-size: 13pt; margin: 22px 0 8px; page-break-after: avoi
 .source { background: #eef4f8; padding: 12px; font-size: 9pt; }
 .entry { margin-top: 24px; }
 footer { position: fixed; bottom: -12mm; color: #526478; font-size: 8pt; border-top: 1px solid #d9e2e8; width: 100%; padding-top: 5px; }
+.pagination { float: right; }
+.page-number:before { content: counter(page); }
 </style></head><body>
+<footer><span class="pagination">Page <span class="page-number"></span></span>{{ $reference }} · Version {{ $number }} · Document confidentiel</footer>
 <header><div class="brand">CHECK MASTER · MIAGE</div><div class="meta">{{ $reference }} · Version {{ $number }} · {{ $date }}</div></header>
 <h1>{{ $title }}</h1>
 @if($kind === 'minutes')
@@ -34,5 +37,4 @@ footer { position: fixed; bottom: -12mm; color: #526478; font-size: 8pt; border-
     · {{ $entry['snapshot']['approved'] }} / {{ $entry['snapshot']['members'] }} approbations</div>
     <div class="text">{{ $entry['body'] }}</div></section>
 @endforeach
-<footer>{{ $reference }} · Version {{ $number }} · Document confidentiel</footer>
 </body></html>
